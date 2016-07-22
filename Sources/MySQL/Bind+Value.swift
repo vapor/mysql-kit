@@ -1,5 +1,3 @@
-import Foundation
-
 #if os(Linux)
     import CMySQLLinux
 #else
