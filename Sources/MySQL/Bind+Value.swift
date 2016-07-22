@@ -1,3 +1,5 @@
+import Foundation
+
 #if os(Linux)
     import CMySQLLinux
 #else
@@ -37,8 +39,11 @@ extension Bind {
                  MYSQL_TYPE_NEWDECIMAL,
                  MYSQL_TYPE_ENUM,
                  MYSQL_TYPE_SET:
-                let string = String(cString: cast(buffer, Bind.Char.self))
-                value = .string(string)
+                let buffer = UnsafeMutableBufferPointer(
+                    start: cast(buffer, UInt8.self),
+                    count: Int(cBind.length.pointee) / sizeof(UInt8.self)
+                )
+                value = .string(buffer.string)
             case MYSQL_TYPE_LONG:
                 if cBind.is_unsigned == 1 {
                     let uint = unwrap(buffer, UInt32.self)
@@ -64,5 +69,23 @@ extension Bind {
         }
         
         return value
+    }
+}
+
+extension Sequence where Iterator.Element == UInt8 {
+    var string: String {
+        var utf = UTF8()
+        var gen = makeIterator()
+        var str = String()
+        while true {
+            switch utf.decode(&gen) {
+            case .emptyInput:
+                return str
+            case .error:
+                break
+            case .scalarValue(let unicodeScalar):
+                str.append(unicodeScalar)
+            }
+        }
     }
 }
