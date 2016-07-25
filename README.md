@@ -131,4 +131,3 @@ Node has been tested on OS X 10.11, Ubuntu 14.04, and Ubuntu 15.10.
 ## 👥 Author
 
 Created by [Tanner Nelson](https://github.com/tannernelson).
-
