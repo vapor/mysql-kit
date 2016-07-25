@@ -18,8 +18,8 @@ public final class Binds {
         Creastes an array of input bindings
         from values.
     */
-    public convenience init(_ values: [Value]) {
-        let binds = values.map { $0.bind }
+    public convenience init(_ values: [NodeRepresentable]) throws {
+        let binds = try values.map { try $0.makeNode().bind }
         self.init(binds)
     }
 

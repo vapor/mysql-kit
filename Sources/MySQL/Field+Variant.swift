@@ -63,6 +63,8 @@ extension Field.Variant: CustomStringConvertible {
             return "Spatial field"
         case MYSQL_TYPE_NULL:
             return "NULL-type field"
+        case MYSQL_TYPE_JSON:
+            return "JSON field"
         default:
             return "unknown"
         }

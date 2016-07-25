@@ -3,18 +3,18 @@
 #else
     import CMySQLMac
 #endif
+import Core
+import JSON
 
 extension Bind {
     /**
         Parses a MySQL Value object from
         an output binding.
     */
-    public var value: Value? {
+    public var value: Node {
         guard let buffer = cBind.buffer else {
             return nil
         }
-
-        let value: Value?
 
         func cast<T>(_ buffer: UnsafeMutablePointer<Void>, _ type: T.Type) -> UnsafeMutablePointer<T> {
             return UnsafeMutablePointer<T>(buffer)
@@ -25,9 +25,10 @@ extension Bind {
         }
 
         let isNull = cBind.is_null.pointee
+        let length = Int(cBind.length.pointee) / sizeof(UInt8.self)
 
         if isNull == 1 {
-            value = nil
+            return .null
         } else {
             switch variant {
             case MYSQL_TYPE_STRING,
@@ -39,34 +40,46 @@ extension Bind {
                  MYSQL_TYPE_SET:
                 let buffer = UnsafeMutableBufferPointer(
                     start: cast(buffer, UInt8.self),
-                    count: Int(cBind.length.pointee) / sizeof(UInt8.self)
+                    count: length
                 )
-                value = .string(buffer.string)
+                return .string(buffer.string)
             case MYSQL_TYPE_LONG:
                 if cBind.is_unsigned == 1 {
                     let uint = unwrap(buffer, UInt32.self)
-                    value = .uint(UInt(uint))
+                    return .number(.uint(UInt(uint)))
                 } else {
                     let int = unwrap(buffer, Int32.self)
-                    value = .int(Int(int))
+                    return .number(.int(Int(int)))
                 }
             case MYSQL_TYPE_LONGLONG:
                 if cBind.is_unsigned == 1 {
                     let uint = unwrap(buffer, UInt64.self)
-                    value = .uint(UInt(uint))
+                    return .number(.uint(UInt(uint)))
                 } else {
                     let int = unwrap(buffer, Int64.self)
-                    value = .int(Int(int))
+                    return .number(.int(Int(int)))
                 }
             case MYSQL_TYPE_DOUBLE:
                 let double = unwrap(buffer, Double.self)
-                value = .double(double)
+                return .number(.double(double))
+            case MYSQL_TYPE_JSON:
+                let buffer = UnsafeMutableBufferPointer(
+                    start: cast(buffer, UInt8.self),
+                    count: length
+                )
+                let bytes = Array(buffer)
+
+                do {
+                    return try JSON(bytes: bytes).makeNode()
+                } catch {
+                    print("[MYSQL] Could not parse JSON.")
+                    return .null
+                }
             default:
-                value = .null
+                print("[MYSQL] Unsupported type: \(variant).")
+                return .null
             }
         }
-        
-        return value
     }
 }
 

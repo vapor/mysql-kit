@@ -1,3 +1,6 @@
+import Core
+import JSON
+
 #if os(Linux)
     import CMySQLLinux
 #else
@@ -102,6 +105,17 @@ public final class Bind {
     }
 
     /**
+        Creates an input binding from an array of bytes.
+    */
+    public convenience init(_ bytes: Bytes) {
+        let pointer = UnsafeMutablePointer<Byte>(allocatingCapacity: bytes.count)
+        for (i, byte) in bytes.enumerated() {
+            pointer[i] = byte
+        }
+        self.init(type: MYSQL_TYPE_STRING, buffer: pointer, bufferLength: bytes.count)
+    }
+
+    /**
         Creates an input binding from a field variant,
         input buffer, and input buffer length.
     */
@@ -162,22 +176,45 @@ public final class Bind {
     }
 }
 
-extension Value {
+extension Node {
     /**
         Creates in input binding from a MySQL Value.
     */
     var bind: Bind {
         switch self {
-        case .int(let int):
-            return Bind(int)
-        case .double(let double):
-            return Bind(double)
+        case .number(let number):
+            switch number {
+            case .int(let int):
+                return Bind(int)
+            case .double(let double):
+                return Bind(double)
+            case .uint(let uint):
+                return Bind(uint)
+            }
         case .string(let string):
             return Bind(string)
-        case .uint(let uint):
-            return Bind(uint)
         case .null:
             return Bind()
+        case .array(let array):
+            var bytes: Bytes = []
+            do {
+                bytes = try JSON(array).makeBytes()
+            } catch {
+                print("[MySQL] Could not convert array to JSON.")
+            }
+            return Bind(bytes)
+        case .bytes(let bytes):
+            return Bind(bytes)
+        case .object(let object):
+            var bytes: Bytes = []
+            do {
+                bytes = try JSON(object).makeBytes()
+            } catch {
+                print("[MySQL] Could not convert object to JSON.")
+            }
+            return Bind(bytes)
+        case .bool(let bool):
+            return Bind(bool ? 1 : 0)
         }
     }
 }
