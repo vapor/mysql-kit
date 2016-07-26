@@ -15,7 +15,7 @@ public final class Database {
         All Error objects contain a String which
         contains MySQL's last error message.
     */
-    public enum Error: ErrorProtocol {
+    public enum Error: Swift.Error {
         case serverInit
         case connection(String)
         case inputBind(String)
@@ -92,7 +92,7 @@ public final class Database {
             May be empty if the call does not produce data.
     */
     @discardableResult
-    public func execute(_ query: String, _ values: [Value] = [], _ on: Connection? = nil) throws -> [[String: Value]] {
+    public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ on: Connection? = nil) throws -> [[String: Node]] {
         // If not connection is supplied, make a new one.
         // This makes thread-safety default.
         let connection: Connection
@@ -120,7 +120,7 @@ public final class Database {
 
         // Transforms the `[Value]` array into bindings
         // and applies those bindings to the statement.
-        let inputBinds = Binds(values)
+        let inputBinds = try Binds(values)
         guard mysql_stmt_bind_param(statement, inputBinds.cBinds) == 0 else {
             throw Error.inputBind(connection.error)
         }
@@ -157,13 +157,13 @@ public final class Database {
                 throw Error.execute(connection.error)
             }
 
-            var results: [[String: Value]] = []
+            var results: [[String: Node]] = []
 
             // Iterate over all of the rows that are returned.
             // `mysql_stmt_fetch` will continue to return `0`
             // as long as there are rows to be fetched.
             while mysql_stmt_fetch(statement) == 0 {
-                var parsed: [String: Value] = [:]
+                var parsed: [String: Node] = [:]
 
                 // For each row, loop over all of the fields expected.
                 for (i, field) in fields.fields.enumerated() {

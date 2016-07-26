@@ -1,5 +1,7 @@
 import XCTest
 @testable import MySQL
+import JSON
+import Core
 
 class MySQLTests: XCTestCase {
     static let allTests = [
@@ -72,7 +74,7 @@ class MySQLTests: XCTestCase {
             try mysql.execute("INSERT INTO parameterization VALUES (NULL, NULL, 'life', 42)")
             try mysql.execute("INSERT INTO parameterization VALUES (NULL, -1, 'test', NULL)")
 
-            if let result = try mysql.execute("SELECT * FROM parameterization WHERE d = ?", [.string("3.14")]).first {
+            if let result = try mysql.execute("SELECT * FROM parameterization WHERE d = ?", ["3.14"]).first {
                 XCTAssertEqual(result["d"]?.double, 3.14)
                 XCTAssertEqual(result["i"]?.int, nil)
                 XCTAssertEqual(result["s"]?.string, "pi")
@@ -81,7 +83,7 @@ class MySQLTests: XCTestCase {
                 XCTFail("Could not get pi result")
             }
 
-            if let result = try mysql.execute("SELECT * FROM parameterization WHERE u = ?", [.uint(42)]).first {
+            if let result = try mysql.execute("SELECT * FROM parameterization WHERE u = ?", [Node.number(.uint(42))]).first {
                 XCTAssertEqual(result["d"]?.double, nil)
                 XCTAssertEqual(result["i"]?.int, nil)
                 XCTAssertEqual(result["s"]?.string, "life")
@@ -90,7 +92,7 @@ class MySQLTests: XCTestCase {
                 XCTFail("Could not get life result")
             }
 
-            if let result = try mysql.execute("SELECT * FROM parameterization WHERE i = ?", [.int(-1)]).first {
+            if let result = try mysql.execute("SELECT * FROM parameterization WHERE i = ?", [-1]).first {
                 XCTAssertEqual(result["d"]?.double, nil)
                 XCTAssertEqual(result["i"]?.int, -1)
                 XCTAssertEqual(result["s"]?.string, "test")
@@ -99,7 +101,7 @@ class MySQLTests: XCTestCase {
                 XCTFail("Could not get test by int result")
             }
 
-            if let result = try mysql.execute("SELECT * FROM parameterization WHERE s = ?", [.string("test")]).first {
+            if let result = try mysql.execute("SELECT * FROM parameterization WHERE s = ?", ["test"]).first {
                 XCTAssertEqual(result["d"]?.double, nil)
                 XCTAssertEqual(result["i"]?.int, -1)
                 XCTAssertEqual(result["s"]?.string, "test")
@@ -109,6 +111,47 @@ class MySQLTests: XCTestCase {
             }
         } catch {
             XCTFail("Testing tables failed: \(error)")
+        }
+    }
+
+    func testJSON() {
+        do {
+            try mysql.execute("DROP TABLE IF EXISTS json")
+            try mysql.execute("CREATE TABLE json (i INT, b VARCHAR(64), j JSON)")
+
+            let json = try JSON([
+                "string": "hello, world",
+                "int": 42
+            ])
+            let bytes = try json.makeBytes()
+
+            try mysql.execute("INSERT INTO json VALUES (?, ?, ?)", [
+                1,
+                Node.bytes(bytes),
+                json
+            ])
+
+            if let result = try mysql.execute("SELECT * FROM json").first {
+                XCTAssertEqual(result["i"]?.int, 1)
+                XCTAssertEqual(result["b"]?.string, try String(bytes: bytes))
+                XCTAssertEqual(result["j"]?.object?["string"]?.string, "hello, world")
+                XCTAssertEqual(result["j"]?.object?["int"]?.int, 42)
+            } else {
+                XCTFail("No results")
+            }
+        } catch {
+            XCTFail("Testing tables failed: \(error)")
+        }
+    }
+
+    func testError() {
+        do {
+            try mysql.execute("error")
+            XCTFail("Should have errored.")
+        } catch Database.Error.prepare(_) {
+
+        } catch {
+            XCTFail("Wrong error: \(error)")
         }
     }
 }

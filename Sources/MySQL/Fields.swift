@@ -12,7 +12,7 @@ public final class Fields {
 
     public let fields: [Field]
 
-    public enum Error: ErrorProtocol {
+    public enum Error: Swift.Error {
         case fieldFetch
     }
 
