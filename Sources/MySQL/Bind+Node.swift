@@ -24,8 +24,13 @@ extension Bind {
             return UnsafeMutablePointer<T>(buffer).pointee
         }
 
+        // must be stored as function because calling pointee
+        // with garbage value will crash
+        func len() -> Int {
+            return Int(cBind.length.pointee) / sizeof(UInt8.self)
+        }
+
         let isNull = cBind.is_null.pointee
-        let length = Int(cBind.length.pointee) / sizeof(UInt8.self)
 
         if isNull == 1 {
             return .null
@@ -34,7 +39,7 @@ extension Bind {
                 if variant == MYSQL_TYPE_JSON {
                     let buffer = UnsafeMutableBufferPointer(
                         start: cast(buffer, UInt8.self),
-                        count: length
+                        count: len()
                     )
                     let bytes = Array(buffer)
 
@@ -57,7 +62,7 @@ extension Bind {
                  MYSQL_TYPE_SET:
                 let buffer = UnsafeMutableBufferPointer(
                     start: cast(buffer, UInt8.self),
-                    count: length
+                    count: len()
                 )
                 return .string(buffer.string)
             case MYSQL_TYPE_LONG:
