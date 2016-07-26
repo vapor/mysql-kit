@@ -10,9 +10,9 @@ let package = Package(
         .Package(url: "https://github.com/qutheory/node.git", majorVersion: 0, minor: 2),
 
         // Core extensions, type-aliases, and functions that facilitate common tasks
-        .Package(url: "https://github.com/qutheory/core.git", majorVersion: 0, minor: 2),
+        .Package(url: "https://github.com/qutheory/core.git", majorVersion: 0, minor: 3),
 
         // JSON parsing and serialization for storing arrays and objects in MySQL
-        .Package(url: "https://github.com/qutheory/json.git", majorVersion: 0, minor: 1)
+        .Package(url: "https://github.com/qutheory/json.git", majorVersion: 0, minor: 2)
     ]
 )

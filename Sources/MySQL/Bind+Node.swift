@@ -72,11 +72,11 @@ extension Bind {
                 do {
                     return try JSON(bytes: bytes).makeNode()
                 } catch {
-                    print("[MYSQL] Could not parse JSON.")
+                    print("[MySQL] Could not parse JSON.")
                     return .null
                 }
             default:
-                print("[MYSQL] Unsupported type: \(variant).")
+                print("[MySQL] Unsupported type: \(variant).")
                 return .null
             }
         }

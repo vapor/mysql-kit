@@ -43,7 +43,7 @@ public final class Binds {
         Initializes from an array of Bindings.
     */
     public init(_ binds: [Bind]) {
-        let cBinds = CBinds(allocatingCapacity: binds.count)
+        let cBinds = CBinds.allocate(capacity: binds.count)
 
         for (i, bind) in binds.enumerated() {
             cBinds[i] = bind.cBind
@@ -62,7 +62,7 @@ public final class Binds {
     }
 
     deinit {
-        cBinds.deallocateCapacity(binds.count)
+        cBinds.deallocate(capacity: binds.count)
     }
 
 }

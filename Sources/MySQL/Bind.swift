@@ -53,10 +53,10 @@ public final class Bind {
 
         cBind.buffer_length = UInt(length)
 
-        cBind.buffer = UnsafeMutablePointer<Void>(allocatingCapacity: length)
-        cBind.length = UnsafeMutablePointer<UInt>(allocatingCapacity: 1)
-        cBind.is_null = UnsafeMutablePointer<my_bool>(allocatingCapacity: 1)
-        cBind.error = UnsafeMutablePointer<my_bool>(allocatingCapacity: 1)
+        cBind.buffer = UnsafeMutablePointer<Void>.allocate(capacity: length)
+        cBind.length = UnsafeMutablePointer<UInt>.allocate(capacity: 1)
+        cBind.is_null = UnsafeMutablePointer<my_bool>.allocate(capacity: 1)
+        cBind.error = UnsafeMutablePointer<my_bool>.allocate(capacity: 1)
 
         self.cBind = cBind
     }
@@ -66,7 +66,7 @@ public final class Bind {
     */
     public convenience init(_ string: String) {
         let bytes = Array(string.utf8)
-        let buffer = UnsafeMutablePointer<Char>(allocatingCapacity: bytes.count)
+        let buffer = UnsafeMutablePointer<Char>.allocate(capacity: bytes.count)
         for (i, byte) in bytes.enumerated() {
             buffer[i] = Char(byte)
         }
@@ -78,8 +78,8 @@ public final class Bind {
         Creates an input binding from an Int.
     */
     public convenience init(_ int: Int) {
-        let buffer = UnsafeMutablePointer<Int64>(allocatingCapacity: 1)
-        buffer.initialize(with: Int64(int))
+        let buffer = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
+        buffer.initialize(to: Int64(int))
 
         self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: sizeof(Int64.self))
     }
@@ -88,8 +88,8 @@ public final class Bind {
         Creates an input binding from a UInt.
     */
     public convenience init(_ int: UInt) {
-        let buffer = UnsafeMutablePointer<UInt64>(allocatingCapacity: 1)
-        buffer.initialize(with: UInt64(int))
+        let buffer = UnsafeMutablePointer<UInt64>.allocate(capacity: 1)
+        buffer.initialize(to: UInt64(int))
 
         self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: sizeof(UInt64.self))
     }
@@ -98,8 +98,8 @@ public final class Bind {
         Creates an input binding from an Double.
     */
     public convenience init(_ int: Double) {
-        let buffer = UnsafeMutablePointer<Double>(allocatingCapacity: 1)
-        buffer.initialize(with: Double(int))
+        let buffer = UnsafeMutablePointer<Double>.allocate(capacity: 1)
+        buffer.initialize(to: Double(int))
 
         self.init(type: MYSQL_TYPE_DOUBLE, buffer: buffer, bufferLength: sizeof(Double.self))
     }
@@ -108,7 +108,7 @@ public final class Bind {
         Creates an input binding from an array of bytes.
     */
     public convenience init(_ bytes: Bytes) {
-        let pointer = UnsafeMutablePointer<Byte>(allocatingCapacity: bytes.count)
+        let pointer = UnsafeMutablePointer<Byte>.allocate(capacity: bytes.count)
         for (i, byte) in bytes.enumerated() {
             pointer[i] = byte
         }
@@ -125,8 +125,8 @@ public final class Bind {
         cBind.buffer = UnsafeMutablePointer<Void>(buffer)
         cBind.buffer_length = UInt(bufferLength)
 
-        cBind.length = UnsafeMutablePointer<UInt>(allocatingCapacity: 1)
-        cBind.length.initialize(with: cBind.buffer_length)
+        cBind.length = UnsafeMutablePointer<UInt>.allocate(capacity: 1)
+        cBind.length.initialize(to: cBind.buffer_length)
 
 
         cBind.buffer_type = type
@@ -159,19 +159,19 @@ public final class Bind {
         let bufferLength = Int(cBind.buffer_length)
 
         cBind.buffer.deinitialize()
-        cBind.buffer.deallocateCapacity(bufferLength)
+        cBind.buffer.deallocate(capacity: bufferLength)
 
         cBind.length.deinitialize()
-        cBind.length.deallocateCapacity(1)
+        cBind.length.deallocate(capacity: 1)
 
         if let pointer = cBind.is_null {
             pointer.deinitialize()
-            pointer.deallocateCapacity(1)
+            pointer.deallocate(capacity: 1)
         }
 
         if let pointer = cBind.error {
             pointer.deinitialize()
-            pointer.deallocateCapacity(1)
+            pointer.deallocate(capacity: 1)
         }
     }
 }
