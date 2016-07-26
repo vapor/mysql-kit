@@ -12,8 +12,6 @@ install:
       mysql.server start;
     fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      wget http://dev.mysql.com/get/mysql-apt-config_0.6.0-1_all.deb;
-      sudo dpkg -i mysql-apt-config_0.6.0-1_all.deb;
       sudo apt-get update;
       sudo apt-get install -y mysql-server libmysqlclient-dev;
       sudo mysql_install_db;
