@@ -15,7 +15,7 @@ install:
       wget http://dev.mysql.com/get/mysql-apt-config_0.6.0-1_all.deb;
       sudo dpkg -i mysql-apt-config_0.6.0-1_all.deb;
       sudo apt-get update;
-      sudo apt-get install -y mysql-server-5.7 libmysqlclient-dev;
+      sudo apt-get install -y mysql-server libmysqlclient-dev;
       sudo mysql_install_db;
     fi
   - mysql -u root --password="" -e 'create database test;'
@@ -27,8 +27,8 @@ script:
       swift build --configuration release -Xswiftc -I/usr/local/include/mysql -Xlinker -L/usr/local/lib;
     fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      swift build;
-      swift build --configuration release;
+      swift build -Xswiftc -DNOJSON;
+      swift build --configuration release -Xswiftc -DNOJSON;
     fi
   # Test MySQL
   - swift test

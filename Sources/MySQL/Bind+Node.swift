@@ -30,6 +30,23 @@ extension Bind {
         if isNull == 1 {
             return .null
         } else {
+            #if !NOJSON
+                if variant == MYSQL_TYPE_JSON {
+                    let buffer = UnsafeMutableBufferPointer(
+                        start: cast(buffer, UInt8.self),
+                        count: length
+                    )
+                    let bytes = Array(buffer)
+
+                    do {
+                        return try JSON(bytes: bytes).makeNode()
+                    } catch {
+                        print("[MySQL] Could not parse JSON.")
+                        return .null
+                    }
+                }
+            #endif
+
             switch variant {
             case MYSQL_TYPE_STRING,
                  MYSQL_TYPE_VAR_STRING,
@@ -62,19 +79,6 @@ extension Bind {
             case MYSQL_TYPE_DOUBLE:
                 let double = unwrap(buffer, Double.self)
                 return .number(.double(double))
-            case MYSQL_TYPE_JSON:
-                let buffer = UnsafeMutableBufferPointer(
-                    start: cast(buffer, UInt8.self),
-                    count: length
-                )
-                let bytes = Array(buffer)
-
-                do {
-                    return try JSON(bytes: bytes).makeNode()
-                } catch {
-                    print("[MySQL] Could not parse JSON.")
-                    return .null
-                }
             default:
                 print("[MySQL] Unsupported type: \(variant).")
                 return .null
