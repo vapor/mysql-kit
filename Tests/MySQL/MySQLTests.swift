@@ -119,7 +119,7 @@ class MySQLTests: XCTestCase {
             try mysql.execute("DROP TABLE IF EXISTS json")
             try mysql.execute("CREATE TABLE json (i INT, b VARCHAR(64), j JSON)")
 
-            let json = try JSON([
+            let json = try JSON(node: [
                 "string": "hello, world",
                 "int": 42
             ])
@@ -136,6 +136,30 @@ class MySQLTests: XCTestCase {
                 XCTAssertEqual(result["b"]?.string, try String(bytes: bytes))
                 XCTAssertEqual(result["j"]?.object?["string"]?.string, "hello, world")
                 XCTAssertEqual(result["j"]?.object?["int"]?.int, 42)
+            } else {
+                XCTFail("No results")
+            }
+        } catch {
+            XCTFail("Testing tables failed: \(error)")
+        }
+    }
+
+    func testTimestamps() {
+        do {
+
+            try mysql.execute("DROP TABLE IF EXISTS times")
+            try mysql.execute("CREATE TABLE times (i INT, d DATE, t TIME)")
+
+
+            try mysql.execute("INSERT INTO times VALUES (?, ?, ?)", [
+                1,
+                "2050-05-12",
+                "13:42"
+            ])
+
+
+            if let result = try mysql.execute("SELECT * FROM times").first {
+                print(result)
             } else {
                 XCTFail("No results")
             }
