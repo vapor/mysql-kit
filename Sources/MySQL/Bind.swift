@@ -198,7 +198,7 @@ extension Node {
         case .array(let array):
             var bytes: Bytes = []
             do {
-                bytes = try JSON(array).makeBytes()
+                bytes = try JSON(node: array).makeBytes()
             } catch {
                 print("[MySQL] Could not convert array to JSON.")
             }
@@ -208,7 +208,7 @@ extension Node {
         case .object(let object):
             var bytes: Bytes = []
             do {
-                bytes = try JSON(object).makeBytes()
+                bytes = try JSON(node: object).makeBytes()
             } catch {
                 print("[MySQL] Could not convert object to JSON.")
             }

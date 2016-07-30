@@ -84,11 +84,36 @@ extension Bind {
             case MYSQL_TYPE_DOUBLE:
                 let double = unwrap(buffer, Double.self)
                 return .number(.double(double))
+            case MYSQL_TYPE_DATE:
+                let time = unwrap(buffer, MYSQL_TIME.self)
+                return .string("\(time.year.pad(4))-\(time.month.pad(2))-\(time.day.pad(2))")
+            case MYSQL_TYPE_DATETIME:
+                let time = unwrap(buffer, MYSQL_TIME.self)
+                return .string("\(time.year.pad(4))-\(time.month.pad(2))-\(time.day.pad(2)) \(time.hour.pad(2)):\(time.minute.pad(2)):\(time.second.pad(2))")
+            case MYSQL_TYPE_TIME:
+                let time = unwrap(buffer, MYSQL_TIME.self)
+                return .string("\(time.hour.pad(2)):\(time.minute.pad(2)):\(time.second.pad(2))")
             default:
                 print("[MySQL] Unsupported type: \(variant).")
                 return .null
             }
         }
+    }
+}
+
+extension UInt32 {
+    func pad(_ n: Int) -> String {
+        var string = description
+
+        if string.characters.count >= n {
+            return string
+        }
+
+        for _ in 0..<(n - string.characters.count) {
+            string = "0" + string
+        }
+
+        return string
     }
 }
 
