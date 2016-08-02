@@ -73,6 +73,14 @@ extension Bind {
                     let int = unwrap(buffer, Int32.self)
                     return .number(.int(Int(int)))
                 }
+            case MYSQL_TYPE_TINY:
+                if cBind.is_unsigned == 1 {
+                    let uint = unwrap(buffer, UInt.self)
+                    return .number(.uint(UInt(uint)))
+                } else {
+                    let int = unwrap(buffer, Int.self)
+                    return .number(.int(Int(int)))
+                }
             case MYSQL_TYPE_LONGLONG:
                 if cBind.is_unsigned == 1 {
                     let uint = unwrap(buffer, UInt64.self)
@@ -84,7 +92,7 @@ extension Bind {
             case MYSQL_TYPE_DOUBLE:
                 let double = unwrap(buffer, Double.self)
                 return .number(.double(double))
-            case MYSQL_TYPE_DATE:
+            case MYSQL_TYPE_DATE, MYSQL_TYPE_TIMESTAMP:
                 let time = unwrap(buffer, MYSQL_TIME.self)
                 return .string("\(time.year.pad(4))-\(time.month.pad(2))-\(time.day.pad(2))")
             case MYSQL_TYPE_DATETIME:
