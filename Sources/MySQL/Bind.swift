@@ -5,9 +5,9 @@
 #endif
 
 /**
-    This structure is used both for statement input (data values sent to the server) 
+    This structure is used both for statement input (data values sent to the server)
     and output (result values returned from the server):
- 
+
     The Swift version consists of a wrapper around MySQL's implementation
     to ensure proper freeing of allocated memory.
 */
@@ -78,7 +78,7 @@ public final class Bind {
         let buffer = UnsafeMutablePointer<Int64>(allocatingCapacity: 1)
         buffer.initialize(with: Int64(int))
 
-        self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: sizeof(Int64))
+        self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: sizeof(Int64.self))
     }
 
     /**
@@ -88,7 +88,7 @@ public final class Bind {
         let buffer = UnsafeMutablePointer<UInt64>(allocatingCapacity: 1)
         buffer.initialize(with: UInt64(int))
 
-        self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: sizeof(UInt64))
+        self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: sizeof(UInt64.self))
     }
 
     /**
@@ -98,7 +98,7 @@ public final class Bind {
         let buffer = UnsafeMutablePointer<Double>(allocatingCapacity: 1)
         buffer.initialize(with: Double(int))
 
-        self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: sizeof(Double))
+        self.init(type: MYSQL_TYPE_DOUBLE, buffer: buffer, bufferLength: sizeof(Double.self))
     }
 
     /**
