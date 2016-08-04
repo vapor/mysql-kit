@@ -1,3 +1,5 @@
+import Dispatch
+
 #if os(Linux)
     import CMySQLLinux
 #else
@@ -8,6 +10,40 @@
     Holds a `Connection` to the MySQL database.
 */
 public final class Database {
+    
+    static private let racePrevention = DispatchSemaphore( value: 1 )
+    
+    static private func oneAtATime(_ fn: () throws -> Void) rethrows {
+        defer { racePrevention.signal() }
+        racePrevention.wait()
+        try fn()
+    }
+    
+    static var databaseCount = 0
+    
+    
+    static func initMySQLServerIfNeeded() throws {
+        assert(databaseCount >= 0)
+        try oneAtATime {
+            if databaseCount == 0 {
+                guard mysql_server_init(0, nil, nil) == 0 else {
+                    throw Error.serverInit
+                }
+            }
+            databaseCount += 1
+        }
+    }
+    
+    static func closeMySQLServerIfNeeded() {
+        oneAtATime {
+            databaseCount -= 1
+            if databaseCount == 0 {
+                mysql_server_end()
+            }
+        }
+        assert(databaseCount >= 0)
+    }
+
     /**
         A list of all Error messages that
         can be thrown from calls to `Database`.
@@ -58,9 +94,8 @@ public final class Database {
     ) throws {
         /// Initializes the server that will
         /// create new connections on each thread
-        guard mysql_server_init(0, nil, nil) == 0 else {
-            throw Error.serverInit
-        }
+        
+        try Database.initMySQLServerIfNeeded()
 
         self.host = host
         self.user = user
@@ -220,6 +255,6 @@ public final class Database {
         Closes the connection to MySQL.
     */
     deinit {
-        mysql_server_end()
+        Database.closeMySQLServerIfNeeded()
     }
 }
