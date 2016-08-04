@@ -106,7 +106,7 @@ Travis builds Swift MySQL on both Ubuntu 14.04 and macOS 10.11. Check out the `.
 
 ## * Fluent
 
-This wrapper was created to power [Fluent](https://github.com/qutheory/fluent), an ORM for Swift. 
+This wrapper was created to power [Fluent](https://github.com/vapor/fluent), an ORM for Swift. 
 
 ## 🌏 Environment
 
