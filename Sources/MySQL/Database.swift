@@ -3,6 +3,7 @@
 #else
     import CMySQLMac
 #endif
+import Core
 
 /**
     Holds a `Connection` to the MySQL database.
@@ -56,10 +57,12 @@ public final class Database {
         socket: String? = nil,
         flag: UInt = 0
     ) throws {
-        /// Initializes the server that will
-        /// create new connections on each thread
-        guard mysql_server_init(0, nil, nil) == 0 else {
-            throw Error.serverInit
+        try Database.activeLock.locked {
+            /// Initializes the server that will
+            /// create new connections on each thread
+            guard mysql_server_init(0, nil, nil) == 0 else {
+                throw Error.serverInit
+            }
         }
 
         self.host = host
@@ -78,6 +81,8 @@ public final class Database {
     private let port: UInt32
     private let socket: String?
     private let flag: UInt
+
+    static private var activeLock = Lock()
 
     /**
         Executes the MySQL query string with parameterized values.
@@ -220,6 +225,8 @@ public final class Database {
         Closes the connection to MySQL.
     */
     deinit {
-        mysql_server_end()
+        Database.activeLock.locked {
+            mysql_server_end()
+        }
     }
 }

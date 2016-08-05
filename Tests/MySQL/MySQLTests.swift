@@ -158,7 +158,7 @@ class MySQLTests: XCTestCase {
             ])
 
 
-            if let result = try mysql.execute("SELECT * FROM times").first {
+            if let result = try mysql.execute("SELECT i FROM times").first {
                 print(result)
             } else {
                 XCTFail("No results")
