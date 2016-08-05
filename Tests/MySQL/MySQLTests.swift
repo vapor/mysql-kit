@@ -34,15 +34,14 @@ class MySQLTests: XCTestCase {
     func testTables() {
         do {
             try mysql.execute("DROP TABLE IF EXISTS foo")
-            try mysql.execute("CREATE TABLE foo (bar INT(4), baz VARCHAR(16), qux TIMESTAMP NULL DEFAULT NULL)")
-            try mysql.execute("INSERT INTO foo VALUES (42, 'Life', '2016-01-01 00:00:00')")
-            try mysql.execute("INSERT INTO foo VALUES (1337, 'Elite', '2016-02-02 12:12:12')")
-            try mysql.execute("INSERT INTO foo VALUES (9, NULL, NULL)")
+            try mysql.execute("CREATE TABLE foo (bar INT(4), baz VARCHAR(16))")
+            try mysql.execute("INSERT INTO foo VALUES (42, 'Life')")
+            try mysql.execute("INSERT INTO foo VALUES (1337, 'Elite')")
+            try mysql.execute("INSERT INTO foo VALUES (9, NULL)")
 
             if let resultBar = try mysql.execute("SELECT * FROM foo WHERE bar = 42").first {
                 XCTAssertEqual(resultBar["bar"]?.int, 42)
                 XCTAssertEqual(resultBar["baz"]?.string, "Life")
-                XCTAssertEqual(resultBar["qux"]?.string, "2016-01-01 00:00:00")
             } else {
                 XCTFail("Could not get bar result")
             }
@@ -51,7 +50,6 @@ class MySQLTests: XCTestCase {
             if let resultBaz = try mysql.execute("SELECT * FROM foo where baz = 'elite'").first {
                 XCTAssertEqual(resultBaz["bar"]?.int, 1337)
                 XCTAssertEqual(resultBaz["baz"]?.string, "Elite")
-                XCTAssertEqual(resultBaz["qux"]?.string, "2016-02-02 12:12:12")
             } else {
                 XCTFail("Could not get baz result")
             }
@@ -59,7 +57,6 @@ class MySQLTests: XCTestCase {
             if let resultBaz = try mysql.execute("SELECT * FROM foo where bar = 9").first {
                 XCTAssertEqual(resultBaz["bar"]?.int, 9)
                 XCTAssertEqual(resultBaz["baz"]?.string, nil)
-                XCTAssertEqual(resultBaz["qux"]?.isNull, true)
             } else {
                 XCTFail("Could not get null result")
             }
@@ -71,19 +68,18 @@ class MySQLTests: XCTestCase {
     func testParameterization() {
         do {
             try mysql.execute("DROP TABLE IF EXISTS parameterization")
-            try mysql.execute("CREATE TABLE parameterization (d DOUBLE, i INT, s VARCHAR(16), u INT UNSIGNED, ts TIMESTAMP NULL DEFAULT NULL)")
+            try mysql.execute("CREATE TABLE parameterization (d DOUBLE, i INT, s VARCHAR(16), u INT UNSIGNED)")
 
-            try mysql.execute("INSERT INTO parameterization VALUES (3.14, NULL, 'pi', NULL, NULL)")
-            try mysql.execute("INSERT INTO parameterization VALUES (NULL, NULL, 'life', 42, '2016-01-01 00:00:00')")
-            try mysql.execute("INSERT INTO parameterization VALUES (NULL, -1, 'test', NULL, '2016-02-02 02:02:02')")
-            try mysql.execute("INSERT INTO parameterization VALUES (NULL, -1, 'test', NULL, '2016-03-03 03:03:03')")
+            try mysql.execute("INSERT INTO parameterization VALUES (3.14, NULL, 'pi', NULL)")
+            try mysql.execute("INSERT INTO parameterization VALUES (NULL, NULL, 'life', 42)")
+            try mysql.execute("INSERT INTO parameterization VALUES (NULL, -1, 'test', NULL)")
+            try mysql.execute("INSERT INTO parameterization VALUES (NULL, -1, 'test', NULL)")
 
             if let result = try mysql.execute("SELECT * FROM parameterization WHERE d = ?", ["3.14"]).first {
                 XCTAssertEqual(result["d"]?.double, 3.14)
                 XCTAssertEqual(result["i"]?.int, nil)
                 XCTAssertEqual(result["s"]?.string, "pi")
                 XCTAssertEqual(result["u"]?.int, nil)
-                XCTAssertEqual(result["ts"]?.isNull, true)
             } else {
                 XCTFail("Could not get pi result")
             }
@@ -93,7 +89,6 @@ class MySQLTests: XCTestCase {
                 XCTAssertEqual(result["i"]?.int, nil)
                 XCTAssertEqual(result["s"]?.string, "life")
                 XCTAssertEqual(result["u"]?.int, 42)
-                XCTAssertEqual(result["ts"]?.string, "2016-01-01 00:00:00")
             } else {
                 XCTFail("Could not get life result")
             }
@@ -103,7 +98,6 @@ class MySQLTests: XCTestCase {
                 XCTAssertEqual(result["i"]?.int, -1)
                 XCTAssertEqual(result["s"]?.string, "test")
                 XCTAssertEqual(result["u"]?.int, nil)
-                XCTAssertEqual(result["ts"]?.string, "2016-02-02 02:02:02")
             } else {
                 XCTFail("Could not get test by int result")
             }
@@ -113,17 +107,6 @@ class MySQLTests: XCTestCase {
                 XCTAssertEqual(result["i"]?.int, -1)
                 XCTAssertEqual(result["s"]?.string, "test")
                 XCTAssertEqual(result["u"]?.int, nil)
-                XCTAssertEqual(result["ts"]?.string, "2016-02-02 02:02:02")
-            } else {
-                XCTFail("Could not get test by string result")
-            }
-            
-            if let result = try mysql.execute("SELECT * FROM parameterization WHERE ts = ?", ["2016-03-03 03:03:03"]).first {
-                XCTAssertEqual(result["d"]?.double, nil)
-                XCTAssertEqual(result["i"]?.int, -1)
-                XCTAssertEqual(result["s"]?.string, "test")
-                XCTAssertEqual(result["u"]?.int, nil)
-                XCTAssertEqual(result["ts"]?.string, "2016-03-03 03:03:03")
             } else {
                 XCTFail("Could not get test by string result")
             }
