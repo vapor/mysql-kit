@@ -153,7 +153,7 @@ class MySQLTests: XCTestCase {
 
 
             try mysql.execute("INSERT INTO times VALUES (?, ?, ?, ?)", [
-                1,
+                1.0,
                 "2050-05-12",
                 "13:42",
                 "2016-05-05 05:05:05"
