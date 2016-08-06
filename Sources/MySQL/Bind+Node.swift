@@ -92,9 +92,9 @@ extension Bind {
             case MYSQL_TYPE_DOUBLE:
                 let double = unwrap(buffer, Double.self)
                 return .number(.double(double))
-			case MYSQL_TYPE_BIT:
-				let bit = unwrap(buffer, Bool.self)
-				return .bool(bit)
+            case MYSQL_TYPE_BIT:
+                let bit = unwrap(buffer, Bool.self)
+                return .bool(bit)
             case MYSQL_TYPE_DATE:
                 let time = unwrap(buffer, MYSQL_TIME.self)
                 return .string("\(time.year.pad(4))-\(time.month.pad(2))-\(time.day.pad(2))")
