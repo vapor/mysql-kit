@@ -25,6 +25,7 @@ public final class Connection {
         socket: String?,
         flag: UInt
     ) throws {
+        mysql_thread_init()
         cConnection = mysql_init(nil)
 
         guard mysql_real_connect(cConnection, host, user, password, database, port, socket, flag) != nil else {

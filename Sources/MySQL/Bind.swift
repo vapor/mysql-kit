@@ -1,3 +1,6 @@
+import Core
+import JSON
+
 #if os(Linux)
     import CMySQLLinux
 #else
@@ -50,10 +53,10 @@ public final class Bind {
 
         cBind.buffer_length = UInt(length)
 
-        cBind.buffer = UnsafeMutablePointer<Void>(allocatingCapacity: length)
-        cBind.length = UnsafeMutablePointer<UInt>(allocatingCapacity: 1)
-        cBind.is_null = UnsafeMutablePointer<my_bool>(allocatingCapacity: 1)
-        cBind.error = UnsafeMutablePointer<my_bool>(allocatingCapacity: 1)
+        cBind.buffer = UnsafeMutablePointer<Void>.allocate(capacity: length)
+        cBind.length = UnsafeMutablePointer<UInt>.allocate(capacity: 1)
+        cBind.is_null = UnsafeMutablePointer<my_bool>.allocate(capacity: 1)
+        cBind.error = UnsafeMutablePointer<my_bool>.allocate(capacity: 1)
 
         self.cBind = cBind
     }
@@ -63,7 +66,7 @@ public final class Bind {
     */
     public convenience init(_ string: String) {
         let bytes = Array(string.utf8)
-        let buffer = UnsafeMutablePointer<Char>(allocatingCapacity: bytes.count)
+        let buffer = UnsafeMutablePointer<Char>.allocate(capacity: bytes.count)
         for (i, byte) in bytes.enumerated() {
             buffer[i] = Char(byte)
         }
@@ -75,8 +78,8 @@ public final class Bind {
         Creates an input binding from an Int.
     */
     public convenience init(_ int: Int) {
-        let buffer = UnsafeMutablePointer<Int64>(allocatingCapacity: 1)
-        buffer.initialize(with: Int64(int))
+        let buffer = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
+        buffer.initialize(to: Int64(int))
 
         self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: sizeof(Int64.self))
     }
@@ -85,8 +88,8 @@ public final class Bind {
         Creates an input binding from a UInt.
     */
     public convenience init(_ int: UInt) {
-        let buffer = UnsafeMutablePointer<UInt64>(allocatingCapacity: 1)
-        buffer.initialize(with: UInt64(int))
+        let buffer = UnsafeMutablePointer<UInt64>.allocate(capacity: 1)
+        buffer.initialize(to: UInt64(int))
 
         self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: sizeof(UInt64.self))
     }
@@ -95,10 +98,21 @@ public final class Bind {
         Creates an input binding from an Double.
     */
     public convenience init(_ int: Double) {
-        let buffer = UnsafeMutablePointer<Double>(allocatingCapacity: 1)
-        buffer.initialize(with: Double(int))
+        let buffer = UnsafeMutablePointer<Double>.allocate(capacity: 1)
+        buffer.initialize(to: Double(int))
 
         self.init(type: MYSQL_TYPE_DOUBLE, buffer: buffer, bufferLength: sizeof(Double.self))
+    }
+
+    /**
+        Creates an input binding from an array of bytes.
+    */
+    public convenience init(_ bytes: Bytes) {
+        let pointer = UnsafeMutablePointer<Byte>.allocate(capacity: bytes.count)
+        for (i, byte) in bytes.enumerated() {
+            pointer[i] = byte
+        }
+        self.init(type: MYSQL_TYPE_STRING, buffer: pointer, bufferLength: bytes.count)
     }
 
     /**
@@ -111,8 +125,8 @@ public final class Bind {
         cBind.buffer = UnsafeMutablePointer<Void>(buffer)
         cBind.buffer_length = UInt(bufferLength)
 
-        cBind.length = UnsafeMutablePointer<UInt>(allocatingCapacity: 1)
-        cBind.length.initialize(with: cBind.buffer_length)
+        cBind.length = UnsafeMutablePointer<UInt>.allocate(capacity: 1)
+        cBind.length.initialize(to: cBind.buffer_length)
 
 
         cBind.buffer_type = type
@@ -145,39 +159,62 @@ public final class Bind {
         let bufferLength = Int(cBind.buffer_length)
 
         cBind.buffer.deinitialize()
-        cBind.buffer.deallocateCapacity(bufferLength)
+        cBind.buffer.deallocate(capacity: bufferLength)
 
         cBind.length.deinitialize()
-        cBind.length.deallocateCapacity(1)
+        cBind.length.deallocate(capacity: 1)
 
         if let pointer = cBind.is_null {
             pointer.deinitialize()
-            pointer.deallocateCapacity(1)
+            pointer.deallocate(capacity: 1)
         }
 
         if let pointer = cBind.error {
             pointer.deinitialize()
-            pointer.deallocateCapacity(1)
+            pointer.deallocate(capacity: 1)
         }
     }
 }
 
-extension Value {
+extension Node {
     /**
         Creates in input binding from a MySQL Value.
     */
     var bind: Bind {
         switch self {
-        case .int(let int):
-            return Bind(int)
-        case .double(let double):
-            return Bind(double)
+        case .number(let number):
+            switch number {
+            case .int(let int):
+                return Bind(int)
+            case .double(let double):
+                return Bind(double)
+            case .uint(let uint):
+                return Bind(uint)
+            }
         case .string(let string):
             return Bind(string)
-        case .uint(let uint):
-            return Bind(uint)
         case .null:
             return Bind()
+        case .array(let array):
+            var bytes: Bytes = []
+            do {
+                bytes = try JSON(node: array).makeBytes()
+            } catch {
+                print("[MySQL] Could not convert array to JSON.")
+            }
+            return Bind(bytes)
+        case .bytes(let bytes):
+            return Bind(bytes)
+        case .object(let object):
+            var bytes: Bytes = []
+            do {
+                bytes = try JSON(node: object).makeBytes()
+            } catch {
+                print("[MySQL] Could not convert object to JSON.")
+            }
+            return Bind(bytes)
+        case .bool(let bool):
+            return Bind(bool ? 1 : 0)
         }
     }
 }

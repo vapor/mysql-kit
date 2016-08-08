@@ -1,7 +1,7 @@
 # MySQL for Swift
 
 ![Swift](https://camo.githubusercontent.com/0727f3687a1e263cac101c5387df41048641339c/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f53776966742d332e302d6f72616e67652e7376673f7374796c653d666c6174)
-[![Build Status](https://travis-ci.org/qutheory/mysql.svg?branch=master)](https://travis-ci.org/qutheory/mysql)
+[![Build Status](https://travis-ci.org/vapor/mysql.svg?branch=master)](https://travis-ci.org/vapor/mysql)
 
 A Swift wrapper for MySQL.
 
@@ -15,7 +15,7 @@ The Swift wrappers around the MySQL's C structs and pointers automatically manag
 
 ~40 assertions tested on Ubuntu 14.04 and macOS 10.11 on every push.
 
-## Examples
+## 📖 Examples
 
 ### Connecting to the Database
 
@@ -67,7 +67,7 @@ let result = try mysql.execute("SELECT LAST_INSERTED_ID() as id", [], connection
 
 No need to worry about closing the connection.
 
-## Building
+## 🚀 Building
 
 ### macOS
 
@@ -104,11 +104,30 @@ sudo service mysql start
 
 Travis builds Swift MySQL on both Ubuntu 14.04 and macOS 10.11. Check out the `.travis.yml` file to see how this package is built and compiled during testing.
 
-## Fluent
+## * Fluent
 
 This wrapper was created to power [Fluent](https://github.com/qutheory/fluent), an ORM for Swift. 
 
-## Author
+## 🌏 Environment
+
+|MySQL|Xcode|Swift|
+|:-:|:-:|:-:|
+|0.3.x|8.0 Beta **3**|DEVELOPMENT-SNAPSHOT-2016-07-25-a|
+|0.2.x|7.3.x|DEVELOPMENT-SNAPSHOT-2016-06-20-a|
+|0.1.x|7.3.x|DEVELOPMENT-SNAPSHOT-2016-06-06-a|
+
+## 📖 Documentation
+
+Visit the Vapor web framework's [documentation](http://docs.qutheory.io) for instructions on how to install Swift 3. 
+
+## 💧 Community
+
+We pride ourselves on providing a diverse and welcoming community. Join your fellow Vapor developers in [our slack](slack.qutheory.io) and take part in the conversation.
+
+## 🔧 Compatibility
+
+Node has been tested on OS X 10.11, Ubuntu 14.04, and Ubuntu 15.10.
+
+## 👥 Author
 
 Created by [Tanner Nelson](https://github.com/tannernelson).
-

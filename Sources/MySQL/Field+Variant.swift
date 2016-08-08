@@ -18,6 +18,12 @@ extension Field.Variant: CustomStringConvertible {
         of the Field variant.
     */
     public var description: String {
+        #if !NOJSON
+            if self == MYSQL_TYPE_JSON {
+                return "JSON field"
+            }
+        #endif
+
         switch self {
         case MYSQL_TYPE_TINY:
             return "TINYINT field"
