@@ -1,5 +1,9 @@
 #if os(Linux)
+#if MARIADB
+    import CMariaDBLinux
+#else
     import CMySQLLinux
+#endif
 #else
     import CMySQLMac
 #endif
