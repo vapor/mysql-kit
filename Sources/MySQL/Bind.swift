@@ -22,7 +22,7 @@ public final class Bind {
     public typealias CBind = MYSQL_BIND
 
     /// MySQL represents Characters using signed integers.
-    typealias Char = UInt32
+    typealias Char = UInt8
 
     /**
         The raw C binding.
