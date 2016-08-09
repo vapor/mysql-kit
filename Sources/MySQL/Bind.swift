@@ -21,7 +21,7 @@ import JSON
 public final class Bind {
     public typealias CBind = MYSQL_BIND
 
-    /// MySQL represents Characters using signed integers.
+    /// UTF-8 stores characters using 1-4 bytes, represented in Swift as unsigned integers.
     typealias Char = UInt8
 
     /**
