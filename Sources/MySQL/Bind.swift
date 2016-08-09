@@ -2,11 +2,11 @@ import Core
 import JSON
 
 #if os(Linux)
-#if MARIADB
-    import CMariaDBLinux
-#else
-    import CMySQLLinux
-#endif
+    #if MARIADB
+        import CMariaDBLinux
+    #else
+        import CMySQLLinux
+    #endif
 #else
     import CMySQLMac
 #endif

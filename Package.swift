@@ -4,7 +4,7 @@ let package = Package(
     name: "MySQL",
     dependencies: [
         // Module map for `libmysql`
-        .Package(url: "https://github.com/collinhundley/cmysql.git", majorVersion: 0),
+        .Package(url: "https://github.com/vapor/cmysql.git", majorVersion: 0, minor: 2),
 
         // Data structure for converting between multiple representations
         .Package(url: "https://github.com/vapor/node.git", majorVersion: 0, minor: 4),
