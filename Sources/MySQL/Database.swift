@@ -1,9 +1,14 @@
 #if os(Linux)
-    import CMySQLLinux
+    #if MARIADB
+        import CMariaDBLinux
+    #else
+        import CMySQLLinux
+    #endif
 #else
     import CMySQLMac
 #endif
 import Core
+
 
 /**
     Holds a `Connection` to the MySQL database.

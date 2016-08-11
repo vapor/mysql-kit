@@ -2,7 +2,11 @@ import Core
 import JSON
 
 #if os(Linux)
-    import CMySQLLinux
+    #if MARIADB
+        import CMariaDBLinux
+    #else
+        import CMySQLLinux
+    #endif
 #else
     import CMySQLMac
 #endif
@@ -17,8 +21,8 @@ import JSON
 public final class Bind {
     public typealias CBind = MYSQL_BIND
 
-    /// MySQL represents Characters using signed integers.
-    typealias Char = Int8
+    /// UTF-8 stores characters using 1-4 bytes, represented in Swift as unsigned integers.
+    typealias Char = UInt8
 
     /**
         The raw C binding.
