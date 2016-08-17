@@ -104,6 +104,14 @@ sudo service mysql start
 
 Travis builds Swift MySQL on both Ubuntu 14.04 and macOS 10.11. Check out the `.travis.yml` file to see how this package is built and compiled during testing.
 
+### Heroku
+
+If you're deploying a Vapor app to heroku with MySQL, you need to set the buildpack to `https://github.com/loganwright/heroku-buildpack-swift`. 
+
+You can do this by going to `https://dashboard.heroku.com/apps/<#your-app-here#>/settings`
+and adding the buildpack or from command line in your app directory by running
+`heroku buildpacks:set https://github.com/loganwright/heroku-buildpack-swift`.
+
 ## * Fluent
 
 This wrapper was created to power [Fluent](https://github.com/qutheory/fluent), an ORM for Swift. 
