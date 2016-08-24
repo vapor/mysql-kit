@@ -60,7 +60,8 @@ public final class Database {
         database: String,
         port: UInt = 3306,
         socket: String? = nil,
-        flag: UInt = 0
+        flag: UInt = 0,
+        encoding: String = "utf8"
     ) throws {
         try Database.activeLock.locked {
             /// Initializes the server that will
@@ -77,6 +78,7 @@ public final class Database {
         self.port = UInt32(port)
         self.socket = socket
         self.flag = flag
+        self.encoding = encoding
     }
 
     private let host: String
@@ -86,6 +88,7 @@ public final class Database {
     private let port: UInt32
     private let socket: String?
     private let flag: UInt
+    private let encoding: String
 
     static private var activeLock = Lock()
 
@@ -222,7 +225,8 @@ public final class Database {
             database: database,
             port: port,
             socket: socket,
-            flag: flag
+            flag: flag,
+            encoding: encoding
         )
     }
 
