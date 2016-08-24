@@ -48,6 +48,9 @@ public final class Database {
             the string specifies the socket or named pipe to use.
         - parameter flag: Usually 0, but can be set to a combination of the 
             flags at http://dev.mysql.com/doc/refman/5.7/en/mysql-real-connect.html
+         - parameter encoding: Usually "utf8", but something like "utf8mb4" may be
+            used, since "utf8" does not fully implement the UTF8 standard and does
+            not support Unicode.
 
 
         - throws: `Error.connection(String)` if the call to
@@ -60,7 +63,8 @@ public final class Database {
         database: String,
         port: UInt = 3306,
         socket: String? = nil,
-        flag: UInt = 0
+        flag: UInt = 0,
+        encoding: String = "utf8"
     ) throws {
         try Database.activeLock.locked {
             /// Initializes the server that will
@@ -77,6 +81,7 @@ public final class Database {
         self.port = UInt32(port)
         self.socket = socket
         self.flag = flag
+        self.encoding = encoding
     }
 
     private let host: String
@@ -86,6 +91,7 @@ public final class Database {
     private let port: UInt32
     private let socket: String?
     private let flag: UInt
+    private let encoding: String
 
     static private var activeLock = Lock()
 
@@ -222,7 +228,8 @@ public final class Database {
             database: database,
             port: port,
             socket: socket,
-            flag: flag
+            flag: flag,
+            encoding: encoding
         )
     }
 
