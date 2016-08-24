@@ -48,6 +48,9 @@ public final class Database {
             the string specifies the socket or named pipe to use.
         - parameter flag: Usually 0, but can be set to a combination of the 
             flags at http://dev.mysql.com/doc/refman/5.7/en/mysql-real-connect.html
+         - parameter encoding: Usually "utf8", but something like "utf8mb4" may be
+            used, since "utf8" does not fully implement the UTF8 standard and does
+            not support Unicode.
 
 
         - throws: `Error.connection(String)` if the call to
