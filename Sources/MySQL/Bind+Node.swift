@@ -79,10 +79,10 @@ extension Bind {
                 }
             case MYSQL_TYPE_TINY:
                 if cBind.is_unsigned == 1 {
-                    let uint = unwrap(buffer, UInt.self)
+                    let uint = unwrap(buffer, UInt8.self)
                     return .number(.uint(UInt(uint)))
                 } else {
-                    let int = unwrap(buffer, Int.self)
+                    let int = unwrap(buffer, Int8.self)
                     return .number(.int(Int(int)))
                 }
             case MYSQL_TYPE_LONGLONG:
