@@ -21,12 +21,12 @@ extension Bind {
         }
 
         func cast<T>(_ buffer: UnsafeMutableRawPointer, _ type: T.Type) -> UnsafeMutablePointer<T> {
-            return UnsafeMutablePointer<T>(OpaquePointer(buffer))
+            return buffer.bindMemory(to: type, capacity: 1)
         }
         
 
         func unwrap<T>(_ buffer: UnsafeMutableRawPointer, _ type: T.Type) -> T {
-            return UnsafeMutablePointer<T>(OpaquePointer(buffer)).pointee
+            return buffer.load(as: type)
         }
 
         // must be stored as function because calling pointee
