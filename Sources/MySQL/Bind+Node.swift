@@ -20,18 +20,19 @@ extension Bind {
             return nil
         }
 
-        func cast<T>(_ buffer: UnsafeMutablePointer<Void>, _ type: T.Type) -> UnsafeMutablePointer<T> {
-            return UnsafeMutablePointer<T>(buffer)
+        func cast<T>(_ buffer: UnsafeMutableRawPointer, _ type: T.Type) -> UnsafeMutablePointer<T> {
+            return UnsafeMutablePointer<T>(OpaquePointer(buffer))
         }
+        
 
-        func unwrap<T>(_ buffer: UnsafeMutablePointer<Void>, _ type: T.Type) -> T {
-            return UnsafeMutablePointer<T>(buffer).pointee
+        func unwrap<T>(_ buffer: UnsafeMutableRawPointer, _ type: T.Type) -> T {
+            return UnsafeMutablePointer<T>(OpaquePointer(buffer)).pointee
         }
 
         // must be stored as function because calling pointee
         // with garbage value will crash
         func len() -> Int {
-            return Int(cBind.length.pointee) / sizeof(UInt8.self)
+            return Int(cBind.length.pointee) / MemoryLayout<UInt8>.size
         }
 
         let isNull = cBind.is_null.pointee
@@ -141,7 +142,7 @@ extension Sequence where Iterator.Element == UInt8 {
             case .error:
                 break
             case .scalarValue(let unicodeScalar):
-                str.append(unicodeScalar)
+                str.append(String(unicodeScalar))
             }
         }
     }

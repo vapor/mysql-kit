@@ -57,7 +57,8 @@ public final class Bind {
 
         cBind.buffer_length = UInt(length)
 
-        cBind.buffer = UnsafeMutablePointer<Void>.allocate(capacity: length)
+        cBind.buffer = UnsafeMutableRawPointer.allocate(bytes: length, alignedTo: 1)
+//        cBind.buffer = UnsafeMutableRawPointer.allocate(capacity: length)
         cBind.length = UnsafeMutablePointer<UInt>.allocate(capacity: 1)
         cBind.is_null = UnsafeMutablePointer<my_bool>.allocate(capacity: 1)
         cBind.error = UnsafeMutablePointer<my_bool>.allocate(capacity: 1)
@@ -85,7 +86,7 @@ public final class Bind {
         let buffer = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
         buffer.initialize(to: Int64(int))
 
-        self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: sizeof(Int64.self))
+        self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: MemoryLayout<Int64>.size)
     }
 
     /**
@@ -95,7 +96,7 @@ public final class Bind {
         let buffer = UnsafeMutablePointer<UInt64>.allocate(capacity: 1)
         buffer.initialize(to: UInt64(int))
 
-        self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: sizeof(UInt64.self))
+        self.init(type: MYSQL_TYPE_LONGLONG, buffer: buffer, bufferLength: MemoryLayout<UInt64>.size)
     }
 
     /**
@@ -105,7 +106,7 @@ public final class Bind {
         let buffer = UnsafeMutablePointer<Double>.allocate(capacity: 1)
         buffer.initialize(to: Double(int))
 
-        self.init(type: MYSQL_TYPE_DOUBLE, buffer: buffer, bufferLength: sizeof(Double.self))
+        self.init(type: MYSQL_TYPE_DOUBLE, buffer: buffer, bufferLength: MemoryLayout<Double>.size)
     }
 
     /**
@@ -126,7 +127,7 @@ public final class Bind {
     public init<T>(type: Field.Variant, buffer: UnsafeMutablePointer<T>, bufferLength: Int, unsigned: Bool = false) {
         var cBind = CBind()
 
-        cBind.buffer = UnsafeMutablePointer<Void>(buffer)
+        cBind.buffer = UnsafeMutableRawPointer(buffer)
         cBind.buffer_length = UInt(bufferLength)
 
         cBind.length = UnsafeMutablePointer<UInt>.allocate(capacity: 1)
@@ -162,8 +163,9 @@ public final class Bind {
 
         let bufferLength = Int(cBind.buffer_length)
 
-        cBind.buffer.deinitialize()
-        cBind.buffer.deallocate(capacity: bufferLength)
+//        cBind.buffer.deinitialize()
+        cBind.buffer.deallocate(bytes: bufferLength, alignedTo: 1)
+//        cBind.buffer.deallocate(capacity: bufferLength)
 
         cBind.length.deinitialize()
         cBind.length.deallocate(capacity: 1)
