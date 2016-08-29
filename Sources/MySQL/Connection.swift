@@ -27,7 +27,8 @@ public final class Connection {
         database: String,
         port: UInt32,
         socket: String?,
-        flag: UInt
+        flag: UInt,
+        encoding: String
     ) throws {
         mysql_thread_init()
         cConnection = mysql_init(nil)
@@ -35,6 +36,8 @@ public final class Connection {
         guard mysql_real_connect(cConnection, host, user, password, database, port, socket, flag) != nil else {
             throw Database.Error.connection(error)
         }
+        
+        mysql_set_character_set(cConnection, encoding)
     }
 
     deinit {
