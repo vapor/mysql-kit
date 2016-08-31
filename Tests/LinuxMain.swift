@@ -1,7 +1,7 @@
 #if os(Linux)
 
 import XCTest
-@testable import MySQLTestSuite
+@testable import MySQLTests
 
 XCTMain([
     testCase(MySQLTests.allTests)
