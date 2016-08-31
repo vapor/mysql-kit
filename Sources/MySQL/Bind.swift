@@ -12,12 +12,12 @@ import JSON
 #endif
 
 /**
- This structure is used both for statement input (data values sent to the server)
- and output (result values returned from the server):
- 
- The Swift version consists of a wrapper around MySQL's implementation
- to ensure proper freeing of allocated memory.
- */
+    This structure is used both for statement input (data values sent to the server)
+    and output (result values returned from the server):
+
+    The Swift version consists of a wrapper around MySQL's implementation
+    to ensure proper freeing of allocated memory.
+*/
 public final class Bind {
     public typealias CBind = MYSQL_BIND
     
@@ -30,15 +30,15 @@ public final class Bind {
     public let cBind: CBind
     
     /**
-     Creates a binding from a raw C binding.
-     */
+        Creates a binding from a raw C binding.
+    */
     public init(cBind: CBind) {
         self.cBind = cBind
     }
     
     /**
-     Creates a NULL input binding.
-     */
+        Creates a NULL input binding.
+    */
     public init() {
         var cBind = CBind()
         cBind.buffer_type = MYSQL_TYPE_NULL
@@ -47,8 +47,8 @@ public final class Bind {
     }
     
     /**
-     Creates an output binding from an expected Field.
-     */
+        Creates an output binding from an expected Field.
+    */
     public init(_ field: Field) {
         var cBind = CBind()
         
@@ -57,7 +57,7 @@ public final class Bind {
         
         cBind.buffer_length = UInt(length)
         
-        cBind.buffer = UnsafeMutableRawPointer.allocate(bytes: length, alignedTo: 1)
+        cBind.buffer = UnsafeMutableRawPointer.allocate(bytes: length, alignedTo: MemoryLayout<Void>.alignment)
         cBind.length = UnsafeMutablePointer<UInt>.allocate(capacity: 1)
         cBind.is_null = UnsafeMutablePointer<my_bool>.allocate(capacity: 1)
         cBind.error = UnsafeMutablePointer<my_bool>.allocate(capacity: 1)
@@ -66,8 +66,8 @@ public final class Bind {
     }
     
     /**
-     Creates an input binding from a String.
-     */
+        Creates an input binding from a String.
+    */
     public convenience init(_ string: String) {
         let bytes = Array(string.utf8)
         let buffer = UnsafeMutablePointer<Char>.allocate(capacity: bytes.count)
@@ -79,8 +79,8 @@ public final class Bind {
     }
     
     /**
-     Creates an input binding from an Int.
-     */
+        Creates an input binding from an Int.
+    */
     public convenience init(_ int: Int) {
         let buffer = UnsafeMutablePointer<Int64>.allocate(capacity: 1)
         buffer.initialize(to: Int64(int))
@@ -89,8 +89,8 @@ public final class Bind {
     }
     
     /**
-     Creates an input binding from a UInt.
-     */
+        Creates an input binding from a UInt.
+    */
     public convenience init(_ int: UInt) {
         let buffer = UnsafeMutablePointer<UInt64>.allocate(capacity: 1)
         buffer.initialize(to: UInt64(int))
@@ -99,8 +99,8 @@ public final class Bind {
     }
     
     /**
-     Creates an input binding from an Double.
-     */
+        Creates an input binding from an Double.
+    */
     public convenience init(_ int: Double) {
         let buffer = UnsafeMutablePointer<Double>.allocate(capacity: 1)
         buffer.initialize(to: Double(int))
@@ -109,8 +109,8 @@ public final class Bind {
     }
     
     /**
-     Creates an input binding from an array of bytes.
-     */
+        Creates an input binding from an array of bytes.
+    */
     public convenience init(_ bytes: Bytes) {
         let pointer = UnsafeMutablePointer<Byte>.allocate(capacity: bytes.count)
         for (i, byte) in bytes.enumerated() {
@@ -120,9 +120,9 @@ public final class Bind {
     }
     
     /**
-     Creates an input binding from a field variant,
-     input buffer, and input buffer length.
-     */
+        Creates an input binding from a field variant,
+        input buffer, and input buffer length.
+    */
     public init<T>(type: Field.Variant, buffer: UnsafeMutablePointer<T>, bufferLength: Int, unsigned: Bool = false) {
         var cBind = CBind()
         
@@ -145,16 +145,16 @@ public final class Bind {
     }
     
     /**
-     Buffer type variant.
-     */
+        Buffer type variant.
+    */
     public var variant: Field.Variant {
         return cBind.buffer_type
     }
     
     /**
-     Frees allocated memory from the underlying
-     C binding.
-     */
+        Frees allocated memory from the underlying
+        C binding.
+    */
     deinit {
         guard cBind.buffer_type != MYSQL_TYPE_NULL else {
             return
@@ -207,7 +207,7 @@ public final class Bind {
             break
         }
         
-        cBind.buffer.deallocate(bytes: bufferLength, alignedTo: 1)
+        cBind.buffer.deallocate(bytes: bufferLength, alignedTo: MemoryLayout<Void>.alignment)
         
         cBind.length.deinitialize()
         cBind.length.deallocate(capacity: 1)
@@ -226,8 +226,8 @@ public final class Bind {
 
 extension Node {
     /**
-     Creates in input binding from a MySQL Value.
-     */
+        Creates in input binding from a MySQL Value.
+    */
     var bind: Bind {
         switch self {
         case .number(let number):

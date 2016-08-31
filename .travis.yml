@@ -23,11 +23,11 @@ script:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       swift build -Xswiftc -I/usr/local/include/mysql -Xlinker -L/usr/local/lib;
       swift build --configuration release -Xswiftc -I/usr/local/include/mysql -Xlinker -L/usr/local/lib;
+      swift test -Xswiftc -I/usr/local/include/mysql -Xlinker -L/usr/local/lib;
     fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       swift build -Xswiftc -DNOJSON;
       swift build --configuration release -Xswiftc -DNOJSON;
+      swift test -Xswiftc -DNOJSON
     fi
-  # Test MySQL
-  - swift test
   
