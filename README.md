@@ -120,6 +120,7 @@ This wrapper was created to power [Fluent](https://github.com/qutheory/fluent), 
 
 |MySQL|Xcode|Swift|
 |:-:|:-:|:-:|
+|0.6.x|8.0 GM|DEVELOPMENT-SNAPSHOT-2016-09-06-a|
 |0.5.x|8.0 Beta **6**|DEVELOPMENT-SNAPSHOT-2016-08-18-a|
 |0.4.x|8.0 Beta **3**|DEVELOPMENT-SNAPSHOT-2016-07-25-a|
 |0.3.x|8.0 Beta **3**|DEVELOPMENT-SNAPSHOT-2016-07-25-a|
