@@ -53,8 +53,20 @@ public final class Bind {
         var cBind = CBind()
         
         cBind.buffer_type = field.cField.type
-        let length = Int(field.cField.length)
-        
+        let length: Int
+
+        // FIXME: Find better way to get length
+
+        switch field.cField.type {
+            case MYSQL_TYPE_DATE,
+                 MYSQL_TYPE_DATETIME,
+                 MYSQL_TYPE_TIMESTAMP,
+                 MYSQL_TYPE_TIME:
+            length = MemoryLayout<MYSQL_TIME>.size
+        default:
+            length = Int(field.cField.length)
+        }
+
         cBind.buffer_length = UInt(length)
         
         cBind.buffer = UnsafeMutableRawPointer.allocate(bytes: length, alignedTo: MemoryLayout<Void>.alignment)
@@ -156,67 +168,17 @@ public final class Bind {
         C binding.
     */
     deinit {
-        guard cBind.buffer_type != MYSQL_TYPE_NULL else {
-            return
-        }
-        
         let bufferLength = Int(cBind.buffer_length)
-        
-        #if !NOJSON
-            if variant == MYSQL_TYPE_JSON {
-                cBind.buffer.assumingMemoryBound(to: UInt8.self).deinitialize()
-            }
-        #endif
-        
-        switch variant {
-        case MYSQL_TYPE_STRING,
-             MYSQL_TYPE_VAR_STRING,
-             MYSQL_TYPE_BLOB,
-             MYSQL_TYPE_DECIMAL,
-             MYSQL_TYPE_NEWDECIMAL,
-             MYSQL_TYPE_ENUM,
-             MYSQL_TYPE_SET:
-            cBind.buffer.assumingMemoryBound(to: UInt8.self).deinitialize()
-        case MYSQL_TYPE_LONG:
-            if cBind.is_unsigned == 1 {
-                cBind.buffer.assumingMemoryBound(to: UInt32.self).deinitialize()
-            } else {
-                cBind.buffer.assumingMemoryBound(to: Int32.self).deinitialize()
-            }
-        case MYSQL_TYPE_TINY:
-            if cBind.is_unsigned == 1 {
-                cBind.buffer.assumingMemoryBound(to: UInt8.self).deinitialize()
-            } else {
-                cBind.buffer.assumingMemoryBound(to: Int8.self).deinitialize()
-            }
-        case MYSQL_TYPE_LONGLONG:
-            if cBind.is_unsigned == 1 {
-                cBind.buffer.assumingMemoryBound(to: UInt64.self).deinitialize()
-            } else {
-                cBind.buffer.assumingMemoryBound(to: Int64.self).deinitialize()
-            }
-        case MYSQL_TYPE_DOUBLE:
-            cBind.buffer.assumingMemoryBound(to: Double.self).deinitialize()
-        case MYSQL_TYPE_DATE,
-             MYSQL_TYPE_DATETIME,
-             MYSQL_TYPE_TIMESTAMP,
-             MYSQL_TYPE_TIME:
-            cBind.buffer.assumingMemoryBound(to: MYSQL_TIME.self).deinitialize()
-        default:
-            print("[MySQL] Unsupported type: \(variant).")
-            break
-        }
-        
         cBind.buffer.deallocate(bytes: bufferLength, alignedTo: MemoryLayout<Void>.alignment)
         
         cBind.length.deinitialize()
         cBind.length.deallocate(capacity: 1)
-        
+
         if let pointer = cBind.is_null {
             pointer.deinitialize()
             pointer.deallocate(capacity: 1)
         }
-        
+
         if let pointer = cBind.error {
             pointer.deinitialize()
             pointer.deallocate(capacity: 1)
