@@ -10,7 +10,7 @@ extension MySQL.Database {
                 password: "",
                 database: "test"
             )
-            // try mysql.execute("SELECT @@version")
+            try mysql.execute("SELECT @@version")
             return mysql
         } catch {
             print()
