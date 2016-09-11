@@ -168,11 +168,15 @@ public final class Bind {
         C binding.
     */
     deinit {
-        let bufferLength = Int(cBind.buffer_length)
-        cBind.buffer.deallocate(bytes: bufferLength, alignedTo: MemoryLayout<Void>.alignment)
-        
-        cBind.length.deinitialize()
-        cBind.length.deallocate(capacity: 1)
+        if let pointer = cBind.buffer {
+            let bufferLength = Int(cBind.buffer_length)
+            pointer.deallocate(bytes: bufferLength, alignedTo: MemoryLayout<Void>.alignment)
+        }
+
+        if let pointer = cBind.length {
+            pointer.deinitialize()
+            pointer.deallocate(capacity: 1)
+        }
 
         if let pointer = cBind.is_null {
             pointer.deinitialize()
