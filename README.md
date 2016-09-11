@@ -71,6 +71,8 @@ No need to worry about closing the connection.
 
 ### macOS
 
+#### Using brew
+
 Install MySQL
 
 ```shell
@@ -81,8 +83,25 @@ mysql.server start
 
 Link MySQL during `swift build`
 
-```swift
+```shell
 swift build -Xswiftc -I/usr/local/include/mysql -Xlinker -L/usr/local/lib
+```
+
+`-I` tells the compiler where to find the MySQL header files, and `-L` tells the linker where to find the library. This is required to compile and run on macOS.
+
+#### Using macports
+
+Install MySQL
+
+```shell
+sudo port install mysql57
+sudo port select mysql mysql57
+```
+
+Link MySQL during `swift build`
+
+```shell
+swift build -Xswiftc -I/opt/local/include/mysql57/mysql/mysql -Xlinker -L/opt/local/lib/mysql57/mysql
 ```
 
 `-I` tells the compiler where to find the MySQL header files, and `-L` tells the linker where to find the library. This is required to compile and run on macOS.
