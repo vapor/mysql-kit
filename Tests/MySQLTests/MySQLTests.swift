@@ -170,11 +170,29 @@ class MySQLTests: XCTestCase {
         }
     }
 
+    func testSpam() {
+        do {
+            let c = try mysql.makeConnection()
+
+            try c.execute("DROP TABLE IF EXISTS spam")
+            try c.execute("CREATE TABLE spam (s VARCHAR(64), time TIME)")
+
+            for _ in 0..<10_000 {
+                try c.execute("INSERT INTO spam VALUES (?, ?)", ["hello", "13:42"])
+            }
+
+            let cn = try mysql.makeConnection()
+            try cn.execute("SELECT * FROM spam")
+        } catch {
+            XCTFail("Testing multiple failed: \(error)")
+        }
+    }
+
     func testError() {
         do {
             try mysql.execute("error")
             XCTFail("Should have errored.")
-        } catch Database.Error.prepare(_) {
+        } catch MySQL.Error.prepare(_) {
 
         } catch {
             XCTFail("Wrong error: \(error)")
