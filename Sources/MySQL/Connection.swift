@@ -8,6 +8,8 @@
     import CMySQLMac
 #endif
 
+import Core
+
 /**
     This structure represents a handle to one database connection.
     It is used for almost all MySQL functions.
@@ -19,6 +21,8 @@ public final class Connection {
     public typealias CConnection = UnsafeMutablePointer<MYSQL>
 
     public let cConnection: CConnection
+
+    private let lock = Lock()
 
     public init(
         host: String,
@@ -42,100 +46,104 @@ public final class Connection {
 
     @discardableResult
     public func execute(_ query: String, _ values: [NodeRepresentable] = []) throws -> [[String: Node]] {
-
-        // Create a pointer to the statement
-        // This should only fail if memory is limited.
-        guard let statement = mysql_stmt_init(cConnection) else {
-            throw Error.statement(error)
-        }
-        defer {
-            mysql_stmt_close(statement)
-        }
-
-        // Prepares the created statement
-        // This parses `?` in the query and
-        // prepares them to attach parameterized bindings.
-        guard mysql_stmt_prepare(statement, query, strlen(query)) == 0 else {
-            throw Error.prepare(error)
-        }
-
-        // Transforms the `[Value]` array into bindings
-        // and applies those bindings to the statement.
-        let inputBinds = try Binds(values)
-        guard mysql_stmt_bind_param(statement, inputBinds.cBinds) == 0 else {
-            throw Error.inputBind(error)
-        }
-
-        // Fetches metadata from the statement which has
-        // not yet run.
-        if let metadata = mysql_stmt_result_metadata(statement) {
+        var returnable: [[String: Node]] = []
+        try lock.locked {
+            // Create a pointer to the statement
+            // This should only fail if memory is limited.
+            guard let statement = mysql_stmt_init(cConnection) else {
+                throw Error.statement(error)
+            }
             defer {
-                mysql_free_result(metadata)
+                mysql_stmt_close(statement)
             }
 
-            // Parse the fields (columns) that will be returned
-            // by this statement.
-            let fields: Fields
-            do {
-                fields = try Fields(metadata)
-            } catch {
-                throw Error.fetchFields(self.error)
+            // Prepares the created statement
+            // This parses `?` in the query and
+            // prepares them to attach parameterized bindings.
+            guard mysql_stmt_prepare(statement, query, strlen(query)) == 0 else {
+                throw Error.prepare(error)
             }
 
-            // Use the fields data to create output bindings.
-            // These act as buffers for the data that will
-            // be returned when the statement is executed.
-            let outputBinds = Binds(fields)
-
-            // Bind the output bindings to the statement.
-            guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {
-                throw Error.outputBind(error)
+            // Transforms the `[Value]` array into bindings
+            // and applies those bindings to the statement.
+            let inputBinds = try Binds(values)
+            guard mysql_stmt_bind_param(statement, inputBinds.cBinds) == 0 else {
+                throw Error.inputBind(error)
             }
 
-            // Execute the statement!
-            // The data is ready to be fetched when this completes.
-            guard mysql_stmt_execute(statement) == 0 else {
-                throw Error.execute(error)
-            }
-
-            var results: [[String: Node]] = []
-
-            // Iterate over all of the rows that are returned.
-            // `mysql_stmt_fetch` will continue to return `0`
-            // as long as there are rows to be fetched.
-            while mysql_stmt_fetch(statement) == 0 {
-                var parsed: [String: Node] = [:]
-
-                // For each row, loop over all of the fields expected.
-                for (i, field) in fields.fields.enumerated() {
-
-                    // For each field, grab the data from
-                    // the output binding buffer and add
-                    // it to the parsed results.
-                    let output = outputBinds[i]
-                    parsed[field.name] = output.value
-
+            // Fetches metadata from the statement which has
+            // not yet run.
+            if let metadata = mysql_stmt_result_metadata(statement) {
+                defer {
+                    mysql_free_result(metadata)
                 }
 
-                results.append(parsed)
+                // Parse the fields (columns) that will be returned
+                // by this statement.
+                let fields: Fields
+                do {
+                    fields = try Fields(metadata)
+                } catch {
+                    throw Error.fetchFields(self.error)
+                }
 
-                // reset the bindings onto the statement to
-                // signal that they may be reused as buffers
-                // for the next row fetch.
+                // Use the fields data to create output bindings.
+                // These act as buffers for the data that will
+                // be returned when the statement is executed.
+                let outputBinds = Binds(fields)
+
+                // Bind the output bindings to the statement.
                 guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {
                     throw Error.outputBind(error)
                 }
-            }
 
-            return results
-        } else {
-            // no data is expected to return from
-            // this query, simply execute it.
-            guard mysql_stmt_execute(statement) == 0 else {
-                throw Error.execute(error)
+                // Execute the statement!
+                // The data is ready to be fetched when this completes.
+                guard mysql_stmt_execute(statement) == 0 else {
+                    throw Error.execute(error)
+                }
+
+                var results: [[String: Node]] = []
+
+                // Iterate over all of the rows that are returned.
+                // `mysql_stmt_fetch` will continue to return `0`
+                // as long as there are rows to be fetched.
+                while mysql_stmt_fetch(statement) == 0 {
+                    var parsed: [String: Node] = [:]
+
+                    // For each row, loop over all of the fields expected.
+                    for (i, field) in fields.fields.enumerated() {
+
+                        // For each field, grab the data from
+                        // the output binding buffer and add
+                        // it to the parsed results.
+                        let output = outputBinds[i]
+                        parsed[field.name] = output.value
+
+                    }
+
+                    results.append(parsed)
+
+                    // reset the bindings onto the statement to
+                    // signal that they may be reused as buffers
+                    // for the next row fetch.
+                    guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {
+                        throw Error.outputBind(error)
+                    }
+                }
+                
+                returnable = results
+            } else {
+                // no data is expected to return from
+                // this query, simply execute it.
+                guard mysql_stmt_execute(statement) == 0 else {
+                    throw Error.execute(error)
+                }
+                returnable = []
             }
-            return []
         }
+
+        return returnable
     }
 
 
