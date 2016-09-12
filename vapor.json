@@ -1,0 +1,28 @@
+{
+    "flags": {
+        "build": {
+            "macos": [
+                "-Xswiftc",
+                "-I/usr/local/include/mysql",
+                "-Xlinker",
+                "-L/usr/local/lib"
+            ],
+            "linux": [
+                "-Xswiftc",
+                "-DNOJSON"
+            ]
+        },
+        "test": {
+            "macos": [
+                "-Xswiftc",
+                "-I/usr/local/include/mysql",
+                "-Xlinker",
+                "-L/usr/local/lib"
+            ],
+            "linux": [
+                "-Xswiftc",
+                "-DNOJSON"
+            ]
+        }
+    }
+}
