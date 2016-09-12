@@ -71,6 +71,8 @@ No need to worry about closing the connection.
 
 ### macOS
 
+#### Using brew
+
 Install MySQL
 
 ```shell
@@ -81,8 +83,25 @@ mysql.server start
 
 Link MySQL during `swift build`
 
-```swift
+```shell
 swift build -Xswiftc -I/usr/local/include/mysql -Xlinker -L/usr/local/lib
+```
+
+`-I` tells the compiler where to find the MySQL header files, and `-L` tells the linker where to find the library. This is required to compile and run on macOS.
+
+#### Using macports
+
+Install MySQL
+
+```shell
+sudo port install mysql57
+sudo port select mysql mysql57
+```
+
+Link MySQL during `swift build`
+
+```shell
+swift build -Xswiftc -I/opt/local/include/mysql57/mysql/mysql -Xlinker -L/opt/local/lib/mysql57/mysql
 ```
 
 `-I` tells the compiler where to find the MySQL header files, and `-L` tells the linker where to find the library. This is required to compile and run on macOS.
@@ -120,6 +139,9 @@ This wrapper was created to power [Fluent](https://github.com/qutheory/fluent), 
 
 |MySQL|Xcode|Swift|
 |:-:|:-:|:-:|
+|0.6.x|8.0 GM|DEVELOPMENT-SNAPSHOT-2016-09-06-a|
+|0.5.x|8.0 Beta **6**|DEVELOPMENT-SNAPSHOT-2016-08-18-a|
+|0.4.x|8.0 Beta **3**|DEVELOPMENT-SNAPSHOT-2016-07-25-a|
 |0.3.x|8.0 Beta **3**|DEVELOPMENT-SNAPSHOT-2016-07-25-a|
 |0.2.x|7.3.x|DEVELOPMENT-SNAPSHOT-2016-06-20-a|
 |0.1.x|7.3.x|DEVELOPMENT-SNAPSHOT-2016-06-06-a|

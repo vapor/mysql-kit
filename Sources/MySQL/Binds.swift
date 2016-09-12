@@ -66,6 +66,7 @@ public final class Binds {
     }
 
     deinit {
+        cBinds.deinitialize()
         cBinds.deallocate(capacity: binds.count)
     }
 
