@@ -24,8 +24,11 @@ class MySQLTests: XCTestCase {
                 XCTFail("Version not in results")
                 return
             }
-
+            #if MARIADB
+            XCTAssert(version.string?.characters.first == "1")
+            #else
             XCTAssert(version.string?.characters.first == "5")
+            #endif
         } catch {
             XCTFail("Could not select version: \(error)")
         }
@@ -115,6 +118,7 @@ class MySQLTests: XCTestCase {
         }
     }
 
+    #if !NOJSON
     func testJSON() {
         do {
             try mysql.execute("DROP TABLE IF EXISTS json")
@@ -144,6 +148,7 @@ class MySQLTests: XCTestCase {
             XCTFail("Testing tables failed: \(error)")
         }
     }
+    #endif
 
     func testTimestamps() {
         do {

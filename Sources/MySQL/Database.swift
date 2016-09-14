@@ -8,6 +8,7 @@
     import CMySQLMac
 #endif
 import Core
+import Foundation
 
 
 /**
@@ -33,6 +34,7 @@ public final class Database {
          - parameter encoding: Usually "utf8", but something like "utf8mb4" may be
             used, since "utf8" does not fully implement the UTF8 standard and does
             not support Unicode.
+        - parameter pool: The number of connections to maintain in the connection pool.
 
 
         - throws: `Error.connection(String)` if the call to
@@ -46,7 +48,8 @@ public final class Database {
         port: UInt = 3306,
         socket: String? = nil,
         flag: UInt = 0,
-        encoding: String = "utf8"
+        encoding: String = "utf8",
+        pool: UInt = 8
     ) throws {
         try Database.activeLock.locked {
             /// Initializes the server that will
@@ -64,6 +67,21 @@ public final class Database {
         self.socket = socket
         self.flag = flag
         self.encoding = encoding
+        
+        // Clamp connection pool size to range of 1-32
+        let poolSize = pool < 1 ? 1 :
+            pool > 32 ? 32 :
+            pool
+        
+        self.connectionPool = [Connection]()
+        for _ in 0..<poolSize {
+            do {
+                let conn = try self.makeConnection()
+                self.connectionPool.append(conn)
+            } catch {
+                throw Error.serverInit
+            }
+        }
     }
 
     private let host: String
@@ -76,6 +94,8 @@ public final class Database {
     private let encoding: String
 
     static private var activeLock = Lock()
+    
+    private var connectionPool: [Connection]
 
     /**
         Executes the MySQL query string with parameterized values.
@@ -90,17 +110,25 @@ public final class Database {
             May be empty if the call does not produce data.
     */
     @discardableResult
-    public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ on: Connection? = nil) throws -> [[String: Node]] {
-        // If not connection is supplied, make a new one.
-        // This makes thread-safety default.
-        let connection: Connection
-        if let c = on {
-            connection = c
-        } else {
-            connection = try makeConnection()
+    public func execute(_ query: String, _ values: [NodeRepresentable] = []) throws -> [[String: Node]] {
+        var result = [[String : Node]]()
+        try Database.activeLock.locked {
+            let start = Date()
+            while connectionPool.count == 0 {
+                // Arbitrary 10-second timeout
+                if Date().timeIntervalSince1970 - start.timeIntervalSince1970 > 10 {
+                    throw Error.connection("The connection pool timed out")
+                }
+            }
+            let connection = connectionPool.removeFirst()
+            defer {
+                // Recycle connection
+                connectionPool.append(connection)
+            }
+            // TODO: Catch connections that were dropped by the server/interrupted and create a new one
+            result = try connection.execute(query, values)
         }
-
-        return try connection.execute(query, values)
+        return result
     }
 
 
