@@ -49,7 +49,6 @@ class MySQLTests: XCTestCase {
                 XCTFail("Could not get bar result")
             }
 
-
             if let resultBaz = try mysql.execute("SELECT * FROM foo where baz = 'elite'").first {
                 XCTAssertEqual(resultBaz["bar"]?.int, 1337)
                 XCTAssertEqual(resultBaz["baz"]?.string, "Elite")
