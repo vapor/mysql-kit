@@ -77,6 +77,7 @@ public final class Database {
         self.maxPoolSize = poolSize
         self.connectionPool = [Connection]()
         self.activeConnections = 0
+        self.poolSemaphore = DispatchSemaphore(value: Int(poolSize))
     }
     
     private let host: String
@@ -90,6 +91,7 @@ public final class Database {
     private let maxPoolSize: UInt
     private var connectionPool: [Connection]
     private var activeConnections: UInt
+    private var poolSemaphore: DispatchSemaphore
     
     static private var activeLock = Lock()
     
@@ -109,39 +111,42 @@ public final class Database {
     @discardableResult
     public func execute(_ query: String, _ values: [NodeRepresentable] = []) throws -> [[String: Node]] {
         var result = [[String : Node]]()
-        var connection: Connection?
+        let timeout = poolSemaphore.wait(timeout: 20)
+        guard timeout == .success else {
+            throw Error.execute("The MySQL connection pool timed out.")
+        }
+        var conn: Connection?
         try Database.activeLock.locked {
-            let start = Date()
-            
-            // TODO: Block the caller until a connection becomes available WITHOUT blocking the Database thread
-
-            while connectionPool.isEmpty {
+            if connectionPool.isEmpty {
                 if activeConnections < maxPoolSize {
                     // Haven't reached limit; create a new connection and add it to the pool
                     let conn = try makeConnection()
                     connectionPool.append(conn)
-                }
-                // Arbitrary 20-second timeout
-                if Date().timeIntervalSince1970 - start.timeIntervalSince1970 > 20 {
-                    throw Error.connection("The connection pool timed out")
+                } else {
+                    // Semaphore should prevent this state from ever being entered
+                    throw Error.execute("Error requesting a MySQL connection from the pool.")
                 }
             }
-            connection = connectionPool.removeFirst()
+            conn = connectionPool.removeFirst()
             activeConnections += 1
+        }
+        guard var connection = conn else {
+            throw Error.execute("Error requesting a MySQL connection from the pool.")
         }
         defer {
             Database.activeLock.locked {
                 // Recycle connection
-                connectionPool.append(connection!)
+                connectionPool.append(connection)
+                poolSemaphore.signal()
                 activeConnections -= 1
             }
         }
         do {
-            result = try connection!.execute(query, values)
+            result = try connection.execute(query, values)
         } catch {
             // Catch connection errors (e.g. timeout) and retry the request one time
             connection = try makeConnection()
-            result = try connection!.execute(query, values)
+            result = try connection.execute(query, values)
         }
         return result
     }
