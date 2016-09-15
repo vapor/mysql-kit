@@ -17,7 +17,7 @@ install:
       sudo mysql_install_db;
     fi
   - mysql -u root --password="" -e 'create database test;'
-  - eval "$(curl -sL swift.vapor.sh/travis)"
+  - eval "$(curl -sL https://swift.vapor.sh/swift-install)"
 script:
   # Build MySQL
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
