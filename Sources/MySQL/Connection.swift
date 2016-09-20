@@ -60,7 +60,7 @@ public final class Connection {
             // Prepares the created statement
             // This parses `?` in the query and
             // prepares them to attach parameterized bindings.
-            guard mysql_stmt_prepare(statement, query, strlen(query)) == 0 else {
+            guard mysql_stmt_prepare(statement, query, UInt(strlen(query))) == 0 else {
                 throw Error.prepare(error)
             }
 
