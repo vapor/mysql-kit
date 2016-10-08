@@ -1,5 +1,6 @@
 import Core
 import JSON
+import Foundation
 
 #if os(Linux)
 #if MARIADB
@@ -121,6 +122,16 @@ public final class Bind {
     }
     
     /**
+     Creates an input binding from an Date.
+     */
+    public convenience init(_ date: Date) {
+        let buffer = UnsafeMutablePointer<Date>.allocate(capacity: 1)
+        buffer.initialize(to: date)
+        
+        self.init(type: MYSQL_TYPE_DATETIME, buffer: buffer, bufferLength: MemoryLayout<Date>.size)
+    }
+    
+    /**
         Creates an input binding from an array of bytes.
     */
     public convenience init(_ bytes: Bytes) {
@@ -229,6 +240,8 @@ extension Node {
             return Bind(bytes)
         case .bool(let bool):
             return Bind(bool ? 1 : 0)
+        case .date(let date):
+            return Bind(date)
         }
     }
 }
