@@ -33,7 +33,7 @@ public final class Connection {
         socket: String?,
         flag: UInt,
         encoding: String,
-        optionsGroupName: String="vapor"
+        optionsGroupName: String = "vapor"
     ) throws {
         mysql_thread_init()
         cConnection = mysql_init(nil)
