@@ -32,10 +32,13 @@ public final class Connection {
         port: UInt32,
         socket: String?,
         flag: UInt,
-        encoding: String
+        encoding: String,
+        optionsGroupName: String="vapor"
     ) throws {
         mysql_thread_init()
         cConnection = mysql_init(nil)
+
+        mysql_options(cConnection, MYSQL_READ_DEFAULT_GROUP, optionsGroupName)
 
         guard mysql_real_connect(cConnection, host, user, password, database, port, socket, flag) != nil else {
             throw Error.connection(error)
