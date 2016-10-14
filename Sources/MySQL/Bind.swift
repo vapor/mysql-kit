@@ -129,11 +129,12 @@ public final class Bind {
         var ts = MYSQL_TIME()
         
         let calendar = Calendar.current
-        let components = calendar.dateComponents([.year, .month, .day, .hour, .second], from: date)
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
         ts.year = UInt32(components.year!)
         ts.month = UInt32(components.month!)
         ts.day = UInt32(components.day!)
         ts.hour = UInt32(components.hour!)
+        ts.minute = UInt32(components.minute!)
         ts.second = UInt32(components.second!)
         
         
