@@ -8,7 +8,8 @@ extension MySQL.Database {
                 host: "127.0.0.1",
                 user: "root",
                 password: "",
-                database: "test"
+                database: "test",
+                pool: 20
             )
             try mysql.execute("SELECT @@version")
             return mysql

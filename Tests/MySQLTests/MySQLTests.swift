@@ -186,12 +186,58 @@ class MySQLTests: XCTestCase {
             }
             
             let cn = try mysql.makeConnection()
-            try cn.execute("SELECT * FROM spam")
+            let result = try cn.execute("SELECT count(1) as total FROM spam")
+            XCTAssertEqual(result.first?["total"]?.int, 10000)
         } catch {
             XCTFail("Testing multiple failed: \(error)")
         }
     }
-    
+
+    func testSpamConnectionPoolSequential() {
+        do {
+            try mysql.execute("DROP TABLE IF EXISTS spam_sequential")
+            try mysql.execute("CREATE TABLE spam_sequential (s VARCHAR(64), time TIME)")
+
+            for _ in 0..<10_000 {
+                try mysql.execute("INSERT INTO spam_sequential VALUES (?, ?)", ["hello", "13:42"])
+            }
+
+            let result = try mysql.execute("SELECT count(1) as total FROM spam_sequential")
+            XCTAssertEqual(result.first?["total"]?.int, 10000)
+        } catch {
+            XCTFail("Testing multiple failed: \(error)")
+        }
+    }
+
+    func testSpamConnectionPoolParallel() {
+        do {
+            try mysql.execute("DROP TABLE IF EXISTS spam_parallel")
+            try mysql.execute("CREATE TABLE spam_parallel (s VARCHAR(64), time TIME)")
+
+            let threads = 100
+            let group = DispatchGroup()
+            for _ in 0..<threads {
+                group.enter()
+                DispatchQueue(label: "spam").async {
+                    do {
+                        for _ in 0..<(10_000/threads) {
+                            try self.mysql.execute("INSERT INTO spam_parallel VALUES (?, ?)", ["hello", "13:42"])
+                        }
+                    } catch {
+                        // failed to insert some
+                    }
+                    group.leave()
+                }
+            }
+            group.wait()
+
+            let result = try mysql.execute("SELECT count(1) as total FROM spam_parallel")
+            XCTAssertEqual(result.first?["total"]?.int, 10000)
+        } catch {
+            XCTFail("Testing multiple failed: \(error)")
+        }
+    }
+
     func testError() {
         do {
             try mysql.execute("error")

@@ -72,7 +72,6 @@ public final class Database {
         // Clamp connection pool size to range of 1-32
         self.maxPoolSize = max(1, min(32, pool))
         self.connectionPool = [Connection]()
-        self.activeConnections = 0
         self.poolSemaphore = DispatchSemaphore(value: Int(maxPoolSize))
     }
     
@@ -86,7 +85,6 @@ public final class Database {
     private let encoding: String
     private let maxPoolSize: UInt
     private var connectionPool: [Connection]
-    private var activeConnections: UInt
     private var poolSemaphore: DispatchSemaphore
     
     static private var activeLock = Lock()
@@ -106,48 +104,57 @@ public final class Database {
     */
     @discardableResult
     public func execute(_ query: String, _ values: [NodeRepresentable] = []) throws -> [[String: Node]] {
-        var result = [[String : Node]]()
+
+        try waitForPoolSemaphore()
+        let connection = try getConnectionFromPool()
+
+        defer { recyclePoolConnection(connection: connection) }
+
+        do {
+            return try connection.execute(query, values)
+        } catch {
+            // Catch connection errors (e.g. timeout) and retry the request one time
+            // TODO: Ensure this does not catch SQL errors, and only does catch connection ones
+            let connection = try makeConnection()
+            return try connection.execute(query, values)
+        }
+    }
+
+    // Semaphore limits the number of concurrent threads to match the pool size.
+    private func waitForPoolSemaphore() throws {
         let timeout = poolSemaphore.wait(timeout: 20)
         guard timeout == .success else {
             throw Error.execute("The MySQL connection pool timed out.")
         }
+    }
+
+    // Get a connection from the pool or create a new one
+    private func getConnectionFromPool() throws -> Connection {
         var conn: Connection?
         try Database.activeLock.locked {
             if connectionPool.isEmpty {
-                if activeConnections < maxPoolSize {
-                    // Haven't reached limit; create a new connection and add it to the pool
-                    let conn = try makeConnection()
-                    connectionPool.append(conn)
-                } else {
-                    // Semaphore should prevent this state from ever being entered
-                    throw Error.execute("Error requesting a MySQL connection from the pool.")
-                }
+                conn = try makeConnection()
+            } else {
+                conn = connectionPool.removeFirst()
             }
-            conn = connectionPool.removeFirst()
-            activeConnections += 1
         }
-        guard var connection = conn else {
+
+        guard let connection = conn else {
             throw Error.execute("Error requesting a MySQL connection from the pool.")
         }
-        defer {
-            Database.activeLock.locked {
-                // Recycle connection
-                connectionPool.append(connection)
-                poolSemaphore.signal()
-                activeConnections -= 1
-            }
-        }
-        do {
-            result = try connection.execute(query, values)
-        } catch {
-            // Catch connection errors (e.g. timeout) and retry the request one time
-            connection = try makeConnection()
-            result = try connection.execute(query, values)
-        }
-        return result
+
+        return connection
     }
-    
-    
+
+    // Recycle connection after execution
+    private func recyclePoolConnection(connection: Connection) {
+        Database.activeLock.locked {
+            connectionPool.append(connection)
+            poolSemaphore.signal()
+        }
+    }
+
+
     /**
         Creates a new thread-safe connection to
         the database that can be reused between executions.
