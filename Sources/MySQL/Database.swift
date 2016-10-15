@@ -73,7 +73,7 @@ public final class Database {
         self.maxPoolSize = max(1, min(32, pool))
         self.connectionPool = [Connection]()
         self.activeConnections = 0
-        self.poolSemaphore = DispatchSemaphore(value: Int(poolSize))
+        self.poolSemaphore = DispatchSemaphore(value: Int(maxPoolSize))
     }
     
     private let host: String
