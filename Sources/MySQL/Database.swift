@@ -88,10 +88,38 @@ public final class Database {
     private var poolSemaphore: DispatchSemaphore
     
     static private var activeLock = Lock()
-    
-    
+
     /**
-        Executes the MySQL query string with parameterized values.
+     Executes the MySQL query string with parameterized values.
+
+     - parameter query: MySQL flavored SQL query string.
+     - parameter values: Array of MySQL values to be parameterized.
+     The number of Values MUST equal the number of `?` in the query string.
+     - parameter connection: Optional connection to be reused.
+
+     - throws: Various `Database.Error` types.
+
+     - returns: An array of `[String: Value]` results.
+     May be empty if the call does not produce data.
+     */
+    @discardableResult
+    public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ on: Connection? = nil) throws -> [[String: Node]] {
+        // If no connection is supplied, use the connection pool.
+        guard let connection = on else {
+            return try execute(query, values)
+        }
+
+        do {
+            return try connection.execute(query, values)
+        } catch Error.prepare(_, let errorCode) where MySQLError.isServerGone(errorCode: errorCode) {
+            // Reconnect for "server gone" errors and "release" failed connection
+            let connection = try getConnectionFromPool()
+            return try connection.execute(query, values)
+        }
+    }
+
+    /**
+        Executes the MySQL query string with parameterized values using the connection pool.
      
         - parameter query: MySQL flavored SQL query string.
         - parameter values: Array of MySQL values to be parameterized.
