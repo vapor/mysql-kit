@@ -11,7 +11,7 @@ public enum Error: Swift.Error {
     case inputBind(String)
     case outputBind(String)
     case fetchFields(String)
-    case prepare(String)
+    case prepare(String, UInt32)
     case statement(String)
     case execute(String)
 }

@@ -84,7 +84,7 @@ public final class Database {
     private let flag: UInt
     private let encoding: String
     private let maxPoolSize: UInt
-    private var connectionPool: [Connection]
+    internal var connectionPool: [Connection]
     private var poolSemaphore: DispatchSemaphore
     
     static private var activeLock = Lock()
@@ -104,18 +104,15 @@ public final class Database {
     */
     @discardableResult
     public func execute(_ query: String, _ values: [NodeRepresentable] = []) throws -> [[String: Node]] {
-
         try waitForPoolSemaphore()
-        let connection = try getConnectionFromPool()
-
+        var connection = try getConnectionFromPool()
         defer { recyclePoolConnection(connection: connection) }
 
         do {
             return try connection.execute(query, values)
-        } catch {
-            // Catch connection errors (e.g. timeout) and retry the request one time
-            // TODO: Ensure this does not catch SQL errors, and only does catch connection ones
-            let connection = try makeConnection()
+        } catch Error.prepare(_, let errorCode) where MySQLError.isServerGone(errorCode: errorCode) {
+            // Reconnect for "server gone" errors and "release" failed connection
+            connection = try getConnectionFromPool()
             return try connection.execute(query, values)
         }
     }

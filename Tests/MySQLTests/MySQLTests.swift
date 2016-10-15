@@ -4,6 +4,16 @@ import JSON
 import Core
 import Dispatch
 
+#if os(Linux)
+    #if MARIADB
+        import CMariaDBLinux
+    #else
+        import CMySQLLinux
+    #endif
+#else
+    import CMySQLMac
+#endif
+
 
 class MySQLTests: XCTestCase {
     static let allTests = [
@@ -167,7 +177,7 @@ class MySQLTests: XCTestCase {
 
 
             if let result = try mysql.execute("SELECT i FROM times").first {
-                print(result)
+                XCTAssertEqual(result["i"]?.int, 1)
             } else {
                 XCTFail("No results")
             }
@@ -248,6 +258,30 @@ class MySQLTests: XCTestCase {
             
         } catch {
             XCTFail("Wrong error: \(error)")
+        }
+    }
+
+    /// Test for "server gone" errors (typically produced when a connection is lost to the server
+    /// due to inactivity or other reasons)
+    /// This tests, closes all the connections in the pool and replaces them with new ones. Thus, 
+    /// this test will never face the "server gone" error (2006) but instead receive the 
+    /// error "commands out of sync" (2014).
+    /// To test for 2006, temporary comment the "mysql_init" line below. This will trigger the error,
+    /// however the Connection class will fail on dealloc when trying to close the already closed 
+    /// connection.
+    func testServerGone() {
+        do {
+            let result1 = try mysql.execute("SELECT 1 as one")
+            XCTAssertEqual(result1.first?["one"]?.int, 1)
+            // Forcibly terminate all the connections
+            for connection in mysql.connectionPool {
+                mysql_close(connection.cConnection)
+                connection.cConnection = mysql_init(nil)
+            }
+            let result2 = try mysql.execute("SELECT 2 as two")
+            XCTAssertEqual(result2.first?["two"]?.int, 2)
+        } catch {
+            XCTFail()
         }
     }
 }
