@@ -2,6 +2,8 @@ import XCTest
 @testable import MySQL
 import JSON
 import Core
+import Dispatch
+
 
 class MySQLTests: XCTestCase {
     static let allTests = [
