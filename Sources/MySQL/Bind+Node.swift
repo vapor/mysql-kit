@@ -23,7 +23,7 @@ extension Bind {
         func cast<T>(_ buffer: UnsafeMutableRawPointer, _ type: T.Type) -> UnsafeMutablePointer<T> {
             return buffer.bindMemory(to: type, capacity: 1)
         }
-        
+
 
         func unwrap<T>(_ buffer: UnsafeMutableRawPointer, _ type: T.Type) -> T {
             return buffer.load(as: type)
@@ -97,6 +97,9 @@ extension Bind {
             case MYSQL_TYPE_DOUBLE:
                 let double = unwrap(buffer, Double.self)
                 return .number(.double(double))
+            case MYSQL_TYPE_FLOAT:
+                let float = unwrap(buffer, Float.self)
+                return .number(.double(Double(float)))
             case MYSQL_TYPE_DATE:
                 let time = unwrap(buffer, MYSQL_TIME.self)
                 return .string("\(time.year.pad(4))-\(time.month.pad(2))-\(time.day.pad(2))")
