@@ -23,6 +23,8 @@ public final class Connection {
     public let cConnection: CConnection
 
     private let lock = Lock()
+    
+    private let subSecondResolution: Int
 
     public init(
         host: String,
@@ -33,8 +35,11 @@ public final class Connection {
         socket: String?,
         flag: UInt,
         encoding: String,
-        optionsGroupName: String = "vapor"
+        optionsGroupName: String = "vapor",
+        subSecondResolution: Int
     ) throws {
+        self.subSecondResolution = subSecondResolution
+        
         mysql_thread_init()
         cConnection = mysql_init(nil)
 
@@ -69,7 +74,7 @@ public final class Connection {
 
             // Transforms the `[Value]` array into bindings
             // and applies those bindings to the statement.
-            let inputBinds = try Binds(values)
+            let inputBinds = try Binds(values, subSecondResolution: subSecondResolution)
             guard mysql_stmt_bind_param(statement, inputBinds.cBinds) == 0 else {
                 throw Error.inputBind(error)
             }
@@ -93,7 +98,7 @@ public final class Connection {
                 // Use the fields data to create output bindings.
                 // These act as buffers for the data that will
                 // be returned when the statement is executed.
-                let outputBinds = Binds(fields)
+                let outputBinds = Binds(fields, subSecondResolution: subSecondResolution)
 
                 // Bind the output bindings to the statement.
                 guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {

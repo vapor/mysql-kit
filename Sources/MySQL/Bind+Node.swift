@@ -103,19 +103,19 @@ extension Bind {
                 return .number(.double(Double(float)))
             case MYSQL_TYPE_DATE:
                 let time = unwrap(buffer, MYSQL_TIME.self)
-                return .string("\(time.year.pad(4))-\(time.month.pad(2))-\(time.day.pad(2))")
+                return .string("\(UInt(time.year).pad(4))-\(UInt(time.month).pad(2))-\(UInt(time.day).pad(2))")
             case MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP:
                 let time = unwrap(buffer, MYSQL_TIME.self)
-                var string = "\(time.year.pad(4))-\(time.month.pad(2))-\(time.day.pad(2)) \(time.hour.pad(2)):\(time.minute.pad(2)):\(time.second.pad(2))"
-                if Database.fractionalSecondsDigits > 0 {
-                    string += ".\(time.second_part.pad(Database.fractionalSecondsDigits))"
+                var string = "\(UInt(time.year).pad(4))-\(UInt(time.month).pad(2))-\(UInt(time.day).pad(2)) \(UInt(time.hour).pad(2)):\(UInt(time.minute).pad(2)):\(UInt(time.second).pad(2))"
+                if self.subSecondResolution > 0 {
+                    string += ".\(time.second_part.pad(self.subSecondResolution))"
                 }
                 return .string(string)
             case MYSQL_TYPE_TIME:
                 let time = unwrap(buffer, MYSQL_TIME.self)
-                var string = "\(time.hour.pad(2)):\(time.minute.pad(2)):\(time.second.pad(2))"
-                if Database.fractionalSecondsDigits > 0 {
-                    string += ".\(time.second_part.pad(Database.fractionalSecondsDigits))"
+                var string = "\(UInt(time.hour).pad(2)):\(UInt(time.minute).pad(2)):\(UInt(time.second).pad(2))"
+                if self.subSecondResolution > 0 {
+                    string += ".\(time.second_part.pad(self.subSecondResolution))"
                 }
                 return .string(string)
             default:
@@ -123,22 +123,6 @@ extension Bind {
                 return .null
             }
         }
-    }
-}
-
-extension UInt32 {
-    func pad(_ n: Int) -> String {
-        var string = description
-
-        if string.characters.count >= n {
-            return string
-        }
-
-        for _ in 0..<(n - string.characters.count) {
-            string = "0" + string
-        }
-
-        return string
     }
 }
 

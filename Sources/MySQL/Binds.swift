@@ -22,8 +22,9 @@ public final class Binds {
         Creastes an array of input bindings
         from values.
     */
-    public convenience init(_ values: [NodeRepresentable]) throws {
+    public convenience init(_ values: [NodeRepresentable], subSecondResolution: Int) throws {
         let binds = try values.map { try $0.makeNode().bind }
+        for bind in binds { bind.subSecondResolution = subSecondResolution }
         self.init(binds)
     }
 
@@ -32,11 +33,12 @@ public final class Binds {
         Creates an array of output bindings
         from expected Fields.
     */
-    public convenience init(_ fields: Fields) {
+    public convenience init(_ fields: Fields, subSecondResolution: Int) {
         var binds: [Bind] = []
 
         for field in fields.fields {
             let bind = Bind(field)
+            bind.subSecondResolution = subSecondResolution
             binds.append(bind)
         }
 
