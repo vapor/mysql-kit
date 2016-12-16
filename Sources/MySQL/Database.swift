@@ -49,7 +49,7 @@ public final class Database {
         socket: String? = nil,
         flag: UInt = 0,
         encoding: String = "utf8",
-        subSecondResolution: Int
+        subSecondResolution: Int = 0
     ) throws {
         try Database.activeLock.locked {
             /// Initializes the server that will
