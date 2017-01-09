@@ -33,6 +33,8 @@ public final class Database {
          - parameter encoding: Usually "utf8", but something like "utf8mb4" may be
             used, since "utf8" does not fully implement the UTF8 standard and does
             not support Unicode.
+        - parameter subSecondResolution: Usually 0 for no fractional seconds and up to 6
+            for microsecond resolution
 
 
         - throws: `Error.connection(String)` if the call to
@@ -46,7 +48,8 @@ public final class Database {
         port: UInt = 3306,
         socket: String? = nil,
         flag: UInt = 0,
-        encoding: String = "utf8"
+        encoding: String = "utf8",
+        subSecondResolution: Int = 0
     ) throws {
         try Database.activeLock.locked {
             /// Initializes the server that will
@@ -64,6 +67,7 @@ public final class Database {
         self.socket = socket
         self.flag = flag
         self.encoding = encoding
+        self.subSecondResolution = subSecondResolution
     }
 
     private let host: String
@@ -74,6 +78,7 @@ public final class Database {
     private let socket: String?
     private let flag: UInt
     private let encoding: String
+    private let subSecondResolution: Int
 
     static private var activeLock = Lock()
 
@@ -119,7 +124,8 @@ public final class Database {
             port: port,
             socket: socket,
             flag: flag,
-            encoding: encoding
+            encoding: encoding,
+            subSecondResolution: subSecondResolution
         )
     }
 

@@ -46,6 +46,10 @@ public final class Bind {
         self.cBind = cBind
     }
     
+    /** 
+        
+    */
+    public var subSecondResolution: Int = -1
     /**
         Creates an output binding from an expected Field.
     */
