@@ -62,7 +62,7 @@ Each call to `execute()` creates a new connection to the MySQL database. This en
 If you would like to re-use a connection between calls to execute, create a reusable connection and pass it as the third parameter to `execute()`.
 
 ```swift
-let connection = msyql.makeConnection()
+let connection = mysql.makeConnection()
 let result = try mysql.execute("SELECT LAST_INSERTED_ID() as id", [], connection)
 ```
 
