@@ -2,6 +2,18 @@ import XCTest
 @testable import MySQL
 import JSON
 import Core
+import Dispatch
+
+#if os(Linux)
+    #if MARIADB
+        import CMariaDBLinux
+    #else
+        import CMySQLLinux
+    #endif
+#else
+    import CMySQLMac
+#endif
+
 
 class MySQLTests: XCTestCase {
     static let allTests = [
@@ -24,8 +36,11 @@ class MySQLTests: XCTestCase {
                 XCTFail("Version not in results")
                 return
             }
-
+            #if MARIADB
+            XCTAssert(version.string?.characters.first == "1")
+            #else
             XCTAssert(version.string?.characters.first == "5")
+            #endif
         } catch {
             XCTFail("Could not select version: \(error)")
         }
@@ -45,7 +60,6 @@ class MySQLTests: XCTestCase {
             } else {
                 XCTFail("Could not get bar result")
             }
-
 
             if let resultBaz = try mysql.execute("SELECT * FROM foo where baz = 'elite'").first {
                 XCTAssertEqual(resultBaz["bar"]?.int, 1337)
@@ -115,6 +129,7 @@ class MySQLTests: XCTestCase {
         }
     }
 
+    #if !NOJSON
     func testJSON() {
         do {
             try mysql.execute("DROP TABLE IF EXISTS json")
@@ -144,6 +159,7 @@ class MySQLTests: XCTestCase {
             XCTFail("Testing tables failed: \(error)")
         }
     }
+    #endif
 
     func testTimestamps() {
         do {
@@ -161,7 +177,7 @@ class MySQLTests: XCTestCase {
 
 
             if let result = try mysql.execute("SELECT i FROM times").first {
-                print(result)
+                XCTAssertEqual(result["i"]?.int, 1)
             } else {
                 XCTFail("No results")
             }
@@ -173,16 +189,62 @@ class MySQLTests: XCTestCase {
     func testSpam() {
         do {
             let c = try mysql.makeConnection()
-
+            
             try c.execute("DROP TABLE IF EXISTS spam")
             try c.execute("CREATE TABLE spam (s VARCHAR(64), time TIME)")
-
+            
             for _ in 0..<10_000 {
                 try c.execute("INSERT INTO spam VALUES (?, ?)", ["hello", "13:42"])
             }
-
+            
             let cn = try mysql.makeConnection()
-            try cn.execute("SELECT * FROM spam")
+            let result = try cn.execute("SELECT count(1) as total FROM spam")
+            XCTAssertEqual(result.first?["total"]?.int, 10000)
+        } catch {
+            XCTFail("Testing multiple failed: \(error)")
+        }
+    }
+
+    func testSpamConnectionPoolSequential() {
+        do {
+            try mysql.execute("DROP TABLE IF EXISTS spam_sequential")
+            try mysql.execute("CREATE TABLE spam_sequential (s VARCHAR(64), time TIME)")
+
+            for _ in 0..<10_000 {
+                try mysql.execute("INSERT INTO spam_sequential VALUES (?, ?)", ["hello", "13:42"])
+            }
+
+            let result = try mysql.execute("SELECT count(1) as total FROM spam_sequential")
+            XCTAssertEqual(result.first?["total"]?.int, 10000)
+        } catch {
+            XCTFail("Testing multiple failed: \(error)")
+        }
+    }
+
+    func testSpamConnectionPoolParallel() {
+        do {
+            try mysql.execute("DROP TABLE IF EXISTS spam_parallel")
+            try mysql.execute("CREATE TABLE spam_parallel (s VARCHAR(64), time TIME)")
+
+            let threads = 100
+            let group = DispatchGroup()
+            for _ in 0..<threads {
+                group.enter()
+                DispatchQueue(label: "spam").async {
+                    do {
+                        for _ in 0..<(10_000/threads) {
+                            try self.mysql.execute("INSERT INTO spam_parallel VALUES (?, ?)", ["hello", "13:42"])
+                        }
+                    } catch {
+                        // failed to insert some
+                    }
+                    group.leave()
+                }
+            }
+            group.wait()
+
+            let result = try mysql.execute("SELECT count(1) as total FROM spam_parallel")
+            XCTAssertEqual(result.first?["total"]?.int, 10000)
         } catch {
             XCTFail("Testing multiple failed: \(error)")
         }
@@ -193,9 +255,33 @@ class MySQLTests: XCTestCase {
             try mysql.execute("error")
             XCTFail("Should have errored.")
         } catch MySQL.Error.prepare(_) {
-
+            
         } catch {
             XCTFail("Wrong error: \(error)")
+        }
+    }
+
+    /// Test for "server gone" errors (typically produced when a connection is lost to the server
+    /// due to inactivity or other reasons)
+    /// This tests, closes all the connections in the pool and replaces them with new ones. Thus, 
+    /// this test will never face the "server gone" error (2006) but instead receive the 
+    /// error "commands out of sync" (2014).
+    /// To test for 2006, temporary comment the "mysql_init" line below. This will trigger the error,
+    /// however the Connection class will fail on dealloc when trying to close the already closed 
+    /// connection.
+    func testServerGone() {
+        do {
+            let result1 = try mysql.execute("SELECT 1 as one")
+            XCTAssertEqual(result1.first?["one"]?.int, 1)
+            // Forcibly terminate all the connections
+            for connection in mysql.connectionPool {
+                mysql_close(connection.cConnection)
+                connection.cConnection = mysql_init(nil)
+            }
+            let result2 = try mysql.execute("SELECT 2 as two")
+            XCTAssertEqual(result2.first?["two"]?.int, 2)
+        } catch {
+            XCTFail()
         }
     }
 }
