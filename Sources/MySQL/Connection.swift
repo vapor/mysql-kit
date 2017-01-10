@@ -20,7 +20,7 @@ public final class Connection {
 
     public typealias CConnection = UnsafeMutablePointer<MYSQL>
 
-    public let cConnection: CConnection
+    public var cConnection: CConnection
 
     private let lock = Lock()
 
@@ -64,7 +64,7 @@ public final class Connection {
             // This parses `?` in the query and
             // prepares them to attach parameterized bindings.
             guard mysql_stmt_prepare(statement, query, UInt(strlen(query))) == 0 else {
-                throw Error.prepare(error)
+                throw Error.prepare(error, errorCode)
             }
 
             // Transforms the `[Value]` array into bindings
@@ -165,6 +165,15 @@ public final class Connection {
         }
         return String(cString: error)
     }
-    
+
+    /**
+        Contains the last error code generated
+        by this MySQLS connection.
+    */
+    public var errorCode: UInt32 {
+        return mysql_errno(cConnection)
+    }
+
+
 }
 
