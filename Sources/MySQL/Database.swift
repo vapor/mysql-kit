@@ -73,7 +73,7 @@ public final class Database {
     private let port: UInt32
     private let socket: String?
     private let flag: UInt
-    private let encoding: String
+    public let encoding: String
 
     static private var activeLock = Lock()
 
