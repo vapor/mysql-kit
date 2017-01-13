@@ -47,7 +47,6 @@ public final class Connection {
         mysql_set_character_set(cConnection, encoding)
     }
 
-    @discardableResult
     public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ iterator: (([String: Node]) -> Void)? = nil) throws {
         try lock.locked {
             // Create a pointer to the statement
