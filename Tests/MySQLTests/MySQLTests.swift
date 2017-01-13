@@ -8,6 +8,11 @@ class MySQLTests: XCTestCase {
         ("testSelectVersion", testSelectVersion),
         ("testTables", testTables),
         ("testParameterization", testParameterization),
+        ("testJSON", testJSON),
+        ("testTimestamps", testTimestamps),
+        ("testSpam", testSpam),
+        ("testSpamIterator", testSpamIterator),
+        ("testError", testError),
     ]
 
     var mysql: MySQL.Database!
@@ -186,6 +191,24 @@ class MySQLTests: XCTestCase {
         } catch {
             XCTFail("Testing multiple failed: \(error)")
         }
+    }
+
+    func testSpamIterator() {
+      do {
+          let c = try mysql.makeConnection()
+
+          try c.execute("DROP TABLE IF EXISTS spam")
+          try c.execute("CREATE TABLE spam (s VARCHAR(64), time TIME)")
+
+          for _ in 0..<10_000 {
+              try c.execute("INSERT INTO spam VALUES (?, ?)", ["hello", "13:42"])
+          }
+
+          let cn = try mysql.makeConnection()
+          try cn.execute("SELECT * FROM spam") { _ in }
+      } catch {
+          XCTFail("Testing multiple with iterator failed: \(error)")
+      }
     }
 
     func testError() {
