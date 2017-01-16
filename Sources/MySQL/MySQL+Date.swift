@@ -1,6 +1,6 @@
 import Foundation
 
-public enum MySQLDateError {
+public enum MySQLDateError: Swift.Error {
     case invalidDate
 }
 
