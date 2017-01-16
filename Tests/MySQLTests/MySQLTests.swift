@@ -4,7 +4,7 @@ import JSON
 import Core
 
 class MySQLTests: XCTestCase {
-    static var allTests = [
+    static let allTests = [
         ("testSelectVersion", testSelectVersion),
         ("testTables", testTables),
         ("testParameterization", testParameterization),

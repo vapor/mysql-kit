@@ -3,7 +3,7 @@ import XCTest
 @testable import MySQL
 
 class DateTests: XCTestCase {
-    static var allTests = [
+    static let allTests = [
         ("testMySQLDateInit", testMySQLDateInit),
         ("testMySQLDateInitFailed", testMySQLDateInitFailed),
     ]
