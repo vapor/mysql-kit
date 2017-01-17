@@ -8,6 +8,9 @@ class MySQLTests: XCTestCase {
         ("testSelectVersion", testSelectVersion),
         ("testTables", testTables),
         ("testParameterization", testParameterization),
+        ("testTimestamps", testTimestamps),
+        ("testSpam", testSpam),
+        ("testError", testError),
     ]
 
     var mysql: MySQL.Database!
