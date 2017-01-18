@@ -10,6 +10,7 @@ class MySQLTests: XCTestCase {
         ("testParameterization", testParameterization),
         ("testTimestamps", testTimestamps),
         ("testSpam", testSpam),
+        ("testSpamIterator", testSpamIterator),
         ("testError", testError),
         ("testTransaction", testTransaction),
         ("testTransactionFailed", testTransactionFailed),
@@ -19,6 +20,18 @@ class MySQLTests: XCTestCase {
 
     override func setUp() {
         mysql = MySQL.Database.makeTestConnection()
+    }
+
+    override func tearDown() {
+        do {
+            try mysql.execute("DROP TABLE IF EXISTS foo")
+            try mysql.execute("DROP TABLE IF EXISTS parameterization")
+            try mysql.execute("DROP TABLE IF EXISTS json")
+            try mysql.execute("DROP TABLE IF EXISTS times")
+            try mysql.execute("DROP TABLE IF EXISTS spam")
+        } catch {
+            print("Did not drop all test tables")
+        }
     }
 
     func testSelectVersion() {
@@ -191,6 +204,24 @@ class MySQLTests: XCTestCase {
         } catch {
             XCTFail("Testing multiple failed: \(error)")
         }
+    }
+
+    func testSpamIterator() {
+      do {
+          let c = try mysql.makeConnection()
+
+          try c.execute("DROP TABLE IF EXISTS spam")
+          try c.execute("CREATE TABLE spam (s VARCHAR(64), time TIME)")
+
+          for _ in 0..<10_000 {
+              try c.execute("INSERT INTO spam VALUES (?, ?)", ["hello", "13:42"])
+          }
+
+          let cn = try mysql.makeConnection()
+          try cn.execute("SELECT * FROM spam") { _ in }
+      } catch {
+          XCTFail("Testing multiple with iterator failed: \(error)")
+      }
     }
 
     func testError() {
