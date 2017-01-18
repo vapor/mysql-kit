@@ -238,8 +238,11 @@ class MySQLTests: XCTestCase {
             
             do {
                 try c.transaction {
+                    // will succeed, but will be rolled back
+                    try c.execute("UPDATE transaction SET name = 'Timmy'")
+                    
                     // malformed query, will throw
-                    try c.execute("UPDATE transaction STE name = 'Timmy'")
+                    try c.execute("💉")
                 }
                 
                 XCTFail("Transaction should have rethrown error.")
