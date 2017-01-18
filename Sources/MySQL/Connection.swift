@@ -47,7 +47,7 @@ public final class Connection {
         mysql_set_character_set(cConnection, encoding)
     }
     
-    public func transaction(_ closure: (Void) throws -> Void) throws {
+    public func transaction(_ closure: () throws -> Void) throws {
         // required by transactions, but I don't want to open the old
         // MySQL query API to the public as it would be a burden to maintain.
         func oldQuery(_ query: String) throws {
