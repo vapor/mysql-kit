@@ -11,6 +11,8 @@ class MySQLTests: XCTestCase {
         ("testTimestamps", testTimestamps),
         ("testSpam", testSpam),
         ("testError", testError),
+        ("testTransaction", testTransaction),
+        ("testTransactionFailed", testTransactionFailed),
     ]
 
     var mysql: MySQL.Database!
@@ -199,6 +201,58 @@ class MySQLTests: XCTestCase {
 
         } catch {
             XCTFail("Wrong error: \(error)")
+        }
+    }
+    
+    func testTransaction() {
+        do {
+            let c = try mysql.makeConnection()
+            try c.execute("DROP TABLE IF EXISTS transaction")
+            try c.execute("CREATE TABLE transaction (name VARCHAR(64))")
+            try c.execute("INSERT INTO transaction VALUES (?)", [
+                "james"
+            ])
+            
+            try c.transaction {
+                try c.execute("UPDATE transaction SET name = 'James' where name = 'james'")
+            }
+            
+            if let james = try c.execute("SELECT * FROM transaction").first {
+                XCTAssertEqual(james["name"]?.string, "James")
+            } else {
+                XCTFail("There should be one entry.")
+            }
+        } catch {
+            XCTFail("Testing transaction failed: \(error)")
+        }
+    }
+    
+    func testTransactionFailed() {
+        do {
+            let c = try mysql.makeConnection()
+            try c.execute("DROP TABLE IF EXISTS transaction")
+            try c.execute("CREATE TABLE transaction (name VARCHAR(64))")
+            try c.execute("INSERT INTO transaction VALUES (?)", [
+                "tommy"
+            ])
+            
+            do {
+                try c.transaction {
+                    // malformed query, will throw
+                    try c.execute("UPDATE transaction STE name = 'Timmy'")
+                }
+                
+                XCTFail("Transaction should have rethrown error.")
+                
+            } catch {
+                if let tommy = try c.execute("SELECT * FROM transaction").first {
+                    XCTAssertEqual(tommy["name"]?.string, "tommy", "Should have ROLLBACK")
+                } else {
+                    XCTFail("There should be one entry.")
+                }
+            }
+        } catch {
+            XCTFail("Testing transaction failed: \(error)")
         }
     }
 }
