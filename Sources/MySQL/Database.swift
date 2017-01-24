@@ -91,7 +91,7 @@ public final class Database {
         - throws: Various `Database.Error` types.
 
     */
-    public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ on: Connection? = nil, _ iterator: (@escaping ([String: Node]) -> Void)) throws {
+    public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ on: Connection? = nil, _ iterator: (([String: Node]) -> Void) = { _ in }) throws {
         // If not connection is supplied, make a new one.
         // This makes thread-safety default.
         let connection: Connection

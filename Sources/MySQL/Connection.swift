@@ -47,7 +47,7 @@ public final class Connection {
         mysql_set_character_set(cConnection, encoding)
     }
 
-    public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ iterator: (([String: Node]) -> Void)? = nil) throws {
+    public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ iterator: (([String: Node]) -> Void) = { _ in }) throws {
         try lock.locked {
             // Create a pointer to the statement
             // This should only fail if memory is limited.
@@ -123,7 +123,7 @@ public final class Connection {
 
                     // Call the `iterator` closure with this row's results,
                     // if one was provided.
-                    iterator?(parsed)
+                    iterator(parsed)
 
                     // reset the bindings onto the statement to
                     // signal that they may be reused as buffers
