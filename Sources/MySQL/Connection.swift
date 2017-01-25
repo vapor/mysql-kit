@@ -131,13 +131,12 @@ public final class Connection {
                 }
 
                 var results: [[String: Node]] = []
+                var parsed: [String: Node] = [:]
 
                 // Iterate over all of the rows that are returned.
                 // `mysql_stmt_fetch` will continue to return `0`
                 // as long as there are rows to be fetched.
                 while mysql_stmt_fetch(statement) == 0 {
-                    var parsed: [String: Node] = [:]
-
                     // For each row, loop over all of the fields expected.
                     for (i, field) in fields.fields.enumerated() {
 
