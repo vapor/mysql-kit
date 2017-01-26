@@ -17,18 +17,18 @@ public final class Database {
     /**
         Attempts to establish a connection to a MySQL database
         engine running on host.
-     
+
         - parameter host: May be either a host name or an IP address.
             If host is the string "localhost", a connection to the local host is assumed.
         - parameter user: The user's MySQL login ID.
         - parameter password: Password for user.
-        - parameter database: Database name. 
+        - parameter database: Database name.
             The connection sets the default database to this value.
-        - parameter port: If port is not 0, the value is used as 
+        - parameter port: If port is not 0, the value is used as
             the port number for the TCP/IP connection.
-        - parameter socket: If socket is not NULL, 
+        - parameter socket: If socket is not NULL,
             the string specifies the socket or named pipe to use.
-        - parameter flag: Usually 0, but can be set to a combination of the 
+        - parameter flag: Usually 0, but can be set to a combination of the
             flags at http://dev.mysql.com/doc/refman/5.7/en/mysql-real-connect.html
          - parameter encoding: Usually "utf8", but something like "utf8mb4" may be
             used, since "utf8" does not fully implement the UTF8 standard and does
@@ -78,19 +78,20 @@ public final class Database {
     static private var activeLock = Lock()
 
     /**
-        Executes the MySQL query string with parameterized values.
-     
+        Executes the MySQL query string with parameterized values and calls a
+        closure for each result.
+
         - parameter query: MySQL flavored SQL query string.
         - parameter values: Array of MySQL values to be parameterized.
             The number of Values MUST equal the number of `?` in the query string.
-     
+        - parameter iterator: Closure which is called for each row in the query
+            results with a `[String: Value]` dictionary. May not be called at
+            all if there are zero results.
+
         - throws: Various `Database.Error` types.
-     
-        - returns: An array of `[String: Value]` results.
-            May be empty if the call does not produce data.
+
     */
-    @discardableResult
-    public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ on: Connection? = nil) throws -> [[String: Node]] {
+    public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ on: Connection? = nil, _ iterator: (([String: Node]) -> Void) = { _ in }) throws {
         // If not connection is supplied, make a new one.
         // This makes thread-safety default.
         let connection: Connection
@@ -100,7 +101,29 @@ public final class Database {
             connection = try makeConnection()
         }
 
-        return try connection.execute(query, values)
+        try connection.execute(query, values, iterator)
+    }
+
+    /**
+        Executes the MySQL query string with parameterized values and returns
+        all results.
+
+        - parameter query: MySQL flavored SQL query string.
+        - parameter values: Array of MySQL values to be parameterized.
+            The number of Values MUST equal the number of `?` in the query string.
+
+        - throws: Various `Database.Error` types.
+
+        - returns: An array of `[String: Value]` results.
+            May be empty if the call does not produce data.
+    */
+    @discardableResult
+    public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ on: Connection? = nil) throws -> [[String: Node]] {
+        var returnable: [[String: Node]] = []
+        try execute(query, values, on) {
+            returnable.append($0)
+        }
+        return returnable
     }
 
 

@@ -43,7 +43,7 @@ public final class Connection {
         guard mysql_real_connect(cConnection, host, user, password, database, port, socket, flag) != nil else {
             throw Error.connection(error)
         }
-        
+
         mysql_set_character_set(cConnection, encoding)
     }
     
@@ -71,9 +71,8 @@ public final class Connection {
         try oldQuery("COMMIT")
     }
     
-    @discardableResult
-    public func execute(_ query: String, _ values: [NodeRepresentable] = []) throws -> [[String: Node]] {
-        var returnable: [[String: Node]] = []
+
+    public func execute(_ query: String, _ values: [NodeRepresentable] = [], _ iterator: (([String: Node]) -> Void) = { _ in }) throws {
         try lock.locked {
             // Create a pointer to the statement
             // This should only fail if memory is limited.
@@ -130,8 +129,6 @@ public final class Connection {
                     throw Error.execute(error)
                 }
 
-                var results: [[String: Node]] = []
-
                 // Iterate over all of the rows that are returned.
                 // `mysql_stmt_fetch` will continue to return `0`
                 // as long as there are rows to be fetched.
@@ -149,7 +146,9 @@ public final class Connection {
 
                     }
 
-                    results.append(parsed)
+                    // Call the `iterator` closure with this row's results,
+                    // if one was provided.
+                    iterator(parsed)
 
                     // reset the bindings onto the statement to
                     // signal that they may be reused as buffers
@@ -158,18 +157,23 @@ public final class Connection {
                         throw Error.outputBind(error)
                     }
                 }
-                
-                returnable = results
+
             } else {
                 // no data is expected to return from
                 // this query, simply execute it.
                 guard mysql_stmt_execute(statement) == 0 else {
                     throw Error.execute(error)
                 }
-                returnable = []
             }
         }
+    }
 
+    @discardableResult
+    public func execute(_ query: String, _ values: [NodeRepresentable] = []) throws -> [[String: Node]] {
+        var returnable: [[String: Node]] = []
+        try execute(query, values) {
+            returnable.append($0)
+        }
         return returnable
     }
 
@@ -189,6 +193,5 @@ public final class Connection {
         }
         return String(cString: error)
     }
-    
-}
 
+}
