@@ -17,19 +17,14 @@ public final class Field {
 
     public let cField: CField
 
-    public var name: String {
-        var name: String = ""
-
-        let len = Int(cField.name_length)
-        cField.name.withMemoryRebound(to: Byte.self, capacity: len) { pointer in
-            let buff = UnsafeBufferPointer(start: pointer, count: Int(cField.name_length))
-            name = Array(buff).string
-        }
-
-        return name
-    }
+    public let name: String
 
     public init(_ cField: CField) {
         self.cField = cField
+        let len = Int(cField.name_length)
+        self.name = cField.name.withMemoryRebound(to: Byte.self, capacity: len) { pointer in
+            let buff = UnsafeBufferPointer(start: pointer, count: len)
+            return Array(buff).string
+        }
     }
 }
