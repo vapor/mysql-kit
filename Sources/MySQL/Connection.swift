@@ -131,6 +131,9 @@ public final class Connection {
                 }
 
                 var results: [[String: Node]] = []
+
+                // This single dictionary is reused for all rows in the result set
+                // to avoid the runtime overhead of (de)allocating one per row.
                 var parsed: [String: Node] = [:]
 
                 // Iterate over all of the rows that are returned.
