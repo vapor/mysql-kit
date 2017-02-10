@@ -4,7 +4,8 @@ import XCTest
 @testable import MySQLTests
 
 XCTMain([
-    testCase(MySQLTests.allTests)
+    testCase(DateTests.allTests),
+    testCase(MySQLTests.allTests),
 ])
 
 #endif

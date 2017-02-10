@@ -33,10 +33,13 @@ public final class Connection {
         port: UInt32,
         socket: String?,
         flag: UInt,
-        encoding: String
+        encoding: String,
+        optionsGroupName: String = "vapor"
     ) throws {
         mysql_thread_init()
         cConnection = mysql_init(nil)
+
+        mysql_options(cConnection, MYSQL_READ_DEFAULT_GROUP, optionsGroupName)
 
         guard mysql_real_connect(cConnection, host, user, password, database, port, socket, flag) != nil else {
             throw Error.connection(error)
@@ -44,7 +47,31 @@ public final class Connection {
         
         mysql_set_character_set(cConnection, encoding)
     }
-
+    
+    public func transaction(_ closure: () throws -> Void) throws {
+        // required by transactions, but I don't want to open the old
+        // MySQL query API to the public as it would be a burden to maintain.
+        func oldQuery(_ query: String) throws {
+            try lock.locked {
+                guard mysql_query(cConnection, query) == 0 else {
+                    throw Error.execute(error)
+                }
+            }
+        }
+        
+        try oldQuery("START TRANSACTION")
+        
+        do {
+            try closure()
+        } catch {
+            // rollback changes and then rethrow the error
+            try oldQuery("ROLLBACK")
+            throw error
+        }
+        
+        try oldQuery("COMMIT")
+    }
+    
     @discardableResult
     public func execute(_ query: String, _ values: [NodeRepresentable] = []) throws -> [[String: Node]] {
         var returnable: [[String: Node]] = []
@@ -61,7 +88,7 @@ public final class Connection {
             // Prepares the created statement
             // This parses `?` in the query and
             // prepares them to attach parameterized bindings.
-            guard mysql_stmt_prepare(statement, query, strlen(query)) == 0 else {
+            guard mysql_stmt_prepare(statement, query, UInt(strlen(query))) == 0 else {
                 throw Error.prepare(error)
             }
 
@@ -106,12 +133,14 @@ public final class Connection {
 
                 var results: [[String: Node]] = []
 
+                // This single dictionary is reused for all rows in the result set
+                // to avoid the runtime overhead of (de)allocating one per row.
+                var parsed: [String: Node] = [:]
+
                 // Iterate over all of the rows that are returned.
                 // `mysql_stmt_fetch` will continue to return `0`
                 // as long as there are rows to be fetched.
                 while mysql_stmt_fetch(statement) == 0 {
-                    var parsed: [String: Node] = [:]
-
                     // For each row, loop over all of the fields expected.
                     for (i, field) in fields.fields.enumerated() {
 
