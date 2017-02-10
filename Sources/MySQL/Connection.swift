@@ -9,6 +9,7 @@
 #endif
 
 import Core
+import Foundation
 
 /**
     This structure represents a handle to one database connection.
@@ -22,7 +23,7 @@ public final class Connection {
 
     public let cConnection: CConnection
 
-    private let lock = Lock()
+    private let lock = NSLock()
 
     public init(
         host: String,

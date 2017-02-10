@@ -8,7 +8,7 @@
     import CMySQLMac
 #endif
 import Core
-
+import Foundation
 
 /**
     Holds a `Connection` to the MySQL database.
@@ -75,7 +75,7 @@ public final class Database {
     private let flag: UInt
     private let encoding: String
 
-    static private var activeLock = Lock()
+    static private var activeLock = NSLock()
 
     /**
         Executes the MySQL query string with parameterized values.

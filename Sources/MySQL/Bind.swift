@@ -1,5 +1,6 @@
 import Core
 import JSON
+import Foundation
 
 #if os(Linux)
 #if MARIADB
@@ -119,7 +120,7 @@ public final class Bind {
         
         self.init(type: MYSQL_TYPE_DOUBLE, buffer: buffer, bufferLength: MemoryLayout<Double>.size)
     }
-    
+
     /**
         Creates an input binding from an array of bytes.
     */
@@ -130,7 +131,19 @@ public final class Bind {
         }
         self.init(type: MYSQL_TYPE_STRING, buffer: pointer, bufferLength: bytes.count)
     }
-    
+
+    /**
+         Creates an input binding from a Date
+
+         https://dev.mysql.com/doc/refman/5.7/en/c-api-prepared-statement-date-handling.html
+    */
+    public convenience init(_ date: Date) {
+        let time = date.makeTime()
+        let pointer = UnsafeMutablePointer<MYSQL_TIME>.allocate(capacity: MemoryLayout<MYSQL_TIME>.size)
+        pointer.initialize(to: time)
+        self.init(type: MYSQL_TYPE_DATETIME, buffer: pointer, bufferLength: MemoryLayout<MYSQL_TIME>.size)
+    }
+
     /**
         Creates an input binding from a field variant,
         input buffer, and input buffer length.
@@ -229,6 +242,40 @@ extension Node {
             return Bind(bytes)
         case .bool(let bool):
             return Bind(bool ? 1 : 0)
+        case .date(let date):
+            return Bind(date)
         }
+    }
+}
+
+extension Calendar {
+    static let gregorian: Calendar = {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = .utc
+        return cal
+    }()
+}
+
+extension TimeZone {
+    static let utc = TimeZone(abbreviation: "UTC")!
+}
+
+extension Date {
+    func makeTime() -> MYSQL_TIME {
+        var time = MYSQL_TIME()
+
+        let comps = makeComponents()
+        time.year = comps.year.flatMap { UInt32($0) } ?? 0
+        time.month = comps.month.flatMap { UInt32($0) } ?? 0
+        time.day = comps.day.flatMap { UInt32($0) } ?? 0
+        time.hour = comps.hour.flatMap { UInt32($0) } ?? 0
+        time.minute = comps.minute.flatMap { UInt32($0) } ?? 0
+        time.second = comps.second.flatMap { UInt32($0) } ?? 0
+
+        return time
+    }
+
+    private func makeComponents() -> DateComponents {
+        return Calendar.gregorian.dateComponents([.year, .month, .day, .hour, .minute, .second], from: self)
     }
 }

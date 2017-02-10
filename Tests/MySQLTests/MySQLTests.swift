@@ -8,6 +8,11 @@ class MySQLTests: XCTestCase {
         ("testSelectVersion", testSelectVersion),
         ("testTables", testTables),
         ("testParameterization", testParameterization),
+        ("testJSON", testJSON),
+        ("testDates", testDates),
+        ("testTimestamps", testTimestamps),
+        ("testSpam", testSpam),
+        ("testError", testError),
     ]
 
     var mysql: MySQL.Database!
@@ -134,7 +139,7 @@ class MySQLTests: XCTestCase {
 
             if let result = try mysql.execute("SELECT * FROM json").first {
                 XCTAssertEqual(result["i"]?.int, 1)
-                XCTAssertEqual(result["b"]?.string, try String(bytes: bytes))
+                XCTAssertEqual(result["b"]?.string, String(bytes: bytes))
                 XCTAssertEqual(result["j"]?.object?["string"]?.string, "hello, world")
                 XCTAssertEqual(result["j"]?.object?["int"]?.int, 42)
             } else {
@@ -142,6 +147,23 @@ class MySQLTests: XCTestCase {
             }
         } catch {
             XCTFail("Testing tables failed: \(error)")
+        }
+    }
+
+    func testDates() throws {
+        let inputDate = Date()
+        try mysql.execute("DROP TABLE IF EXISTS times")
+        try mysql.execute("CREATE TABLE times (date DATETIME)")
+        try mysql.execute("INSERT INTO times VALUES (?)", [Node.date(inputDate)])
+        let results = try mysql.execute("SELECT * from times")
+        let dateNode = results.first?["date"]
+        if let node = dateNode, case let .date(retrievedDate) = node {
+            // make ints to more accurately compare
+            let r = Int(retrievedDate.timeIntervalSince1970)
+            let i = Int(inputDate.timeIntervalSince1970)
+            XCTAssertEqual(r, i, "Mismatched dates. Found: \(retrievedDate) Expected: \(inputDate)")
+        } else {
+            XCTFail("Unable to retrieve date")
         }
     }
 
@@ -160,7 +182,7 @@ class MySQLTests: XCTestCase {
             ])
 
 
-            if let result = try mysql.execute("SELECT i FROM times").first {
+            if let result = try mysql.execute("SELECT i, ts FROM times").first {
                 print(result)
             } else {
                 XCTFail("No results")
