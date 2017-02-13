@@ -59,9 +59,15 @@ extension Bind {
             #endif
 
             switch variant {
+            case MYSQL_TYPE_BLOB:
+                let buffer = UnsafeMutableBufferPointer(
+                    start: cast(buffer, UInt8.self),
+                    count: len()
+                )
+                let bytes = Bytes(buffer)
+                return .bytes(bytes)
             case MYSQL_TYPE_STRING,
                  MYSQL_TYPE_VAR_STRING,
-                 MYSQL_TYPE_BLOB,
                  MYSQL_TYPE_DECIMAL,
                  MYSQL_TYPE_NEWDECIMAL,
                  MYSQL_TYPE_ENUM,
