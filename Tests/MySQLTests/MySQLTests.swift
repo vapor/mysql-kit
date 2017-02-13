@@ -17,6 +17,7 @@ class MySQLTests: XCTestCase {
         ("testError", testError),
         ("testTransaction", testTransaction),
         ("testTransactionFailed", testTransactionFailed),
+        ("testBlob", testBlob),
     ]
 
     var mysql: MySQL.Database!
@@ -248,5 +249,21 @@ class MySQLTests: XCTestCase {
         } catch {
             XCTFail("Testing transaction failed: \(error)")
         }
+    }
+
+    func testBlob() throws {
+        let c = try mysql.makeConnection()
+        try c.execute("DROP TABLE IF EXISTS blobs")
+        try c.execute("CREATE TABLE blobs (raw BLOB)")
+        let inputBytes = Node.bytes("Hello, World!".makeBytes()) // just need generic bytes of some type
+        try c.execute("INSERT INTO blobs VALUES (?)", [inputBytes])
+        let retrieved = try c.execute("SELECT * FROM blobs")
+            .flatMap { $0["raw"]?.bytes }
+            .first
+            ?? []
+        let expectation = inputBytes.bytes ?? []
+        XCTAssert(!retrieved.isEmpty)
+        XCTAssert(!expectation.isEmpty)
+        XCTAssertEqual(retrieved, expectation)
     }
 }
