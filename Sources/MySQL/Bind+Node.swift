@@ -9,6 +9,7 @@
 #endif
 import Core
 import JSON
+import Foundation
 
 extension Bind {
     /**
@@ -103,12 +104,13 @@ extension Bind {
             case MYSQL_TYPE_FLOAT:
                 let float = unwrap(buffer, Float.self)
                 return .number(.double(Double(float)))
-            case MYSQL_TYPE_DATE:
+            case MYSQL_TYPE_DATE, MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP:
                 let time = unwrap(buffer, MYSQL_TIME.self)
-                return .string("\(time.year.pad(4))-\(time.month.pad(2))-\(time.day.pad(2))")
-            case MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP:
-                let time = unwrap(buffer, MYSQL_TIME.self)
-                return .string("\(time.year.pad(4))-\(time.month.pad(2))-\(time.day.pad(2)) \(time.hour.pad(2)):\(time.minute.pad(2)):\(time.second.pad(2))")
+                let dateString = "\(time.year.pad(4))-\(time.month.pad(2))-\(time.day.pad(2)) \(time.hour.pad(2)):\(time.minute.pad(2)):\(time.second.pad(2))"
+                guard let date = DateFormatter.mysql.date(from: dateString) else {
+                    return .string(dateString)
+                }
+                return .date(date)
             case MYSQL_TYPE_TIME:
                 let time = unwrap(buffer, MYSQL_TIME.self)
                 return .string("\(time.hour.pad(2)):\(time.minute.pad(2)):\(time.second.pad(2))")
