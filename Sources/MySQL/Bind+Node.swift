@@ -87,6 +87,9 @@ extension Bind {
                     let int = unwrap(buffer, Int8.self)
                     return .number(.int(Int(int)))
                 }
+            case MYSQL_TYPE_BIT:
+                let bit = unwrap(buffer, Bool.self)
+                return .bool(bit)
             case MYSQL_TYPE_LONGLONG:
                 if cBind.is_unsigned == 1 {
                     let uint = unwrap(buffer, UInt64.self)
