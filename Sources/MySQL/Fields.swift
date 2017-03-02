@@ -24,9 +24,9 @@ public final class Fields {
         Creates the array of fields from
         the metadata of a statement.
     */
-    public init(_ cMetadata: CMetadata) throws {
+    public init(_ cMetadata: CMetadata, _ conn: Connection) throws {
         guard let cFields = mysql_fetch_fields(cMetadata) else {
-            throw Error.fieldFetch
+            throw conn.lastError
         }
 
         let fieldsCount = Int(mysql_num_fields(cMetadata))

@@ -11,12 +11,10 @@
 import Core
 import Foundation
 
-/**
-    This structure represents a handle to one database connection.
-    It is used for almost all MySQL functions.
-    Do not try to make a copy of a MYSQL structure.
-    There is no guarantee that such a copy will be usable.
-*/
+/// This structure represents a handle to one database connection.
+/// It is used for almost all MySQL functions.
+/// Do not try to make a copy of a MYSQL structure.
+/// There is no guarantee that such a copy will be usable.
 public final class Connection {
 
     public typealias CConnection = UnsafeMutablePointer<MYSQL>
@@ -41,8 +39,17 @@ public final class Connection {
 
         mysql_options(cConnection, MYSQL_READ_DEFAULT_GROUP, optionsGroupName)
 
-        guard mysql_real_connect(cConnection, host, user, password, database, port, socket, flag) != nil else {
-            throw Error.connection(error)
+        guard mysql_real_connect(
+            cConnection,
+            host,
+            user,
+            password,
+            database,
+            port,
+            socket,
+            flag
+        ) != nil else {
+            throw MySQLError(.connection, reason: "Connection failed.")
         }
         
         mysql_set_character_set(cConnection, encoding)
@@ -51,25 +58,25 @@ public final class Connection {
     public func transaction(_ closure: () throws -> Void) throws {
         // required by transactions, but I don't want to open the old
         // MySQL query API to the public as it would be a burden to maintain.
-        func oldQuery(_ query: String) throws {
+        func manual(_ query: String) throws {
             try lock.locked {
                 guard mysql_query(cConnection, query) == 0 else {
-                    throw Error.execute(error)
+                    throw lastError
                 }
             }
         }
         
-        try oldQuery("START TRANSACTION")
+        try manual("START TRANSACTION")
         
         do {
             try closure()
         } catch {
             // rollback changes and then rethrow the error
-            try oldQuery("ROLLBACK")
+            try manual("ROLLBACK")
             throw error
         }
         
-        try oldQuery("COMMIT")
+        try manual("COMMIT")
     }
     
     @discardableResult
@@ -79,7 +86,7 @@ public final class Connection {
             // Create a pointer to the statement
             // This should only fail if memory is limited.
             guard let statement = mysql_stmt_init(cConnection) else {
-                throw Error.statement(error)
+                throw lastError
             }
             defer {
                 mysql_stmt_close(statement)
@@ -89,14 +96,14 @@ public final class Connection {
             // This parses `?` in the query and
             // prepares them to attach parameterized bindings.
             guard mysql_stmt_prepare(statement, query, UInt(strlen(query))) == 0 else {
-                throw Error.prepare(error)
+                throw lastError
             }
 
             // Transforms the `[Value]` array into bindings
             // and applies those bindings to the statement.
             let inputBinds = try Binds(values)
             guard mysql_stmt_bind_param(statement, inputBinds.cBinds) == 0 else {
-                throw Error.inputBind(error)
+                throw lastError
             }
 
             // Fetches metadata from the statement which has
@@ -108,12 +115,7 @@ public final class Connection {
 
                 // Parse the fields (columns) that will be returned
                 // by this statement.
-                let fields: Fields
-                do {
-                    fields = try Fields(metadata)
-                } catch {
-                    throw Error.fetchFields(self.error)
-                }
+                let fields = try Fields(metadata, self)
 
                 // Use the fields data to create output bindings.
                 // These act as buffers for the data that will
@@ -122,13 +124,13 @@ public final class Connection {
 
                 // Bind the output bindings to the statement.
                 guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {
-                    throw Error.outputBind(error)
+                    throw lastError
                 }
 
                 // Execute the statement!
                 // The data is ready to be fetched when this completes.
                 guard mysql_stmt_execute(statement) == 0 else {
-                    throw Error.execute(error)
+                    throw lastError
                 }
 
                 var results: [[String: Node]] = []
@@ -158,7 +160,7 @@ public final class Connection {
                     // signal that they may be reused as buffers
                     // for the next row fetch.
                     guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {
-                        throw Error.outputBind(error)
+                        throw lastError
                     }
                 }
                 
@@ -167,7 +169,7 @@ public final class Connection {
                 // no data is expected to return from
                 // this query, simply execute it.
                 guard mysql_stmt_execute(statement) == 0 else {
-                    throw Error.execute(error)
+                    throw lastError
                 }
                 returnable = []
             }
@@ -176,21 +178,19 @@ public final class Connection {
         return returnable
     }
 
+    public var closed: Bool {
+        return mysql_ping(cConnection) != 0
+    }
 
     deinit {
         mysql_close(cConnection)
         mysql_thread_end()
     }
 
-    /**
-        Contains the last error message generated
-        by this MySQLS connection.
-    */
-    public var error: String {
-        guard let error = mysql_error(cConnection) else {
-            return "Unknown"
-        }
-        return String(cString: error)
+    /// Contains the last error message generated
+    /// by this MySQLS connection.
+    public var lastError: MySQLError {
+        return MySQLError(self)
     }
     
 }
