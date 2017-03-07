@@ -9,9 +9,7 @@
 #endif
 import Core
 
-/**
-    Wraps a MySQL C field struct.
-*/
+/// Wraps a MySQL C field struct.
 public final class Field {
     public typealias CField = MYSQL_FIELD
 

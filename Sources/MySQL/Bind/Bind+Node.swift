@@ -12,13 +12,11 @@ import JSON
 import Foundation
 
 extension Bind {
-    /**
-        Parses a MySQL Value object from
-        an output binding.
-    */
-    public var value: Node {
+    /// Parses a MySQL Value object from
+    /// an output binding.
+    public var value: StructuredData {
         guard let buffer = cBind.buffer else {
-            return nil
+            return .null
         }
 
         func cast<T>(_ buffer: UnsafeMutableRawPointer, _ type: T.Type) -> UnsafeMutablePointer<T> {
@@ -50,7 +48,9 @@ extension Bind {
                     let bytes = Array(buffer)
 
                     do {
-                        return try JSON(bytes: bytes).makeNode()
+                        return try JSON(bytes: bytes)
+                            .makeNode(in: MySQLContext.shared)
+                            .wrapped
                     } catch {
                         print("[MySQL] Could not parse JSON.")
                         return .null

@@ -8,9 +8,6 @@ class MySQLTests: XCTestCase {
         ("testSelectVersion", testSelectVersion),
         ("testTables", testTables),
         ("testParameterization", testParameterization),
-        // JSON not currently supported on Linux. 
-        // leaving commented out here for reference
-        // ("testJSON", testJSON),
         ("testDates", testDates),
         ("testTimestamps", testTimestamps),
         ("testSpam", testSpam),
@@ -23,116 +20,111 @@ class MySQLTests: XCTestCase {
     var mysql: MySQL.Database!
 
     override func setUp() {
-        mysql = MySQL.Database.makeTestConnection()
+        mysql = MySQL.Database.makeTest()
     }
 
-    func testSelectVersion() {
-        do {
-            let results = try mysql.execute("SELECT @@version, @@version, 1337, 3.14, 'what up', NULL")
+    func testSelectVersion() throws {
+        let results = try mysql
+            .makeConnection()
+            .execute("SELECT @@version, @@version, 1337, 3.14, 'what up', NULL")
 
-            guard let version = results.first?["@@version"] else {
-                XCTFail("Version not in results")
-                return
-            }
+        guard let version = results[0, "@@version"]?.string else {
+            XCTFail("Version not in results")
+            return
+        }
 
-            XCTAssert(version.string?.characters.first == "5")
-        } catch {
-            XCTFail("Could not select version: \(error)")
+        XCTAssert(version.characters.first == "5")
+    }
+
+    func testTables() throws {
+        let conn = try mysql.makeConnection()
+
+        // insert data
+        try conn.execute("DROP TABLE IF EXISTS foo")
+        try conn.execute("CREATE TABLE foo (bar INT(4), baz VARCHAR(16))")
+        try conn.execute("INSERT INTO foo VALUES (42, 'Life')")
+        try conn.execute("INSERT INTO foo VALUES (1337, 'Elite')")
+        try conn.execute("INSERT INTO foo VALUES (9, NULL)")
+
+        // verify data
+        if let result = try conn.execute("SELECT * FROM foo WHERE bar = 42")[0]?.object {
+            XCTAssertEqual(result["bar"]?.int, 42)
+            XCTAssertEqual(result["baz"]?.string, "Life")
+        } else {
+            XCTFail("Could not get bar result")
+        }
+        if let result = try conn.execute("SELECT * FROM foo where baz = 'elite'")[0]?.object {
+            XCTAssertEqual(result["bar"]?.int, 1337)
+            XCTAssertEqual(result["baz"]?.string, "Elite")
+        } else {
+            XCTFail("Could not get baz result")
+        }
+        if let result = try conn.execute("SELECT * FROM foo where bar = 9")[0]?.object {
+            XCTAssertEqual(result["bar"]?.int, 9)
+            XCTAssertEqual(result["baz"]?.string, nil)
+        } else {
+            XCTFail("Could not get null result")
         }
     }
 
-    func testTables() {
-        do {
-            try mysql.execute("DROP TABLE IF EXISTS foo")
-            try mysql.execute("CREATE TABLE foo (bar INT(4), baz VARCHAR(16))")
-            try mysql.execute("INSERT INTO foo VALUES (42, 'Life')")
-            try mysql.execute("INSERT INTO foo VALUES (1337, 'Elite')")
-            try mysql.execute("INSERT INTO foo VALUES (9, NULL)")
+    func testParameterization() throws {
+        let conn = try mysql.makeConnection()
 
-            if let resultBar = try mysql.execute("SELECT * FROM foo WHERE bar = 42").first {
-                XCTAssertEqual(resultBar["bar"]?.int, 42)
-                XCTAssertEqual(resultBar["baz"]?.string, "Life")
-            } else {
-                XCTFail("Could not get bar result")
-            }
+        try conn.execute("DROP TABLE IF EXISTS parameterization")
+        try conn.execute("CREATE TABLE parameterization (d DOUBLE, i INT, s VARCHAR(16), u INT UNSIGNED)")
 
+        try conn.execute("INSERT INTO parameterization VALUES (3.14, NULL, 'pi', NULL)")
+        try conn.execute("INSERT INTO parameterization VALUES (NULL, NULL, 'life', 42)")
+        try conn.execute("INSERT INTO parameterization VALUES (NULL, -1, 'test', NULL)")
+        try conn.execute("INSERT INTO parameterization VALUES (NULL, -1, 'test', NULL)")
 
-            if let resultBaz = try mysql.execute("SELECT * FROM foo where baz = 'elite'").first {
-                XCTAssertEqual(resultBaz["bar"]?.int, 1337)
-                XCTAssertEqual(resultBaz["baz"]?.string, "Elite")
-            } else {
-                XCTFail("Could not get baz result")
-            }
-
-            if let resultBaz = try mysql.execute("SELECT * FROM foo where bar = 9").first {
-                XCTAssertEqual(resultBaz["bar"]?.int, 9)
-                XCTAssertEqual(resultBaz["baz"]?.string, nil)
-            } else {
-                XCTFail("Could not get null result")
-            }
-        } catch {
-            XCTFail("Testing tables failed: \(error)")
+        if let result = try conn.execute("SELECT * FROM parameterization WHERE d = ?", ["3.14"])[0]?.object {
+            XCTAssertEqual(result["d"]?.double, 3.14)
+            XCTAssertEqual(result["i"]?.int, nil)
+            XCTAssertEqual(result["s"]?.string, "pi")
+            XCTAssertEqual(result["u"]?.int, nil)
+        } else {
+            XCTFail("Could not get pi result")
         }
-    }
 
-    func testParameterization() {
-        do {
-            try mysql.execute("DROP TABLE IF EXISTS parameterization")
-            try mysql.execute("CREATE TABLE parameterization (d DOUBLE, i INT, s VARCHAR(16), u INT UNSIGNED)")
+        if let result = try conn.execute("SELECT * FROM parameterization WHERE u = ?", [42])[0]?.object {
+            XCTAssertEqual(result["d"]?.double, nil)
+            XCTAssertEqual(result["i"]?.int, nil)
+            XCTAssertEqual(result["s"]?.string, "life")
+            XCTAssertEqual(result["u"]?.int, 42)
+        } else {
+            XCTFail("Could not get life result")
+        }
 
-            try mysql.execute("INSERT INTO parameterization VALUES (3.14, NULL, 'pi', NULL)")
-            try mysql.execute("INSERT INTO parameterization VALUES (NULL, NULL, 'life', 42)")
-            try mysql.execute("INSERT INTO parameterization VALUES (NULL, -1, 'test', NULL)")
-            try mysql.execute("INSERT INTO parameterization VALUES (NULL, -1, 'test', NULL)")
+        if let result = try conn.execute("SELECT * FROM parameterization WHERE i = ?", [-1])[0]?.object {
+            XCTAssertEqual(result["d"]?.double, nil)
+            XCTAssertEqual(result["i"]?.int, -1)
+            XCTAssertEqual(result["s"]?.string, "test")
+            XCTAssertEqual(result["u"]?.int, nil)
+        } else {
+            XCTFail("Could not get test by int result")
+        }
 
-            if let result = try mysql.execute("SELECT * FROM parameterization WHERE d = ?", ["3.14"]).first {
-                XCTAssertEqual(result["d"]?.double, 3.14)
-                XCTAssertEqual(result["i"]?.int, nil)
-                XCTAssertEqual(result["s"]?.string, "pi")
-                XCTAssertEqual(result["u"]?.int, nil)
-            } else {
-                XCTFail("Could not get pi result")
-            }
-
-            if let result = try mysql.execute("SELECT * FROM parameterization WHERE u = ?", [Node.number(.uint(42))]).first {
-                XCTAssertEqual(result["d"]?.double, nil)
-                XCTAssertEqual(result["i"]?.int, nil)
-                XCTAssertEqual(result["s"]?.string, "life")
-                XCTAssertEqual(result["u"]?.int, 42)
-            } else {
-                XCTFail("Could not get life result")
-            }
-
-            if let result = try mysql.execute("SELECT * FROM parameterization WHERE i = ?", [-1]).first {
-                XCTAssertEqual(result["d"]?.double, nil)
-                XCTAssertEqual(result["i"]?.int, -1)
-                XCTAssertEqual(result["s"]?.string, "test")
-                XCTAssertEqual(result["u"]?.int, nil)
-            } else {
-                XCTFail("Could not get test by int result")
-            }
-
-            if let result = try mysql.execute("SELECT * FROM parameterization WHERE s = ?", ["test"]).first {
-                XCTAssertEqual(result["d"]?.double, nil)
-                XCTAssertEqual(result["i"]?.int, -1)
-                XCTAssertEqual(result["s"]?.string, "test")
-                XCTAssertEqual(result["u"]?.int, nil)
-            } else {
-                XCTFail("Could not get test by string result")
-            }
-        } catch {
-            XCTFail("Testing tables failed: \(error)")
+        if let result = try conn.execute("SELECT * FROM parameterization WHERE s = ?", ["test"])[0]?.object {
+            XCTAssertEqual(result["d"]?.double, nil)
+            XCTAssertEqual(result["i"]?.int, -1)
+            XCTAssertEqual(result["s"]?.string, "test")
+            XCTAssertEqual(result["u"]?.int, nil)
+        } else {
+            XCTFail("Could not get test by string result")
         }
     }
 
     func testDates() throws {
+        let conn = try mysql.makeConnection()
         let inputDate = Date()
-        try mysql.execute("DROP TABLE IF EXISTS times")
-        try mysql.execute("CREATE TABLE times (date DATETIME)")
-        try mysql.execute("INSERT INTO times VALUES (?)", [Node.date(inputDate)])
-        let results = try mysql.execute("SELECT * from times")
-        let dateNode = results.first?["date"]
-        if let node = dateNode, case let .date(retrievedDate) = node {
+
+        try conn.execute("DROP TABLE IF EXISTS times")
+        try conn.execute("CREATE TABLE times (date DATETIME)")
+        try conn.execute("INSERT INTO times VALUES (?)", [Node.date(inputDate)])
+        let results = try conn.execute("SELECT * from times")
+
+        if let node = results[0, "date"], case let .date(retrievedDate) = node.wrapped {
             // make ints to more accurately compare
             let r = Int(retrievedDate.timeIntervalSince1970)
             let i = Int(inputDate.timeIntervalSince1970)
@@ -142,52 +134,48 @@ class MySQLTests: XCTestCase {
         }
     }
 
-    func testTimestamps() {
-        do {
+    func testTimestamps() throws {
+        let conn = try mysql.makeConnection()
 
-            try mysql.execute("DROP TABLE IF EXISTS times")
-            try mysql.execute("CREATE TABLE times (i INT, d DATE, t TIME, ts TIMESTAMP)")
-
-
-            try mysql.execute("INSERT INTO times VALUES (?, ?, ?, ?)", [
-                1.0,
-                "2050-05-12",
-                "13:42",
-                "2016-05-05 05:05:05"
-            ])
+        try conn.execute("DROP TABLE IF EXISTS times")
+        try conn.execute("CREATE TABLE times (i INT, d DATE, t TIME, ts TIMESTAMP)")
 
 
-            if let result = try mysql.execute("SELECT i, ts FROM times").first {
-                print(result)
-            } else {
-                XCTFail("No results")
-            }
-        } catch {
-            XCTFail("Testing tables failed: \(error)")
+        try conn.execute("INSERT INTO times VALUES (?, ?, ?, ?)", [
+            1.0,
+            "2050-05-12",
+            "13:42",
+            "2005-05-05 05:05:05"
+        ])
+
+
+        if let result = try conn.execute("SELECT i, ts FROM times")[0]?.object {
+            // 113142373505 = Thu, 05 May 2005 05:05:05 GMT
+            XCTAssertEqual(result["ts"]?.double, 1115269505)
+        } else {
+            XCTFail("No results")
         }
     }
 
-    func testSpam() {
-        do {
-            let c = try mysql.makeConnection()
+    func testSpam() throws {
+        let conn = try mysql.makeConnection()
 
-            try c.execute("DROP TABLE IF EXISTS spam")
-            try c.execute("CREATE TABLE spam (s VARCHAR(64), time TIME)")
+        try conn.execute("DROP TABLE IF EXISTS spam")
+        try conn.execute("CREATE TABLE spam (s VARCHAR(64), time TIME)")
 
-            for _ in 0..<10_000 {
-                try c.execute("INSERT INTO spam VALUES (?, ?)", ["hello", "13:42"])
-            }
-
-            let cn = try mysql.makeConnection()
-            try cn.execute("SELECT * FROM spam")
-        } catch {
-            XCTFail("Testing multiple failed: \(error)")
+        for _ in 0..<10_000 {
+            try conn.execute("INSERT INTO spam VALUES (?, ?)", ["hello", "13:42"])
         }
+
+        let conn2 = try mysql.makeConnection()
+        try conn2.execute("SELECT * FROM spam")
     }
 
-    func testError() {
+    func testError() throws {
+        let conn = try mysql.makeConnection()
+
         do {
-            try mysql.execute("error")
+            try conn.execute("error")
             XCTFail("Should have errored.")
         } catch let error as MySQLError where error.code == .parseError {
             // good
@@ -197,72 +185,62 @@ class MySQLTests: XCTestCase {
         }
     }
     
-    func testTransaction() {
-        do {
-            let c = try mysql.makeConnection()
-            try c.execute("DROP TABLE IF EXISTS transaction")
-            try c.execute("CREATE TABLE transaction (name VARCHAR(64))")
-            try c.execute("INSERT INTO transaction VALUES (?)", [
-                "james"
-            ])
-            
-            try c.transaction {
-                try c.execute("UPDATE transaction SET name = 'James' where name = 'james'")
-            }
-            
-            if let james = try c.execute("SELECT * FROM transaction").first {
-                XCTAssertEqual(james["name"]?.string, "James")
-            } else {
-                XCTFail("There should be one entry.")
-            }
-        } catch {
-            XCTFail("Testing transaction failed: \(error)")
+    func testTransaction() throws {
+        let conn = try mysql.makeConnection()
+
+        try conn.execute("DROP TABLE IF EXISTS transaction")
+        try conn.execute("CREATE TABLE transaction (name VARCHAR(64))")
+        try conn.execute("INSERT INTO transaction VALUES (?)", [
+            "james"
+        ])
+        
+        try conn.transaction {
+            try conn.execute("UPDATE transaction SET name = 'James' where name = 'james'")
+        }
+        
+        if let name = try conn.execute("SELECT * FROM transaction")["0", "name"]?.string {
+            XCTAssertEqual(name, "James")
+        } else {
+            XCTFail("There should be one entry.")
         }
     }
     
-    func testTransactionFailed() {
+    func testTransactionFailed() throws {
+        let c = try mysql.makeConnection()
+        try c.execute("DROP TABLE IF EXISTS transaction")
+        try c.execute("CREATE TABLE transaction (name VARCHAR(64))")
+        try c.execute("INSERT INTO transaction VALUES (?)", [
+            "tommy"
+        ])
+        
         do {
-            let c = try mysql.makeConnection()
-            try c.execute("DROP TABLE IF EXISTS transaction")
-            try c.execute("CREATE TABLE transaction (name VARCHAR(64))")
-            try c.execute("INSERT INTO transaction VALUES (?)", [
-                "tommy"
-            ])
-            
-            do {
-                try c.transaction {
-                    // will succeed, but will be rolled back
-                    try c.execute("UPDATE transaction SET name = 'Timmy'")
-                    
-                    // malformed query, will throw
-                    try c.execute("💉")
-                }
+            try c.transaction {
+                // will succeed, but will be rolled back
+                try c.execute("UPDATE transaction SET name = 'Timmy'")
                 
-                XCTFail("Transaction should have rethrown error.")
-                
-            } catch {
-                if let tommy = try c.execute("SELECT * FROM transaction").first {
-                    XCTAssertEqual(tommy["name"]?.string, "tommy", "Should have ROLLBACK")
-                } else {
-                    XCTFail("There should be one entry.")
-                }
+                // malformed query, will throw
+                try c.execute("💉")
             }
+            
+            XCTFail("Transaction should have rethrown error.")
+            
         } catch {
-            XCTFail("Testing transaction failed: \(error)")
+            if let tommy = try c.execute("SELECT * FROM transaction")[0] {
+                XCTAssertEqual(tommy["name"]?.string, "tommy", "Should have ROLLBACK")
+            } else {
+                XCTFail("There should be one entry.")
+            }
         }
     }
 
     func testBlob() throws {
-        let c = try mysql.makeConnection()
-        try c.execute("DROP TABLE IF EXISTS blobs")
-        try c.execute("CREATE TABLE blobs (raw BLOB)")
+        let conn = try mysql.makeConnection()
+        try conn.execute("DROP TABLE IF EXISTS blobs")
+        try conn.execute("CREATE TABLE blobs (raw BLOB)")
         // collection of bytes that would break UTF8
         let inputBytes = Node.bytes([0xc3, 0x28, 0xa0, 0xa1, 0xe2, 0x28, 0xa1, 0xe2, 0x82, 0x28, 0xf0, 0x28, 0x8c, 0xbc])
-        try c.execute("INSERT INTO blobs VALUES (?)", [inputBytes])
-        let retrieved = try c.execute("SELECT * FROM blobs")
-            .flatMap { $0["raw"]?.bytes }
-            .first
-            ?? []
+        try conn.execute("INSERT INTO blobs VALUES (?)", [inputBytes])
+        let retrieved = try conn.execute("SELECT * FROM blobs")[0, "raw"]?.bytes ?? []
         let expectation = inputBytes.bytes ?? []
         XCTAssert(!retrieved.isEmpty)
         XCTAssert(!expectation.isEmpty)
@@ -270,17 +248,17 @@ class MySQLTests: XCTestCase {
     }
 
     func testTimeout() throws {
-        let c = try mysql.makeConnection()
-        XCTAssert(!c.closed)
+        let conn = try mysql.makeConnection()
+        XCTAssert(!conn.isClosed)
 
-        try c.execute("SET session wait_timeout=1;")
-        XCTAssert(!c.closed)
+        try conn.execute("SET session wait_timeout=1;")
+        XCTAssert(!conn.isClosed)
 
         sleep(2)
-        XCTAssert(c.closed)
+        XCTAssert(conn.isClosed)
 
         do {
-            try c.execute("SELECT @@version")
+            try conn.execute("SELECT @@version")
         } catch let error as MySQLError
             where
                 error.code == .serverLost ||

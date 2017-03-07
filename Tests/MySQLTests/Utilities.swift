@@ -2,15 +2,17 @@ import XCTest
 import MySQL
 
 extension MySQL.Database {
-    static func makeTestConnection() -> MySQL.Database {
+    static func makeTest() -> MySQL.Database {
         do {
             let mysql = try MySQL.Database(
                 host: "127.0.0.1",
-                user: "root",
+                user: "ubuntu",
                 password: "",
-                database: "test"
+                database: "circle_test"
             )
-            try mysql.execute("SELECT @@version")
+            let connection = try mysql.makeConnection()
+            try connection.execute("SELECT @@version")
+
             return mysql
         } catch {
             print()

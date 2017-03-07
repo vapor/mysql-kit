@@ -208,7 +208,7 @@ extension Node {
         Creates in input binding from a MySQL Value.
     */
     var bind: Bind {
-        switch self {
+        switch wrapped {
         case .number(let number):
             switch number {
             case .int(let int):
