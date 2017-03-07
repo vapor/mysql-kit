@@ -1,7 +1,8 @@
 # MySQL for Swift
 
-[![Swift](http://img.shields.io/badge/swift-3.0-brightgreen.svg)](https://swift.org)
-[![Build Status](https://travis-ci.org/vapor/mysql.svg?branch=master)](https://travis-ci.org/vapor/mysql)
+[![Swift](http://img.shields.io/badge/swift-3.1-brightgreen.svg)](https://swift.org)
+[![CircleCI](https://circleci.com/gh/vapor/mysql.svg?style=shield)](https://circleci.com/gh/vapor/mysql)
+[![Slack Status](http://vapor.team/badge.svg)](http://vapor.team)
 
 A Swift wrapper for MySQL.
 
