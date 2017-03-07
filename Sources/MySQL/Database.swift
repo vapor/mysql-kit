@@ -52,7 +52,7 @@ public final class Database {
             /// Initializes the server that will
             /// create new connections on each thread
             guard mysql_server_init(0, nil, nil) == 0 else {
-                throw Error.serverInit
+                throw MySQLError(.serverInit, reason: "The server failed to initialize.")
             }
         }
 

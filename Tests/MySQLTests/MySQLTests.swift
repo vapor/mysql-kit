@@ -189,8 +189,9 @@ class MySQLTests: XCTestCase {
         do {
             try mysql.execute("error")
             XCTFail("Should have errored.")
-        } catch MySQL.Error.prepare(_) {
-
+        } catch let error as MySQLError where error.code == .parseError {
+            // good
+            print(error.fullIdentifier)
         } catch {
             XCTFail("Wrong error: \(error)")
         }
@@ -266,5 +267,29 @@ class MySQLTests: XCTestCase {
         XCTAssert(!retrieved.isEmpty)
         XCTAssert(!expectation.isEmpty)
         XCTAssertEqual(retrieved, expectation)
+    }
+
+    func testTimeout() throws {
+        let c = try mysql.makeConnection()
+        XCTAssert(!c.closed)
+
+        try c.execute("SET session wait_timeout=1;")
+        XCTAssert(!c.closed)
+
+        sleep(2)
+        XCTAssert(c.closed)
+
+        do {
+            try c.execute("SELECT @@version")
+        } catch let error as MySQLError
+            where
+                error.code == .serverLost ||
+                error.code == .serverGone ||
+                error.code == .serverLostExtended
+        {
+            // correct error
+        } catch {
+            XCTFail("Timeout test failed.")
+        }
     }
 }
