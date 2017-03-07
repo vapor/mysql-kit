@@ -122,6 +122,29 @@ public final class Bind {
     }
 
     /**
+     Creates an input binding from an Date.
+     */
+    public convenience init(_ date: Date) {
+        
+        var ts = MYSQL_TIME()
+        
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+        ts.year = UInt32(components.year!)
+        ts.month = UInt32(components.month!)
+        ts.day = UInt32(components.day!)
+        ts.hour = UInt32(components.hour!)
+        ts.minute = UInt32(components.minute!)
+        ts.second = UInt32(components.second!)
+        
+        
+        let buffer = UnsafeMutablePointer<MYSQL_TIME>.allocate(capacity: 1)
+        buffer.initialize(to: ts)
+            
+        self.init(type: MYSQL_TYPE_DATETIME, buffer: buffer, bufferLength: MemoryLayout<MYSQL_TIME>.size)
+    }
+    
+    /**
         Creates an input binding from an array of bytes.
     */
     public convenience init(_ bytes: Bytes) {
