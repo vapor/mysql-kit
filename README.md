@@ -13,9 +13,7 @@ A Swift wrapper for MySQL.
 
 This wrapper uses the latest MySQL fetch API to enable performant prepared statements and output bindings. Data is sent to and received from the MySQL server in its native data type without converting to and from strings. 
 
-The Swift wrappers around the MySQL's C structs and pointers automatically manage closing connections and deallocating memeory. Additionally, the MySQL library API is used to perform thread safe, performant queries to the database.
-
-~40 assertions tested on Ubuntu 14.04 and macOS 10.11 on every push.
+The Swift wrappers around the MySQL's C structs and pointers automatically manage closing connections and deallocating memeory. 
 
 ## 📖 Examples
 
