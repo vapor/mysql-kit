@@ -1,6 +1,6 @@
 machine:
   services:
     - mysql
-  test:
+test:
   override:
     - eval "$(curl -sL swift.vapor.sh/ci-3.1)"
