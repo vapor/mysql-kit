@@ -21,15 +21,15 @@ public final class Connection {
 
     public let cConnection: CConnection
 
-    public init(
+    init(
         host: String,
         user: String,
         password: String,
         database: String,
-        port: UInt32,
-        socket: String?,
-        flag: UInt,
-        encoding: String,
+        port: UInt32 = 3306,
+        socket: String? = nil,
+        flag: UInt = 0,
+        encoding: String = "utf8mb4",
         optionsGroupName: String = "vapor"
     ) throws {
         mysql_thread_init()

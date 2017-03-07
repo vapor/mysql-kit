@@ -37,7 +37,8 @@ public final class Database {
         port: UInt = 3306,
         socket: String? = nil,
         flag: UInt = 0,
-        encoding: String = "utf8"
+        encoding: String = "utf8mb4",
+        optionsGroupName: String = "vapor"
     ) throws {
         /// Initializes the server that will
         /// create new connections on each thread
@@ -53,6 +54,7 @@ public final class Database {
         self.socket = socket
         self.flag = flag
         self.encoding = encoding
+        self.optionsGroupName = optionsGroupName
     }
 
     private let host: String
@@ -63,6 +65,7 @@ public final class Database {
     private let socket: String?
     private let flag: UInt
     private let encoding: String
+    private let optionsGroupName: String
 
 
     /// Creates a new connection to
@@ -78,7 +81,8 @@ public final class Database {
             port: port,
             socket: socket,
             flag: flag,
-            encoding: encoding
+            encoding: encoding,
+            optionsGroupName: optionsGroupName
         )
     }
 

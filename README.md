@@ -6,8 +6,9 @@
 
 A Swift wrapper for MySQL.
 
-- [x] Thread-Safe
-- [x] Prepared Statements
+- [x] Prepared statements
+- [x] Transactions
+- [x] Helpful errors
 - [x] Tested
 
 This wrapper uses the latest MySQL fetch API to enable performant prepared statements and output bindings. Data is sent to and received from the MySQL server in its native data type without converting to and from strings. 
@@ -18,7 +19,9 @@ The Swift wrappers around the MySQL's C structs and pointers automatically manag
 
 ## 📖 Examples
 
-### Connecting to the Database
+### Database Connector
+
+Create a database connector using your MySQL credentials and address information.
 
 ```swift
 import MySQL
@@ -31,42 +34,71 @@ let mysql = try MySQL.Database(
 )
 ```
 
-### Select
+There are several additional arguments that can be passed to the database connector's init.
 
 ```swift
-let version = try mysql.execute("SELECT @@version")
-```
-
-### Prepared Statement
-
-The second parameter to `execute()` is an array of `MySQL.Value`s.
-
-```swift
-let results = try mysql.execute("SELECT * FROM users WHERE age >= ?", [.int(21)])
-```
-
-```swift
-public enum Value {
-    case string(String)
-    case int(Int)
-    case uint(UInt)
-    case double(Double)
-    case null
-}
+MySQL.Database.init(
+    host: String,
+    user: String,
+    password: String,
+    database: String,
+    port: UInt = 3306,
+    socket: String? = nil,
+    flag: UInt = 0,
+    encoding: String = "utf8mb4",
+    optionsGroupName: String = "vapor"
+)
 ```
 
 ### Connection
 
-Each call to `execute()` creates a new connection to the MySQL database. This ensures thread safety since a single connection cannot be used on more than one thread.
+Use the created database to make a connection.
 
-If you would like to re-use a connection between calls to execute, create a reusable connection and pass it as the third parameter to `execute()`.
-
-```swift
-let connection = mysql.makeConnection()
-let result = try mysql.execute("SELECT LAST_INSERTED_ID() as id", [], connection)
+```
+let conn = try mysql.makeConnection()
 ```
 
-No need to worry about closing the connection.
+### Select
+
+```swift
+let results = try conn.execute("SELECT @@version")
+```
+
+#### Result
+
+Accessing the result is made easy with [Node](http://github.com/vapor/node), [PathIndexable](http://github.com/vapor/path-indexable), and [Polymorphic](http://github.com/vapor/polymorphic).
+
+```swift
+if let version = results[0, "@@version"]?.string {
+    print("Version is \(version).")    
+} else {
+    print("Result did not contain a version.")
+}
+```
+
+`0` grabs the first result from the results array, and then `"@@version"` indexes into the first object.
+
+Finally `.string` attempts to convert the result into a string, returning `nil` if that is not possible.
+
+### Prepared Statement
+
+The second parameter to `execute()` is an array of `Node`s.
+
+```swift
+let results = try conn.execute("SELECT * FROM users WHERE age >= ?", [21])
+```
+
+### Transaction
+
+If any one of the executions fails inside of a `transaction` block, all changes will be reverted.
+
+```swift
+try conn.transaction {
+    try conn.execute("UPDATE ...")
+    try conn.execute("UPDATE ...")
+    try conn.execute("UPDATE ...")
+}
+```
 
 ## 🚀 Building
 
