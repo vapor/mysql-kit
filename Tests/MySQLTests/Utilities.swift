@@ -6,9 +6,9 @@ extension MySQL.Database {
         do {
             let mysql = try MySQL.Database(
                 host: "127.0.0.1",
-                user: "root",
+                user: "ubuntu",
                 password: "",
-                database: "test"
+                database: "circle_test"
             )
             let connection = try mysql.makeConnection()
             try connection.execute("SELECT @@version")
