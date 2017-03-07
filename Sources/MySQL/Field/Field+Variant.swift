@@ -9,18 +9,14 @@
 #endif
 
 extension Field {
-    /**
-        The various types of fields MySQL is
-        capable of storing.
-    */
+    /// The various types of fields MySQL is
+    /// capable of storing.
     public typealias Variant = enum_field_types
 }
 
 extension Field.Variant: CustomStringConvertible {
-    /**
-        A readable representation
-        of the Field variant.
-    */
+    /// A readable representation
+    /// of the Field variant.
     public var description: String {
         #if !NOJSON
             if self == MYSQL_TYPE_JSON {

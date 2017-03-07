@@ -8,30 +8,26 @@
     import CMySQLMac
 #endif
 
-/**
-    Wraps a pointer to an array of bindings
-    to ensure proper freeing of allocated memory.
-*/
+/// Wraps a pointer to an array of bindings
+/// to ensure proper freeing of allocated memory.
 public final class Binds {
     public typealias CBinds = UnsafeMutablePointer<Bind.CBind>
 
     public let cBinds: CBinds
     public let binds: [Bind]
 
-    /** 
-        Creastes an array of input bindings
-        from values.
-    */
+    /// Creastes an array of input bindings
+    /// from values.
     public convenience init(_ values: [NodeRepresentable]) throws {
-        let binds = try values.map { try $0.makeNode().bind }
+        let binds = try values.map { nodeRepresentable in
+            return try nodeRepresentable.makeNode(in: MySQLContext.shared).bind
+        }
         self.init(binds)
     }
 
 
-    /**
-        Creates an array of output bindings
-        from expected Fields.
-    */
+    /// Creates an array of output bindings
+    /// from expected Fields.
     public convenience init(_ fields: Fields) {
         var binds: [Bind] = []
 
@@ -43,9 +39,7 @@ public final class Binds {
         self.init(binds)
     }
 
-    /**
-        Initializes from an array of Bindings.
-    */
+    /// Initializes from an array of Bindings.
     public init(_ binds: [Bind]) {
         let cBinds = CBinds.allocate(capacity: binds.count)
 
