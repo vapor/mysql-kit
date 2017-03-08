@@ -1,12 +1,4 @@
-#if os(Linux)
-    #if MARIADB
-        import CMariaDBLinux
-    #else
-        import CMySQLLinux
-    #endif
-#else
-    import CMySQLMac
-#endif
+import CMySQL
 
 /// Wraps a pointer to an array of fields
 /// to ensure proper freeing of allocated memory.

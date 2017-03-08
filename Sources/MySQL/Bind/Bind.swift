@@ -1,16 +1,7 @@
 import Core
 import JSON
 import Foundation
-
-#if os(Linux)
-#if MARIADB
-    import CMariaDBLinux
-    #else
-    import CMySQLLinux
-#endif
-#else
-    import CMySQLMac
-#endif
+import CMySQL
 
 /**
     This structure is used both for statement input (data values sent to the server)

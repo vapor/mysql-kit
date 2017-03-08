@@ -1,12 +1,4 @@
-#if os(Linux)
-    #if MARIADB
-        import CMariaDBLinux
-    #else
-        import CMySQLLinux
-    #endif
-#else
-    import CMySQLMac
-#endif
+import CMySQL
 
 extension Field {
     /// The various types of fields MySQL is
