@@ -1193,6 +1193,10 @@ extension MySQLError {
 import Debugging
 
 extension MySQLError: Debuggable {
+    public static var readableName: String {
+        return "MySQL Error"
+    }
+
     public var identifier: String {
         return "\(code.rawValue) (\(code))"
     }
