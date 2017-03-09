@@ -22,10 +22,10 @@ extension MySQL.Database {
             print("Error: \(error)")
             print()
             print("You must configure MySQL to run with the following configuration: ")
-            print("    user: 'root'")
+            print("    user: 'ubuntu'")
             print("    password: '' // (empty)")
             print("    host: '127.0.0.1'")
-            print("    database: 'test'")
+            print("    database: 'circle_test'")
             print()
 
             print()

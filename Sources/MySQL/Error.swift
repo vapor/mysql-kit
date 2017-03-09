@@ -1,12 +1,4 @@
-#if os(Linux)
-#if MARIADB
-    import CMariaDBLinux
-    #else
-    import CMySQLLinux
-#endif
-#else
-    import CMySQLMac
-#endif
+import CMySQL
 
 /// A list of all Error messages that
 /// can be thrown from calls to `Database`.
@@ -1201,6 +1193,10 @@ extension MySQLError {
 import Debugging
 
 extension MySQLError: Debuggable {
+    public static var readableName: String {
+        return "MySQL Error"
+    }
+
     public var identifier: String {
         return "\(code.rawValue) (\(code))"
     }

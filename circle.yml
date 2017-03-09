@@ -3,4 +3,4 @@ machine:
     - mysql
 test:
   override:
-    - eval "$(curl -sL swift.vapor.sh/ci-3.1)"
+    - sudo sed -i 's/-fabi-version=2 -fno-omit-frame-pointer/ /g' /usr/lib/x86_64-linux-gnu/pkgconfig/mysqlclient.pc; eval "$(curl -sL swift.vapor.sh/ci-3.1)"
