@@ -255,7 +255,6 @@ class MySQLTests: XCTestCase {
         XCTAssert(!conn.isClosed)
 
         sleep(2)
-        XCTAssert(conn.isClosed)
 
         do {
             try conn.execute("SELECT @@version")
@@ -265,6 +264,7 @@ class MySQLTests: XCTestCase {
                 error.code == .serverGone ||
                 error.code == .serverLostExtended
         {
+            XCTAssert(conn.isClosed)
             // correct error
         } catch {
             XCTFail("Timeout test failed.")

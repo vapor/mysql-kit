@@ -11,6 +11,7 @@ public final class Connection {
     public typealias CConnection = UnsafeMutablePointer<MYSQL>
 
     public let cConnection: CConnection
+    public var isClosed: Bool
 
     init(
         host: String,
@@ -42,6 +43,7 @@ public final class Connection {
         }
         
         mysql_set_character_set(cConnection, encoding)
+        isClosed = false
     }
     
     public func transaction(_ closure: () throws -> Void) throws {
@@ -165,8 +167,8 @@ public final class Connection {
             in: MySQLContext.shared
         )
     }
-
-    public var isClosed: Bool {
+    
+    public func ping() -> Bool {
         return mysql_ping(cConnection) != 0
     }
 
@@ -178,9 +180,17 @@ public final class Connection {
     /// Contains the last error message generated
     /// by this MySQLS connection.
     public var lastError: MySQLError {
-        return MySQLError(self)
+        let e = MySQLError(self)
+        
+        switch e.code {
+        case .serverGone, .serverLost, .serverLostExtended:
+            isClosed = true
+        default:
+            break
+        }
+        
+        return e
     }
-    
 }
 
 

@@ -1,6 +1,14 @@
 machine:
   services:
     - mysql
+dependencies:
+  override:
+    - eval "$(curl -sL https://apt.vapor.sh)"
+    - sudo apt-get install vapor cmysql
+    - sudo chmod -R a+rx /usr/
 test:
   override:
-    - sudo sed -i 's/-fabi-version=2 -fno-omit-frame-pointer/ /g' /usr/lib/x86_64-linux-gnu/pkgconfig/mysqlclient.pc; eval "$(curl -sL swift.vapor.sh/ci-3.1)"
+    - swift build
+    - swift build -c release
+    - swift test
+    
