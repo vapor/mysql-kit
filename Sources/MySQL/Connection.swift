@@ -7,14 +7,13 @@ import Foundation
 /// Do not try to make a copy of a MYSQL structure.
 /// There is no guarantee that such a copy will be usable.
 public final class Connection {
-
     public typealias CConnection = UnsafeMutablePointer<MYSQL>
 
     public let cConnection: CConnection
     public var isClosed: Bool
 
     init(
-        host: String,
+        hostname: String,
         user: String,
         password: String,
         database: String,
@@ -31,7 +30,7 @@ public final class Connection {
 
         guard mysql_real_connect(
             cConnection,
-            host,
+            hostname,
             user,
             password,
             database,

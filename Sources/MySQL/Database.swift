@@ -3,10 +3,20 @@ import Core
 
 /// Creates `Connection`s to the MySQL database.
 public final class Database {
+    public let hostname: String
+    public let user: String
+    public let password: String
+    public let database: String
+    public let port: UInt32
+    public let socket: String?
+    public let flag: UInt
+    public let encoding: String
+    public let optionsGroupName: String
+    
     /// Attempts to establish a connection to a MySQL database
     /// engine running on host.
     ///
-    /// - parameter host: May be either a host name or an IP address.
+    /// - parameter hostname: May be either a host name or an IP address.
     ///     If host is the string "localhost", a connection to the local host is assumed.
     /// - parameter user: The user's MySQL login ID.
     /// - parameter password: Password for user.
@@ -22,7 +32,7 @@ public final class Database {
     ///     used, since "utf8" does not fully implement the UTF8 standard and does
     ///     not support Unicode.
     public init(
-        host: String,
+        hostname: String,
         user: String,
         password: String,
         database: String,
@@ -38,7 +48,7 @@ public final class Database {
             throw MySQLError(.serverInit, reason: "The server failed to initialize.")
         }
 
-        self.host = host
+        self.hostname = hostname
         self.user = user
         self.password = password
         self.database = database
@@ -49,24 +59,13 @@ public final class Database {
         self.optionsGroupName = optionsGroupName
     }
 
-    private let host: String
-    private let user: String
-    private let password: String
-    private let database: String
-    private let port: UInt32
-    private let socket: String?
-    private let flag: UInt
-    private let encoding: String
-    private let optionsGroupName: String
-
-
     /// Creates a new connection to
     /// the database that can be reused between executions.
     ///
     /// The connection will close automatically when deinitialized.
     public func makeConnection() throws -> Connection {
         return try Connection(
-            host: host,
+            hostname: hostname,
             user: user,
             password: password,
             database: database,
