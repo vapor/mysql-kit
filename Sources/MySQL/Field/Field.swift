@@ -14,7 +14,7 @@ public final class Field {
         let len = Int(cField.name_length)
         self.name = cField.name.withMemoryRebound(to: Byte.self, capacity: len) { pointer in
             let buff = UnsafeBufferPointer(start: pointer, count: len)
-            return Array(buff).string
+            return Array(buff).makeString()
         }
     }
 }
