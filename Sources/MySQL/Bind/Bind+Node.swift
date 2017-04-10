@@ -68,7 +68,7 @@ extension Bind {
                     start: cast(buffer, UInt8.self),
                     count: len()
                 )
-                return .string(buffer.string)
+                return .string(buffer.makeString())
             case MYSQL_TYPE_LONG:
                 if cBind.is_unsigned == 1 {
                     let uint = unwrap(buffer, UInt32.self)
@@ -133,23 +133,5 @@ extension UInt32 {
         }
 
         return string
-    }
-}
-
-extension Sequence where Iterator.Element == UInt8 {
-    var string: String {
-        var utf = UTF8()
-        var gen = makeIterator()
-        var str = String()
-        while true {
-            switch utf.decode(&gen) {
-            case .emptyInput:
-                return str
-            case .error:
-                break
-            case .scalarValue(let unicodeScalar):
-                str.append(String(unicodeScalar))
-            }
-        }
     }
 }

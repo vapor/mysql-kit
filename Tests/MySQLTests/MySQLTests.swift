@@ -270,4 +270,18 @@ class MySQLTests: XCTestCase {
             XCTFail("Timeout test failed.")
         }
     }
+    
+    func testPerformance() throws {
+        let conn = try mysql.makeConnection()
+        try conn.execute("DROP TABLE IF EXISTS things")
+        try conn.execute("CREATE TABLE things (stuff VARCHAR(255))")
+        let string = String(repeating: "a", count: 255)
+        for _ in 0..<65_536 {
+            try conn.execute("INSERT INTO things VALUES (?)", [string])
+        }
+        
+        measure {
+            _ = try! conn.execute("SELECT * FROM things")
+        }
+    }
 }
