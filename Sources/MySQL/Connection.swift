@@ -45,7 +45,7 @@ public final class Connection {
         isClosed = false
     }
     
-    public func transaction(_ closure: () throws -> Void) throws {
+    public func transaction<R>(_ closure: () throws -> R) throws -> R {
         // required by transactions, but I don't want to open the old
         // MySQL query API to the public as it would be a burden to maintain.
         func manual(_ query: String) throws {
@@ -55,9 +55,10 @@ public final class Connection {
         }
         
         try manual("START TRANSACTION")
-        
+
+        let value: R
         do {
-            try closure()
+            value = try closure()
         } catch {
             // rollback changes and then rethrow the error
             try manual("ROLLBACK")
@@ -65,6 +66,7 @@ public final class Connection {
         }
 
         try manual("COMMIT")
+        return value
     }
 
     @discardableResult
