@@ -195,7 +195,7 @@ class MySQLTests: XCTestCase {
         ])
         
         try conn.transaction {
-            try conn.execute("UPDATE transaction SET name = 'James' where name = 'james'")
+            _ = try conn.execute("UPDATE transaction SET name = 'James' where name = 'james'")
         }
         
         if let name = try conn.execute("SELECT * FROM transaction")["0", "name"]?.string {
