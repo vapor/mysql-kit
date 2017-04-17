@@ -1226,6 +1226,15 @@ extension MySQLError: Debuggable {
                 "Increase the `wait_timeout`",
                 "Increase the `max_allowed_packet`"
             ]
+        case .noDefaultForField:
+            return [
+                "Make sure you are supplying a value for this column when serializing to the database"
+            ]
+        case .connection:
+            return [
+                "Make sure you have entered the correct username and password",
+                "Make sure the database has been created"
+            ]
         default:
             return []
         }
