@@ -242,13 +242,15 @@ extension Node {
 extension Calendar {
     static let gregorian: Calendar = {
         var cal = Calendar(identifier: .gregorian)
-        cal.timeZone = .utc
+        if let utc = TimeZone.utc {
+            cal.timeZone = utc
+        }
         return cal
     }()
 }
 
 extension TimeZone {
-    static let utc = TimeZone(abbreviation: "UTC")!
+    static let utc = TimeZone(secondsFromGMT: 0)
 }
 
 extension Date {
