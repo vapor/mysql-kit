@@ -15,6 +15,7 @@ class MySQLTests: XCTestCase {
         ("testTransaction", testTransaction),
         ("testTransactionFailed", testTransactionFailed),
         ("testBlob", testBlob),
+        ("testLongtext", testLongtext),
     ]
 
     var mysql: MySQL.Database!
@@ -270,7 +271,30 @@ class MySQLTests: XCTestCase {
             XCTFail("Timeout test failed.")
         }
     }
-    
+
+    func testLongtext() throws {
+        let conn = try mysql.makeConnection()
+        try conn.execute("DROP TABLE IF EXISTS items")
+        try conn.execute("CREATE TABLE `items` ( " +
+            "`id` int(10) unsigned NOT NULL AUTO_INCREMENT, " +
+            "`title` varchar(255) NOT NULL DEFAULT '', " +
+            "`imageUrl` varchar(255) NOT NULL DEFAULT '', " +
+            "`html` longtext NOT NULL, " +
+            "`isPrivate` tinyint(1) unsigned NOT NULL, " +
+            "`isBusiness` tinyint(1) unsigned NOT NULL, " +
+            "PRIMARY KEY (`id`)) " +
+            "ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8;")
+
+        try conn.execute("INSERT INTO `items` (`id`, `title`, `imageUrl`, `html`, `isPrivate`, `isBusiness`) " +
+            "VALUES (1, 'test1', '12A34264-E5F6-48D4-AB27-422C4FD03277_10.jpeg', '<p>html</p>', 1, 1)")
+
+        let retrieved = try conn.execute("SELECT * from items")
+        XCTAssertEqual(retrieved.array?.count ?? 0, 1)
+        XCTAssertEqual(retrieved[0, "id"], 1)
+        XCTAssertEqual(retrieved[0, "title"], "test1")
+        XCTAssertEqual(retrieved[0, "html"]?.bytes?.makeString(), "<p>html</p>")
+    }
+
     func testPerformance() throws {
         let conn = try mysql.makeConnection()
         try conn.execute("DROP TABLE IF EXISTS things")
