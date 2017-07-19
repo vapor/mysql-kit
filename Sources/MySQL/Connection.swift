@@ -76,6 +76,14 @@ public final class Connection {
         guard let statement = mysql_stmt_init(cConnection) else {
             throw lastError
         }
+        
+        // important! this must be set for field.max_length
+        // to be properly filled
+        var truth: my_bool = 1
+        guard mysql_stmt_attr_set(statement, STMT_ATTR_UPDATE_MAX_LENGTH, &truth)  == 0 else {
+            throw lastError
+        }
+        
         defer {
             mysql_stmt_close(statement)
         }
@@ -93,7 +101,7 @@ public final class Connection {
         guard mysql_stmt_bind_param(statement, inputBinds.cBinds) == 0 else {
             throw lastError
         }
-
+        
         // Fetches metadata from the statement which has
         // not yet run.
         guard let metadata = mysql_stmt_result_metadata(statement) else {
@@ -102,26 +110,12 @@ public final class Connection {
             guard mysql_stmt_execute(statement) == 0 else {
                 throw lastError
             }
-
+            
             return .null
         }
-
+        
         defer {
             mysql_free_result(metadata)
-        }
-
-        // Parse the fields (columns) that will be returned
-        // by this statement.
-        let fields = try Fields(metadata, self)
-
-        // Use the fields data to create output bindings.
-        // These act as buffers for the data that will
-        // be returned when the statement is executed.
-        let outputBinds = Binds(fields)
-
-        // Bind the output bindings to the statement.
-        guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {
-            throw lastError
         }
 
         // Execute the statement!
@@ -129,9 +123,29 @@ public final class Connection {
         guard mysql_stmt_execute(statement) == 0 else {
             throw lastError
         }
-
+        
+        // buffers the data on the client
+        // important! sets the max_length field
+        mysql_stmt_store_result(statement)
+        
+        // Parse the fields (columns) that will be returned
+        // by this statement.
+        // important! field information should not be parsed
+        // until mysql_stmt_store_result has been called.
+        let fields = try Fields(metadata, self)
+        
+        // Use the fields data to create output bindings.
+        // These act as buffers for the data that will
+        // be returned when the statement is executed.
+        let outputBinds = Binds(fields)
+        
+        // Bind the output bindings to the statement.
+        guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {
+            throw lastError
+        }
+        
         var results: [StructuredData] = []
-
+        
         // This single dictionary is reused for all rows in the result set
         // to avoid the runtime overhead of (de)allocating one per row.
         var parsed: [String: StructuredData] = [:]

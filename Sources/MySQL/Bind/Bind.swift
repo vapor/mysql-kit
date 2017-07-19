@@ -19,7 +19,7 @@ public final class Bind {
     /**
      The raw C binding.
      */
-    public let cBind: CBind
+    public var cBind: CBind
     
     /**
         Creates a binding from a raw C binding.
@@ -56,12 +56,13 @@ public final class Bind {
                  MYSQL_TYPE_TIME:
             length = MemoryLayout<MYSQL_TIME>.size
         default:
-            length = Int(field.cField.length)
+            length = Int(field.cField.max_length)
         }
 
         cBind.buffer_length = UInt(length)
-        
         cBind.buffer = UnsafeMutableRawPointer.allocate(bytes: length, alignedTo: MemoryLayout<Void>.alignment)
+        
+        
         cBind.length = UnsafeMutablePointer<UInt>.allocate(capacity: 1)
         cBind.is_null = UnsafeMutablePointer<my_bool>.allocate(capacity: 1)
         cBind.error = UnsafeMutablePointer<my_bool>.allocate(capacity: 1)
