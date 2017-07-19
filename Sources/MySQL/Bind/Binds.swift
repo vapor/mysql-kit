@@ -5,8 +5,8 @@ import CMySQL
 public final class Binds {
     public typealias CBinds = UnsafeMutablePointer<Bind.CBind>
 
-    public var cBinds: CBinds
-    public var binds: [Bind]
+    public let cBinds: CBinds
+    public let binds: [Bind]
 
     /// Creastes an array of input bindings
     /// from values.

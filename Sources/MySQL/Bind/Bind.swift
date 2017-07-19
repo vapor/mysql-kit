@@ -19,7 +19,7 @@ public final class Bind {
     /**
      The raw C binding.
      */
-    public var cBind: CBind
+    public let cBind: CBind
     
     /**
         Creates a binding from a raw C binding.
