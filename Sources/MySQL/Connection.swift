@@ -101,7 +101,7 @@ public final class Connection {
         guard mysql_stmt_bind_param(statement, inputBinds.cBinds) == 0 else {
             throw lastError
         }
-        
+
         // Fetches metadata from the statement which has
         // not yet run.
         guard let metadata = mysql_stmt_result_metadata(statement) else {
