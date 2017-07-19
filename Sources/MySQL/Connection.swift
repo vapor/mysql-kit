@@ -110,10 +110,10 @@ public final class Connection {
             guard mysql_stmt_execute(statement) == 0 else {
                 throw lastError
             }
-            
+
             return .null
         }
-        
+
         defer {
             mysql_free_result(metadata)
         }
@@ -133,19 +133,19 @@ public final class Connection {
         // important! field information should not be parsed
         // until mysql_stmt_store_result has been called.
         let fields = try Fields(metadata, self)
-        
+
         // Use the fields data to create output bindings.
         // These act as buffers for the data that will
         // be returned when the statement is executed.
         let outputBinds = Binds(fields)
-        
+
         // Bind the output bindings to the statement.
         guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {
             throw lastError
         }
-        
+
         var results: [StructuredData] = []
-        
+
         // This single dictionary is reused for all rows in the result set
         // to avoid the runtime overhead of (de)allocating one per row.
         var parsed: [String: StructuredData] = [:]
