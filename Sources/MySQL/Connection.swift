@@ -76,6 +76,14 @@ public final class Connection {
         guard let statement = mysql_stmt_init(cConnection) else {
             throw lastError
         }
+        
+        // important! this must be set for field.max_length
+        // to be properly filled
+        var truth: my_bool = 1
+        guard mysql_stmt_attr_set(statement, STMT_ATTR_UPDATE_MAX_LENGTH, &truth)  == 0 else {
+            throw lastError
+        }
+        
         defer {
             mysql_stmt_close(statement)
         }
@@ -110,8 +118,20 @@ public final class Connection {
             mysql_free_result(metadata)
         }
 
+        // Execute the statement!
+        // The data is ready to be fetched when this completes.
+        guard mysql_stmt_execute(statement) == 0 else {
+            throw lastError
+        }
+        
+        // buffers the data on the client
+        // important! sets the max_length field
+        mysql_stmt_store_result(statement)
+        
         // Parse the fields (columns) that will be returned
         // by this statement.
+        // important! field information should not be parsed
+        // until mysql_stmt_store_result has been called.
         let fields = try Fields(metadata, self)
 
         // Use the fields data to create output bindings.
@@ -121,12 +141,6 @@ public final class Connection {
 
         // Bind the output bindings to the statement.
         guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {
-            throw lastError
-        }
-
-        // Execute the statement!
-        // The data is ready to be fetched when this completes.
-        guard mysql_stmt_execute(statement) == 0 else {
             throw lastError
         }
 
