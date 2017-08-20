@@ -11,6 +11,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/Engine.git", .revision("serializer")),
     ],
     targets: [
-        .target(name: "MySQL", dependencies: ["TCP"])
+        .target(name: "MySQL", dependencies: ["TCP"]),
+        .testTarget(name: "MySQLTests", dependencies: ["MySQL"])
     ]
 )

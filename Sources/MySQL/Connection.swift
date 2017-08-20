@@ -59,6 +59,6 @@ final class Connection {
             return
         }
         
-        
+        return
     }
 }
