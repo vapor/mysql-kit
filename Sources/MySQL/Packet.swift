@@ -2,6 +2,9 @@ import Foundation
 import Core
 
 internal class Packet {
+    // Maximum payload size
+    static let maxPayloadSize: Int = 16_777_216
+    
     var sequenceId: UInt8
     var payload: MutableByteBuffer
     
@@ -21,7 +24,7 @@ internal final class PacketParser : Core.Stream {
     func inputStream(_ input: MutableByteBuffer) {
         // If there's no input pointer, throw an error
         guard var pointer = input.baseAddress else {
-            errorStream?(InvalidPacket())
+            errorStream?(MySQLError.invalidPacket)
             return
         }
         
@@ -32,7 +35,7 @@ internal final class PacketParser : Core.Stream {
         func parseInput(into buffer: MutableByteBuffer, alreadyContaining containing: Int, sequenceId: UInt8) {
             // If there's no input pointer, throw an error
             guard let destination = buffer.baseAddress?.advanced(by: containing) else {
-                errorStream?(InvalidPacket())
+                errorStream?(MySQLError.invalidPacket)
                 return
             }
             
@@ -79,14 +82,14 @@ internal final class PacketParser : Core.Stream {
             // at least 4 packet bytes for new packets
             // TODO: internal 3-byte buffer like MongoKitten's for this odd scenario
             guard input.count > 3 else {
-                errorStream?(InvalidPacket())
+                errorStream?(MySQLError.invalidPacket)
                 return
             }
             
             // take the first 3 bytes
-            let byte0 = (UInt32(input[0]).littleEndian >> 3) & 0xff
-            let byte1 = (UInt32(input[1]).littleEndian >> 2) & 0xff
-            let byte2 = (UInt32(input[2]).littleEndian >> 1) & 0xff
+            let byte0 = UInt32(input[0]).littleEndian
+            let byte1 = UInt32(input[1]).littleEndian << 8
+            let byte2 = UInt32(input[2]).littleEndian << 16
             
             // Parse buffer size
             let bufferSize = Int(byte0 | byte1 | byte2)
@@ -115,5 +118,3 @@ internal final class PacketParser : Core.Stream {
     
     init() {}
 }
-
-struct InvalidPacket : Error {}
