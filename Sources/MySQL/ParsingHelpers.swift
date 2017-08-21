@@ -13,6 +13,16 @@ class Parser {
         return packet.payload
     }
     
+    func byte() throws -> UInt8 {
+        guard position &+ 1 < self.payload.count else {
+            throw MySQLError.invalidResponse
+        }
+        
+        defer { position = position &+ 1 }
+        
+        return self.payload[position]
+    }
+    
     func parseUInt16() throws -> UInt16 {
         guard position &+ 2 < self.payload.count else {
             throw MySQLError.invalidResponse
@@ -84,5 +94,17 @@ class Parser {
             defer { position = position &+ 1 }
             return UInt64(self.payload[position])
         }
+    }
+    
+    func parseLenEncString() throws -> String {
+        let length = Int(try parseLenEnc())
+        
+        guard position &+ length < self.payload.count else {
+            throw MySQLError.invalidResponse
+        }
+        
+        defer { position = position &+ length }
+        
+        return String(bytes: self.payload[position..<position &+ length], encoding: .utf8) ?? ""
     }
 }

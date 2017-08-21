@@ -25,7 +25,7 @@ final class Connection {
     let queue: DispatchQueue
     let buffer: MutableByteBuffer
     let parser: PacketParser
-    let resultsBuilder = ResultsBuilder()
+    let resultsBuilder: ResultsBuilder
     var handshake: Handshake?
     var source: DispatchSourceRead
     let username: String
@@ -35,9 +35,6 @@ final class Connection {
     var authenticated: Bool?
     
     var onResults: Promise<Results>?
-    
-    var header: UInt64?
-    var oks = [Response.OK]()
     
     var capabilities: Capabilities {
         var base: Capabilities = [
@@ -98,11 +95,21 @@ final class Connection {
         self.username = user
         self.password = password
         self.database = database
+        self.resultsBuilder = ResultsBuilder()
+        self.resultsBuilder.connection = self
         
         self.parser.drain(self.handlePacket)
         self.resultsBuilder.drain { results in
             _ = try? self.onResults?.complete(results)
         }
+        self.resultsBuilder.errorStream = { error in
+            _ = try? self.onResults?.complete(error)
+            self.close()
+        }
+    }
+    
+    func close() {
+        self.socket.close()
     }
     
     func handlePacket(_ packet: Packet) {
