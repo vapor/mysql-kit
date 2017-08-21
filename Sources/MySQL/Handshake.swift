@@ -129,6 +129,17 @@ import Crypto
 import Core
 
 extension Connection {
+    func doHandshake(for packet: Packet) {
+        do {
+            let handshake = try packet.parseHandshake()
+            self.handshake = handshake
+            
+            try self.sendHandshake()
+        } catch {
+            self.socket.close()
+        }
+    }
+    
     func sendHandshake() throws {
         guard let handshake = self.handshake else {
             throw MySQLError.invalidHandshake
@@ -204,9 +215,29 @@ extension Connection {
             
             let data = ByteBuffer(start: pointer, count: size)
             
-            try self.write(packetFor: data)
+            try self.write(packetFor: data, startingAt: 1)
         } else {
             throw MySQLError.invalidHandshake
+        }
+    }
+    
+    func finishAuthentication(for packet: Packet) {
+        do {
+            let response = try packet.parseResponse(mysql41: self.mysql41)
+            
+            switch response {
+            case .error(_):
+                try success.complete(false)
+                // Unauthenticated
+                self.socket.close()
+                return
+            default:
+                self.authenticated = true
+                try success.complete(true)
+                return
+            }
+        } catch {
+            self.socket.close()
         }
     }
 }

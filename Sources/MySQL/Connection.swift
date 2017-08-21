@@ -25,6 +25,7 @@ final class Connection {
     let queue: DispatchQueue
     let buffer: MutableByteBuffer
     let parser: PacketParser
+    let resultsBuilder = ResultsBuilder()
     var handshake: Handshake?
     var source: DispatchSourceRead
     let username: String
@@ -32,6 +33,11 @@ final class Connection {
     let database: String?
     
     var authenticated: Bool?
+    
+    var onResults: Promise<Results>?
+    
+    var header: UInt64?
+    var oks = [Response.OK]()
     
     var capabilities: Capabilities {
         var base: Capabilities = [
@@ -54,7 +60,7 @@ final class Connection {
         return self.handshake != nil
     }
     
-    fileprivate let success = Promise<Bool>()
+    let success = Promise<Bool>()
     var successful: Future<Bool> {
         return success.future
     }
@@ -94,39 +100,19 @@ final class Connection {
         self.database = database
         
         self.parser.drain(self.handlePacket)
+        self.resultsBuilder.drain { results in
+            _ = try? self.onResults?.complete(results)
+        }
     }
     
     func handlePacket(_ packet: Packet) {
         guard self.handshake != nil else {
-            do {
-                let handshake = try packet.parseHandshake()
-                self.handshake = handshake
-                
-                try self.sendHandshake()
-            } catch {
-                self.socket.close()
-            }
-            
+            self.doHandshake(for: packet)
             return
         }
         
         guard let authenticated = authenticated else {
-            do {
-                let response = try packet.parseResponse(mysql41: self.mysql41)
-                
-                switch response {
-                case .error(_):
-                    try success.complete(false)
-                    // Unauthenticated
-                    self.socket.close()
-                    return
-                default:
-                    try success.complete(true)
-                    return
-                }
-            } catch {
-                self.socket.close()
-            }
+            finishAuthentication(for: packet)
             return
         }
         
@@ -135,10 +121,24 @@ final class Connection {
             return
         }
         
-        
+        self.resultsBuilder.inputStream(packet)
     }
     
-    func write(packetFor data: ByteBuffer) throws {
+    func write(packetFor data: Data, startingAt start: UInt8 = 0) throws {
+        let pointer = UnsafeMutablePointer<UInt8>.allocate(capacity: data.count)
+        
+        defer {
+            pointer.deallocate(capacity: data.count)
+        }
+        
+        data.copyBytes(to: pointer, count: data.count)
+        
+        let buffer = ByteBuffer(start: pointer, count: data.count)
+        
+        try write(packetFor: buffer)
+    }
+    
+    func write(packetFor data: ByteBuffer, startingAt start: UInt8 = 0) throws {
         var offset = 0
         
         guard let input = data.baseAddress else {
@@ -151,7 +151,7 @@ final class Connection {
             pointer.deallocate(capacity: Packet.maxPayloadSize &+ 4)
         }
         
-        var packetNumber: UInt8 = 1
+        var packetNumber: UInt8 = start
         
         while offset < data.count {
             defer {
