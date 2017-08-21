@@ -25,7 +25,8 @@ class MySQLTests: XCTestCase {
     
     func testExample() throws {
         let connection = try Connection(hostname: "localhost", user: "root", password: nil, database: nil, queue: .global())
-        sleep(5000)
+        
+        XCTAssert(try connection.successful.await(for: .seconds(30)))
     }
 
 //    func testSelectVersion() throws {

@@ -50,8 +50,13 @@ final class Connection {
         return handshake?.isGreaterThan4 == true && self.capabilities.contains(.protocol41) && handshake?.capabilities.contains(.protocol41) == true
     }
     
-    public var initialized: Bool {
+    var initialized: Bool {
         return self.handshake != nil
+    }
+    
+    fileprivate let success = Promise<Bool>()
+    var successful: Future<Bool> {
+        return success.future
     }
     
     init(hostname: String, port: UInt16 = 3306, user: String, password: String?, database: String?, queue: DispatchQueue) throws {
@@ -92,7 +97,7 @@ final class Connection {
     }
     
     func handlePacket(_ packet: Packet) {
-        guard let handshake = self.handshake else {
+        guard self.handshake != nil else {
             do {
                 let handshake = try packet.parseHandshake()
                 self.handshake = handshake
@@ -110,12 +115,13 @@ final class Connection {
                 let response = try packet.parseResponse(mysql41: self.mysql41)
                 
                 switch response {
-                case .error(let error):
-                    print(error)
+                case .error(_):
+                    try success.complete(false)
                     // Unauthenticated
                     self.socket.close()
                     return
                 default:
+                    try success.complete(true)
                     return
                 }
             } catch {
@@ -127,10 +133,9 @@ final class Connection {
         guard authenticated else {
             self.socket.close()
             return
-            //MySQLError.unauthenticated
         }
         
-        return
+        
     }
     
     func write(packetFor data: ByteBuffer) throws {
