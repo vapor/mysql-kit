@@ -20,21 +20,27 @@ struct Capabilities : OptionSet, ExpressibleByIntegerLiteral {
     }
 }
 
+protocol Table : Decodable {}
+
 final class Connection {
     let socket: Socket
     let queue: DispatchQueue
     let buffer: MutableByteBuffer
     let parser: PacketParser
-    let resultsBuilder: ResultsBuilder
+    var resultsBuilder: Table?
     var handshake: Handshake?
     var source: DispatchSourceRead
     let username: String
     let password: String?
     let database: String?
     
-    var authenticated: Bool?
+    var currentQuery: Promise<Bool>?
     
-    var onResults: Promise<Results>?
+    var currentQueryFuture: Future<Bool>? {
+        return currentQuery?.future
+    }
+    
+    var authenticated: Bool?
     
     var capabilities: Capabilities {
         var base: Capabilities = [
@@ -55,11 +61,6 @@ final class Connection {
     
     var initialized: Bool {
         return self.handshake != nil
-    }
-    
-    let success = Promise<Bool>()
-    var successful: Future<Bool> {
-        return success.future
     }
     
     init(hostname: String, port: UInt16 = 3306, user: String, password: String?, database: String?, queue: DispatchQueue) throws {
@@ -95,21 +96,25 @@ final class Connection {
         self.username = user
         self.password = password
         self.database = database
-        self.resultsBuilder = ResultsBuilder()
-        self.resultsBuilder.connection = self
-        
         self.parser.drain(self.handlePacket)
-        self.resultsBuilder.drain { results in
-            _ = try? self.onResults?.complete(results)
-        }
-        self.resultsBuilder.errorStream = { error in
-            _ = try? self.onResults?.complete(error)
-            self.close()
-        }
+        self.currentQuery = Promise<Bool>()
     }
     
     func close() {
         self.socket.close()
+    }
+    
+    func onPackets(_ handler: @escaping ((Packet) -> ())) -> Promise<Bool> {
+        _ = try? self.currentQueryFuture?.await()
+        let promise = Promise<Bool>()
+        
+        self.currentQuery = promise
+        self.parser.outputStream = handler
+        
+        promise.future.then { _ in
+            self.parser.drain(self.handlePacket)
+        }
+        return promise
     }
     
     func handlePacket(_ packet: Packet) {
@@ -127,8 +132,6 @@ final class Connection {
             self.socket.close()
             return
         }
-        
-        self.resultsBuilder.inputStream(packet)
     }
     
     func write(packetFor data: Data, startingAt start: UInt8 = 0) throws {

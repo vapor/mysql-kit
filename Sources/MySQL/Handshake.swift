@@ -188,7 +188,7 @@ extension Connection {
             if let password = password {
                 let hashedPassword = SHA1.hash(password)
                 let doublePasswordHash = SHA1.hash(hashedPassword)
-                var hash = SHA1.hash(handshake.randomSeed + doublePasswordHash)
+                var hash = Array(SHA1.hash(handshake.randomSeed + doublePasswordHash))
                 
                 for i in 0..<20 {
                     hash[i] = hash[i] ^ hashedPassword[i]
@@ -227,13 +227,13 @@ extension Connection {
             
             switch response {
             case .error(_):
-                try success.complete(false)
+                try self.currentQuery?.complete(false)
                 // Unauthenticated
                 self.socket.close()
                 return
             default:
                 self.authenticated = true
-                try success.complete(true)
+                try self.currentQuery?.complete(true)
                 return
             }
         } catch {

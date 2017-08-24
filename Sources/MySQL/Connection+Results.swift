@@ -1,3 +1,4 @@
+import Crypto
 import Core
 
 struct Field {
@@ -15,11 +16,21 @@ struct Field {
     let decimals: UInt8
 }
 
-struct Row {
+protocol ResultsStream : Stream {
+    associatedtype Input = Packet
+    associatedtype Result
+    associatedtype Output = [Result]
     
+    var columns: [Field] { get set }
+    var header: UInt64? { get set }
+    var endOfResults: Bool { get }
+    var results: Output { get }
+    var connection: Connection { get }
+    
+    func parseRows(from packet: Packet) throws
 }
 
-class ResultsBuilder : Stream {
+extension ResultsStream {
     func inputStream(_ input: Packet) {
         do {
             guard let header = self.header else {
@@ -33,10 +44,10 @@ class ResultsBuilder : Stream {
                 return
             }
             
-            parseRow(from: input)
+            try parseRows(from: input)
             
             if endOfResults {
-                self.outputStream?(Results(fields: self.columns, rows: self.rows))
+                self.outputStream?(results)
             }
         } catch {
             errorStream?(error)
@@ -51,23 +62,20 @@ class ResultsBuilder : Stream {
         // EOF
         if packet.isResponse {
             do {
-                switch try packet.parseResponse(mysql41: connection?.mysql41 == true) {
+                switch try packet.parseResponse(mysql41: connection.mysql41 == true) {
                 case .error(let error):
                     self.errorStream?(error)
-                    self.reset()
                     return
                 case .ok(_):
                     fallthrough
                 case .eof(_):
                     guard amount == columns.count else {
                         self.errorStream?(MySQLError.invalidPacket)
-                        self.reset()
                         return
                     }
                 }
             } catch {
                 self.errorStream?(MySQLError.invalidPacket)
-                self.reset()
                 return
             }
         }
@@ -109,15 +117,16 @@ class ResultsBuilder : Stream {
             self.columns.append(field)
         } catch {
             self.errorStream?(MySQLError.invalidPacket)
-            self.reset()
             return
         }
     }
-    
+}
+
+class ResultsBuilder<D: Table> : ResultsStream {
     var endOfResults = false
     fileprivate let serverMoreResultsExists: UInt16 = 0x0008
     
-    func parseRow(from packet: Packet) {
+    func parseRows(from packet: Packet) throws {
         do {
             if packet.payload.count == 5, packet.payload[0] == 0xfe {
                 let parser = Parser(packet: packet)
@@ -127,37 +136,37 @@ class ResultsBuilder : Stream {
             }
         } catch {
             self.errorStream?(error)
-            self.reset()
             return
         }
         
-        print(packet.payload)
+        if packet.payload.count > 0,
+            let pointer = packet.payload.baseAddress,
+            pointer[0] == 0xff,
+            let error = try packet.parseResponse(mysql41: self.connection.mysql41).error {
+            self.errorStream?(error)
+            return
+        }
+        
+        for column in self.columns {
+            
+        }
+        
     }
     
-    func reset() {
-        self.header = nil
-        self.columns = []
+    init(connection: Connection) {
+        self.connection = connection
     }
     
-    weak var connection: Connection?
-    var header: UInt64?
+    var connection: Connection
     var columns = [Field]()
-    var rows = [Row]()
+    var header: UInt64?
+    var results = [D]()
+    typealias Result = D
+    typealias Output = [D]
     
-    var outputStream: ((Results) -> ())?
+    var outputStream: OutputHandler?
     
-    var errorStream: BaseStream.ErrorHandler?
+    var errorStream: ErrorHandler?
     
     typealias Input = Packet
-    typealias Output = Results
-}
-
-class Results {
-    var fields: [Field]
-    var rows: [Row]
-    
-    init(fields: [Field], rows: [Row]) {
-        self.fields = fields
-        self.rows = rows
-    }
 }

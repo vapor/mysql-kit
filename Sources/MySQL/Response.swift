@@ -6,6 +6,14 @@ enum Response {
         let state: (UInt8, UInt8, UInt8, UInt8, UInt8)
     }
     
+    var error: Error? {
+        if case .error(let error) = self {
+            return error
+        }
+        
+        return nil
+    }
+    
     struct Error : Swift.Error {
         let code: UInt16
         let state: State?
