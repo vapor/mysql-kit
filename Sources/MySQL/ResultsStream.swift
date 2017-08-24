@@ -1,33 +1,18 @@
-import Crypto
 import Core
-
-struct Field {
-    let catalog: String
-    let database: String
-    let table: String
-    let originalTable: String
-    let name: String
-    let originalName: String
-    let charSet: UInt8
-    let collation: UInt8
-    let length: UInt32
-    let fieldType: UInt8
-    let flags: UInt16
-    let decimals: UInt8
-}
 
 protocol ResultsStream : Stream {
     associatedtype Input = Packet
     associatedtype Result
-    associatedtype Output = [Result]
+    associatedtype Output = Optional<Result>
     
     var columns: [Field] { get set }
     var header: UInt64? { get set }
     var endOfResults: Bool { get }
-    var results: Output { get }
+    var resultsProcessed: UInt64 { get set }
     var connection: Connection { get }
     
-    func parseRows(from packet: Packet) throws
+    func parseRows(from packet: Packet) throws -> Output
+    func complete()
 }
 
 extension ResultsStream {
@@ -35,7 +20,16 @@ extension ResultsStream {
         do {
             guard let header = self.header else {
                 let parser = Parser(packet: input)
-                self.header = try parser.parseLenEnc()
+                
+                guard let header = try? parser.parseLenEnc() else {
+                    if case .error(let error) = try input.parseResponse(mysql41: connection.mysql41) {
+                        self.errorStream?(error)
+                    }
+                    return
+                }
+                
+                // starting at 0, so header + 1 is the amount of results
+                self.header = header + 1
                 return
             }
             
@@ -44,10 +38,13 @@ extension ResultsStream {
                 return
             }
             
-            try parseRows(from: input)
+            let result = try parseRows(from: input)
+            self.outputStream?(result)
+            resultsProcessed += 1
             
-            if endOfResults {
-                self.outputStream?(results)
+            guard resultsProcessed < header else {
+                complete()
+                return
             }
         } catch {
             errorStream?(error)
@@ -97,8 +94,12 @@ extension ResultsStream {
             
             let length = try parser.parseUInt32()
             
-            let fieldType = try parser.byte()
-            let flags = try parser.parseUInt16()
+            guard let fieldType = Field.FieldType(rawValue: try parser.byte()) else {
+                throw MySQLError.invalidPacket
+            }
+            
+            let flags = Field.Flags(rawValue: try parser.parseUInt16())
+            
             let decimals = try parser.byte()
             
             let field = Field(catalog: catalog,
@@ -122,21 +123,21 @@ extension ResultsStream {
     }
 }
 
-class ResultsBuilder<D: Table> : ResultsStream {
+class ResultsBuilder : ResultsStream {
     var endOfResults = false
     fileprivate let serverMoreResultsExists: UInt16 = 0x0008
     
-    func parseRows(from packet: Packet) throws {
+    func parseRows(from packet: Packet) throws -> Row? {
         do {
             if packet.payload.count == 5, packet.payload[0] == 0xfe {
                 let parser = Parser(packet: packet)
                 let flags = try parser.parseUInt16()
                 self.endOfResults = (flags & serverMoreResultsExists) == 0
-                return
+                return nil
             }
         } catch {
             self.errorStream?(error)
-            return
+            return nil
         }
         
         if packet.payload.count > 0,
@@ -144,25 +145,41 @@ class ResultsBuilder<D: Table> : ResultsStream {
             pointer[0] == 0xff,
             let error = try packet.parseResponse(mysql41: self.connection.mysql41).error {
             self.errorStream?(error)
-            return
+            return nil
         }
         
-        for column in self.columns {
-            
+        let parser = Parser(packet: packet)
+        var row = Row()
+        
+        for field in columns {
+            if field.isBinary {
+                let value = try parser.parseLenEncData()
+                
+                try row.append(value, forField: field)
+            } else {
+                let value = try parser.parseLenEncString()
+                
+                try row.append(value, forField: field)
+            }
         }
         
+        return row
     }
     
     init(connection: Connection) {
         self.connection = connection
     }
     
+    func complete() {
+        self.outputStream?(nil)
+    }
+    
     var connection: Connection
     var columns = [Field]()
     var header: UInt64?
-    var results = [D]()
-    typealias Result = D
-    typealias Output = [D]
+    var resultsProcessed: UInt64 = 0
+    typealias Result = Row
+    typealias Output = Row?
     
     var outputStream: OutputHandler?
     
@@ -170,3 +187,70 @@ class ResultsBuilder<D: Table> : ResultsStream {
     
     typealias Input = Packet
 }
+
+class ModelBuilder<D: Table> : ResultsStream {
+    var endOfResults = false
+    fileprivate let serverMoreResultsExists: UInt16 = 0x0008
+    
+    func parseRows(from packet: Packet) throws -> D? {
+        do {
+            if packet.payload.count == 5, packet.payload[0] == 0xfe {
+                let parser = Parser(packet: packet)
+                let flags = try parser.parseUInt16()
+                self.endOfResults = (flags & serverMoreResultsExists) == 0
+                return nil
+            }
+        } catch {
+            self.errorStream?(error)
+            return nil
+        }
+        
+        if packet.payload.count > 0,
+            let pointer = packet.payload.baseAddress,
+            pointer[0] == 0xff,
+            let error = try packet.parseResponse(mysql41: self.connection.mysql41).error {
+            self.errorStream?(error)
+            return nil
+        }
+        
+        let parser = Parser(packet: packet)
+        var row = Row()
+        
+        for field in columns {
+            if field.isBinary {
+                let value = try parser.parseLenEncData()
+                
+                try row.append(value, forField: field)
+            } else {
+                let value = try parser.parseLenEncString()
+                
+                try row.append(value, forField: field)
+            }
+        }
+        
+        let decoder = try RowDecoder(packet: packet, columns: self.columns)
+        return try D(from: decoder)
+    }
+    
+    init(connection: Connection) {
+        self.connection = connection
+    }
+    
+    func complete() {
+        self.outputStream?(nil)
+    }
+    
+    var connection: Connection
+    var columns = [Field]()
+    var header: UInt64?
+    var resultsProcessed: UInt64 = 0
+    typealias Result = D
+    typealias Output = D?
+    
+    var outputStream: OutputHandler?
+    
+    var errorStream: ErrorHandler?
+    
+    typealias Input = Packet
+}
+

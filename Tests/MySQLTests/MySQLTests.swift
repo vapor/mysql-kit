@@ -24,9 +24,18 @@ class MySQLTests: XCTestCase {
     }
     
     func testExample() throws {
-        let connection = try Connection(hostname: "localhost", user: "root", password: nil, database: nil, queue: .global())
+        let connection = try Connection(hostname: "localhost", user: "root", password: nil, database: "test", queue: .global())
         
         XCTAssert(try connection.currentQueryFuture?.await(for: .seconds(10)) ?? true)
+        
+        try connection.query("SELECT * from users").drain { row in
+            print(row)
+        }
+        
+//        let results = try User.query("SELECT * from users", onConnection: connection)
+        
+//        print(try results.await(for: .seconds(5)))
+        sleep(5000)
         
 //        let results = try connection.query("SELECT @@version, @@version, 1337, 3.14, 'what up', NULL")
 //
@@ -41,6 +50,7 @@ class MySQLTests: XCTestCase {
     }
 }
 
-struct ExampleVersion : Codable {
-    
+struct User : Table {
+    var id: Int
+    var username: String
 }

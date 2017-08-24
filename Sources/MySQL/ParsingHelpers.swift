@@ -1,3 +1,4 @@
+import Foundation
 import Core
 
 class Parser {
@@ -52,7 +53,7 @@ class Parser {
     }
     
     func parseUInt64() throws -> UInt64 {
-        guard position &+ 2 < self.payload.count else {
+        guard position &+ 8 < self.payload.count else {
             throw MySQLError.invalidResponse
         }
         
@@ -96,10 +97,22 @@ class Parser {
         }
     }
     
+    func parseLenEncData() throws -> Data {
+        let length = Int(try parseLenEnc())
+        
+        guard position &+ length <= self.payload.count else {
+            throw MySQLError.invalidResponse
+        }
+        
+        defer { position = position &+ length }
+        
+        return Data(self.payload[position..<position &+ length])
+    }
+    
     func parseLenEncString() throws -> String {
         let length = Int(try parseLenEnc())
         
-        guard position &+ length < self.payload.count else {
+        guard position &+ length <= self.payload.count else {
             throw MySQLError.invalidResponse
         }
         

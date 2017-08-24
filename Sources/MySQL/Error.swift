@@ -3,4 +3,6 @@ public enum MySQLError : Error {
     case invalidHandshake
     case invalidResponse
     case unauthenticated
+    case unsupported
+    case parsingError
 }
