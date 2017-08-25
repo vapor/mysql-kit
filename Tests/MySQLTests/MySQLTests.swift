@@ -35,7 +35,6 @@ class MySQLTests: XCTestCase {
 //        let results = try User.query("SELECT * from users", onConnection: connection)
         
 //        print(try results.await(for: .seconds(5)))
-        sleep(5000)
         
 //        let results = try connection.query("SELECT @@version, @@version, 1337, 3.14, 'what up', NULL")
 //

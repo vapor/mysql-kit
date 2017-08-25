@@ -228,7 +228,7 @@ class ModelBuilder<D: Table> : ResultsStream {
             }
         }
         
-        let decoder = try RowDecoder(packet: packet, columns: self.columns)
+        let decoder = RowDecoder(row: row, lossyIntegers: true, lossyStrings: true)
         return try D(from: decoder)
     }
     

@@ -5,4 +5,5 @@ public enum MySQLError : Error {
     case unauthenticated
     case unsupported
     case parsingError
+    case decodingError
 }
