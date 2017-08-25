@@ -1,222 +1,194 @@
-import CMySQL
-import Core
 import Foundation
+import Core
+import TCP
+import Dispatch
 
-/// This structure represents a handle to one database connection.
-/// It is used for almost all MySQL functions.
-/// Do not try to make a copy of a MYSQL structure.
-/// There is no guarantee that such a copy will be usable.
-public final class Connection {
-    public typealias CConnection = UnsafeMutablePointer<MYSQL>
-
-    public let cConnection: CConnection
-    public var isClosed: Bool
-
-    init(
-        hostname: String,
-        user: String,
-        password: String,
-        database: String,
-        port: UInt32 = 3306,
-        socket: String? = nil,
-        flag: UInt = 0,
-        encoding: String = "utf8mb4",
-        optionsGroupName: String = "vapor"
-    ) throws {
-        mysql_thread_init()
-        cConnection = mysql_init(nil)
-
-        mysql_options(cConnection, MYSQL_READ_DEFAULT_GROUP, optionsGroupName)
-
-        guard mysql_real_connect(
-            cConnection,
-            hostname,
-            user,
-            password,
-            database,
-            port,
-            socket,
-            flag
-        ) != nil else {
-            throw MySQLError(.connection, reason: "Connection failed.")
-        }
-        
-        mysql_set_character_set(cConnection, encoding)
-        isClosed = false
+struct Capabilities : OptionSet, ExpressibleByIntegerLiteral {
+    var rawValue: UInt32
+    
+    static let protocol41: Capabilities = 0x0200
+    static let longFlag: Capabilities = 0x0004
+    static let connectWithDB: Capabilities = 0x0008
+    static let secureConnection: Capabilities = 0x8000
+    
+    init(rawValue: UInt32) {
+        self.rawValue = rawValue
     }
     
-    public func transaction<R>(_ closure: () throws -> R) throws -> R {
-        // required by transactions, but I don't want to open the old
-        // MySQL query API to the public as it would be a burden to maintain.
-        func manual(_ query: String) throws {
-            guard mysql_query(cConnection, query) == 0 else {
-                throw lastError
-            }
-        }
-        
-        try manual("START TRANSACTION")
-
-        let value: R
-        do {
-            value = try closure()
-        } catch {
-            // rollback changes and then rethrow the error
-            try manual("ROLLBACK")
-            throw error
-        }
-
-        try manual("COMMIT")
-        return value
-    }
-
-    @discardableResult
-    public func execute(_ query: String, _ values: [Node] = []) throws -> Node {
-        // Create a pointer to the statement
-        // This should only fail if memory is limited.
-        guard let statement = mysql_stmt_init(cConnection) else {
-            throw lastError
-        }
-        
-        // important! this must be set for field.max_length
-        // to be properly filled
-        var truth: my_bool = 1
-        guard mysql_stmt_attr_set(statement, STMT_ATTR_UPDATE_MAX_LENGTH, &truth)  == 0 else {
-            throw lastError
-        }
-        
-        defer {
-            mysql_stmt_close(statement)
-        }
-
-        // Prepares the created statement
-        // This parses `?` in the query and
-        // prepares them to attach parameterized bindings.
-        guard mysql_stmt_prepare(statement, query, UInt(strlen(query))) == 0 else {
-            throw lastError
-        }
-
-        // Transforms the `[Value]` array into bindings
-        // and applies those bindings to the statement.
-        let inputBinds = try Binds(values)
-        guard mysql_stmt_bind_param(statement, inputBinds.cBinds) == 0 else {
-            throw lastError
-        }
-
-        // Fetches metadata from the statement which has
-        // not yet run.
-        guard let metadata = mysql_stmt_result_metadata(statement) else {
-            // no data is expected to return from
-            // this query, simply execute it.
-            guard mysql_stmt_execute(statement) == 0 else {
-                throw lastError
-            }
-
-            return .null
-        }
-
-        defer {
-            mysql_free_result(metadata)
-        }
-
-        // Execute the statement!
-        // The data is ready to be fetched when this completes.
-        guard mysql_stmt_execute(statement) == 0 else {
-            throw lastError
-        }
-        
-        // buffers the data on the client
-        // important! sets the max_length field
-        mysql_stmt_store_result(statement)
-        
-        // Parse the fields (columns) that will be returned
-        // by this statement.
-        // important! field information should not be parsed
-        // until mysql_stmt_store_result has been called.
-        let fields = try Fields(metadata, self)
-
-        // Use the fields data to create output bindings.
-        // These act as buffers for the data that will
-        // be returned when the statement is executed.
-        let outputBinds = Binds(fields)
-
-        // Bind the output bindings to the statement.
-        guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {
-            throw lastError
-        }
-
-        var results: [StructuredData] = []
-
-        // This single dictionary is reused for all rows in the result set
-        // to avoid the runtime overhead of (de)allocating one per row.
-        var parsed: [String: StructuredData] = [:]
-
-        // Iterate over all of the rows that are returned.
-        // `mysql_stmt_fetch` will continue to return `0`
-        // as long as there are rows to be fetched.
-        while mysql_stmt_fetch(statement) == 0 {
-            // For each row, loop over all of the fields expected.
-            for (i, field) in fields.fields.enumerated() {
-
-                // For each field, grab the data from
-                // the output binding buffer and add
-                // it to the parsed results.
-                let output = outputBinds[i]
-                parsed[field.name] = output.value
-
-            }
-
-            results.append(
-                .object(parsed)
-            )
-
-            // reset the bindings onto the statement to
-            // signal that they may be reused as buffers
-            // for the next row fetch.
-            guard mysql_stmt_bind_result(statement, outputBinds.cBinds) == 0 else {
-                throw lastError
-            }
-        }
-
-        return Node(
-            .array(results),
-            in: MySQLContext.shared
-        )
-    }
-    
-    public func ping() -> Bool {
-        return mysql_ping(cConnection) != 0
-    }
-
-    deinit {
-        mysql_close(cConnection)
-        mysql_thread_end()
-    }
-
-    /// Contains the last error message generated
-    /// by this MySQLS connection.
-    public var lastError: MySQLError {
-        let e = MySQLError(self)
-        
-        switch e.code {
-        case .serverGone, .serverLost, .serverLostExtended:
-            isClosed = true
-        default:
-            break
-        }
-        
-        return e
+    init(integerLiteral value: UInt32) {
+        self.rawValue = value
     }
 }
 
+protocol Table : Decodable {}
 
-extension Connection {
-    @discardableResult
-    public func execute(_ query: String, _ representable: [NodeRepresentable]) throws -> Node {
-        let values = try representable.map {
-            return try $0.makeNode(in: MySQLContext.shared)
+final class Connection {
+    let socket: Socket
+    let queue: DispatchQueue
+    let buffer: MutableByteBuffer
+    let parser: PacketParser
+    var resultsBuilder: Table?
+    var handshake: Handshake?
+    var source: DispatchSourceRead
+    let username: String
+    let password: String?
+    let database: String?
+    
+    var currentQuery: Promise<Bool>?
+    
+    var currentQueryFuture: Future<Bool>? {
+        return currentQuery?.future
+    }
+    
+    var authenticated: Bool?
+    
+    var capabilities: Capabilities {
+        var base: Capabilities = [
+            .protocol41, .longFlag, .secureConnection
+        ]
+        
+        if database != nil {
+            base.update(with: .connectWithDB)
         }
         
-        return try execute(query, values)
+        return base
+    }
+    
+    var mysql41: Bool {
+        // client && server 4.1 support
+        return handshake?.isGreaterThan4 == true && self.capabilities.contains(.protocol41) && handshake?.capabilities.contains(.protocol41) == true
+    }
+    
+    var initialized: Bool {
+        return self.handshake != nil
+    }
+    
+    init(hostname: String, port: UInt16 = 3306, user: String, password: String?, database: String?, queue: DispatchQueue) throws {
+        let socket = try Socket()
+        
+        let bufferSize = Int(UInt16.max)
+        
+        let pointer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        let buffer = MutableByteBuffer(start: pointer, count: bufferSize)
+        
+        try socket.connect(hostname: hostname, port: port)
+        
+        let parser = PacketParser()
+        
+        let source = socket.onReadable(queue: queue) {
+            do {
+                let usedBufferSize = try socket.read(max: bufferSize, into: buffer)
+                
+                // Reuse existing pointer to data
+                let newBuffer = MutableByteBuffer(start: pointer, count: usedBufferSize)
+                
+                parser.inputStream(newBuffer)
+            } catch {
+                socket.close()
+            }
+        }
+        
+        self.parser = parser
+        self.socket = socket
+        self.queue = queue
+        self.buffer = buffer
+        self.source = source
+        self.username = user
+        self.password = password
+        self.database = database
+        self.parser.drain(self.handlePacket)
+        self.currentQuery = Promise<Bool>()
+    }
+    
+    func close() {
+        self.socket.close()
+    }
+    
+    func onPackets(_ handler: @escaping ((Packet) -> ())) -> Promise<Bool> {
+        _ = try? self.currentQueryFuture?.await()
+        let promise = Promise<Bool>()
+        
+        self.currentQuery = promise
+        self.parser.outputStream = handler
+        
+        promise.future.then { _ in
+            self.parser.drain(self.handlePacket)
+        }
+        return promise
+    }
+    
+    func handlePacket(_ packet: Packet) {
+        guard self.handshake != nil else {
+            self.doHandshake(for: packet)
+            return
+        }
+        
+        guard let authenticated = authenticated else {
+            finishAuthentication(for: packet)
+            return
+        }
+        
+        guard authenticated else {
+            self.socket.close()
+            return
+        }
+    }
+    
+    func write(packetFor data: Data, startingAt start: UInt8 = 0) throws {
+        let pointer = UnsafeMutablePointer<UInt8>.allocate(capacity: data.count)
+        
+        defer {
+            pointer.deallocate(capacity: data.count)
+        }
+        
+        data.copyBytes(to: pointer, count: data.count)
+        
+        let buffer = ByteBuffer(start: pointer, count: data.count)
+        
+        try write(packetFor: buffer)
+    }
+    
+    func write(packetFor data: ByteBuffer, startingAt start: UInt8 = 0) throws {
+        var offset = 0
+        
+        guard let input = data.baseAddress else {
+            throw MySQLError.invalidPacket
+        }
+        
+        let pointer = UnsafeMutablePointer<UInt8>.allocate(capacity: Packet.maxPayloadSize &+ 4)
+        
+        defer {
+            pointer.deallocate(capacity: Packet.maxPayloadSize &+ 4)
+        }
+        
+        var packetNumber: UInt8 = start
+        
+        while offset < data.count {
+            defer {
+                packetNumber = packetNumber &+ 1
+            }
+            
+            let dataSize = min(Packet.maxPayloadSize, data.count &- offset)
+            let packetSize = UInt32(dataSize)
+            
+            let packetSizeBytes = [
+                UInt8((packetSize) & 0xff),
+                UInt8((packetSize >> 8) & 0xff),
+                UInt8((packetSize >> 16) & 0xff),
+            ]
+            
+            defer {
+                offset = offset + dataSize
+            }
+            
+            memcpy(pointer, packetSizeBytes, 3)
+            pointer[3] = packetNumber
+            memcpy(pointer.advanced(by: 4), input.advanced(by: offset), dataSize)
+            
+            let buffer = ByteBuffer(start: pointer, count: dataSize &+ 4)
+            _ = try self.socket.write(max: dataSize &+ 4, from: buffer)
+        }
+        
+        return
     }
 }
-
