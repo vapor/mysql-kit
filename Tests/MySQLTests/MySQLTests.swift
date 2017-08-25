@@ -28,8 +28,12 @@ class MySQLTests: XCTestCase {
         
         XCTAssert(try connection.currentQueryFuture?.await(for: .seconds(10)) ?? true)
         
-        try connection.query("SELECT * from users").drain { row in
-            print(row)
+//        try connection.query("SELECT * from users").drain { row in
+//            print(row)
+//        }
+        
+        try User.query("SELECT * from users", onConnection: connection).drain { user in
+            print(user)
         }
         
 //        let results = try User.query("SELECT * from users", onConnection: connection)
@@ -45,7 +49,7 @@ class MySQLTests: XCTestCase {
 //        } catch {
 //            print(error)
 //        }
-//        sleep(5000)
+        sleep(5000)
     }
 }
 

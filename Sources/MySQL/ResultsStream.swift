@@ -28,8 +28,7 @@ extension ResultsStream {
                     return
                 }
                 
-                // starting at 0, so header + 1 is the amount of results
-                self.header = header + 1
+                self.header = header
                 return
             }
             
@@ -228,7 +227,7 @@ class ModelBuilder<D: Table> : ResultsStream {
             }
         }
         
-        let decoder = RowDecoder(row: row, lossyIntegers: true, lossyStrings: true)
+        let decoder = try RowDecoder(keyed: row, lossyIntegers: true, lossyStrings: true)
         return try D(from: decoder)
     }
     

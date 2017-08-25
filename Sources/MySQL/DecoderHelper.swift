@@ -9,6 +9,7 @@ public protocol DecoderHelper : Decoder {
     var lossyStrings: Bool { get }
     
     func decode(_ wrapped: Value) throws -> String
+    func decode(_ wrapped: Value) throws -> Bool
     func decode(_ wrapped: Value) throws -> Int8
     func decode(_ wrapped: Value) throws -> Int16
     func decode(_ wrapped: Value) throws -> Int32
@@ -23,6 +24,11 @@ public protocol DecoderHelper : Decoder {
     func decode(_ wrapped: Value) throws -> Float
     
     func integers(for value: Value) throws -> Integers?
+    
+    init(keyed: Keyed, lossyIntegers: Bool, lossyStrings: Bool) throws
+    init(value: Value, lossyIntegers: Bool, lossyStrings: Bool) throws
+    init(unkeyed: Unkeyed, lossyIntegers: Bool, lossyStrings: Bool) throws
+    init(any: Value, lossyIntegers: Bool, lossyStrings: Bool) throws
 }
 
 public enum Either<Value, Keyed, Unkeyed> {
@@ -85,11 +91,7 @@ public enum Integers {
 }
 
 extension DecoderHelper {
-    func unwrap(_ wrapped: Value) throws -> String {
-        fatalError()
-    }
-    
-    func decode(_ wrapped: Value) throws -> Int8 {
+    public func decode(_ wrapped: Value) throws -> Int8 {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -105,7 +107,7 @@ extension DecoderHelper {
         throw DecodingError.unimplemented
     }
     
-    func decode(_ wrapped: Value) throws -> Int16 {
+    public func decode(_ wrapped: Value) throws -> Int16 {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -120,7 +122,7 @@ extension DecoderHelper {
         
         throw DecodingError.unimplemented
     }
-    func decode(_ wrapped: Value) throws -> Int32 {
+    public func decode(_ wrapped: Value) throws -> Int32 {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -135,7 +137,7 @@ extension DecoderHelper {
         
         throw DecodingError.unimplemented
     }
-    func decode(_ wrapped: Value) throws -> Int64 {
+    public func decode(_ wrapped: Value) throws -> Int64 {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -150,7 +152,7 @@ extension DecoderHelper {
         
         throw DecodingError.unimplemented
     }
-    func decode(_ wrapped: Value) throws -> Int {
+    public func decode(_ wrapped: Value) throws -> Int {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -165,7 +167,7 @@ extension DecoderHelper {
         
         throw DecodingError.unimplemented
     }
-    func decode(_ wrapped: Value) throws -> UInt8 {
+    public func decode(_ wrapped: Value) throws -> UInt8 {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -180,7 +182,7 @@ extension DecoderHelper {
         
         throw DecodingError.unimplemented
     }
-    func decode(_ wrapped: Value) throws -> UInt16 {
+    public func decode(_ wrapped: Value) throws -> UInt16 {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -195,7 +197,7 @@ extension DecoderHelper {
         
         throw DecodingError.unimplemented
     }
-    func decode(_ wrapped: Value) throws -> UInt32 {
+    public func decode(_ wrapped: Value) throws -> UInt32 {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -210,7 +212,7 @@ extension DecoderHelper {
         
         throw DecodingError.unimplemented
     }
-    func decode(_ wrapped: Value) throws -> UInt64 {
+    public func decode(_ wrapped: Value) throws -> UInt64 {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -225,7 +227,7 @@ extension DecoderHelper {
         
         throw DecodingError.unimplemented
     }
-    func decode(_ wrapped: Value) throws -> UInt {
+    public func decode(_ wrapped: Value) throws -> UInt {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -240,7 +242,7 @@ extension DecoderHelper {
         
         throw DecodingError.unimplemented
     }
-    func decode(_ wrapped: Value) throws -> Double {
+    public func decode(_ wrapped: Value) throws -> Double {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -255,7 +257,7 @@ extension DecoderHelper {
         
         throw DecodingError.unimplemented
     }
-    func decode(_ wrapped: Value) throws -> Float {
+    public func decode(_ wrapped: Value) throws -> Float {
         if let integers = try integers(for: wrapped) {
             if lossyIntegers {
                 return try decodeLossy(integers)
@@ -572,6 +574,171 @@ extension DecoderHelper {
     }
 }
 
+public protocol KeyedDecodingContainerProtocolHelper : KeyedDecodingContainerProtocol {
+    associatedtype D: DecoderHelper
+    
+    var decoder: D { get }
+    
+    init(decoder: D)
+}
+
+public protocol KeyedDecodingHelper {
+    associatedtype Value
+    
+    func value(forKey key: String) throws -> Value?
+}
+
+extension KeyedDecodingContainerProtocolHelper where D.Keyed : KeyedDecodingHelper, D.Keyed.Value == D.Value {
+    func value(forKey key: Key) throws -> D.Value? {
+        return try decoder.either.getKeyed().value(forKey: key.stringValue)
+    }
+
+    func decode(_ type: Int.Type, forKey key: Key) throws -> Int {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode(_ type: Int8.Type, forKey key: Key) throws -> Int8 {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode(_ type: Int16.Type, forKey key: Key) throws -> Int16 {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode(_ type: Int32.Type, forKey key: Key) throws -> Int32 {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode(_ type: Int64.Type, forKey key: Key) throws -> Int64 {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode(_ type: UInt.Type, forKey key: Key) throws -> UInt {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode(_ type: UInt8.Type, forKey key: Key) throws -> UInt8 {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode(_ type: UInt16.Type, forKey key: Key) throws -> UInt16 {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode(_ type: UInt32.Type, forKey key: Key) throws -> UInt32 {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode(_ type: UInt64.Type, forKey key: Key) throws -> UInt64 {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode(_ type: Float.Type, forKey key: Key) throws -> Float {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try decoder.unwrap(value)
+    }
+
+    func decode<T>(_ type: T.Type, forKey key: Key) throws -> T where T : Decodable {
+        guard let value = try decoder.either.getKeyed().value(forKey: key.stringValue) else {
+            throw DecodingError.incorrectValue
+        }
+        
+        let newDecoder = try D(any: value, lossyIntegers: decoder.lossyIntegers, lossyStrings: decoder.lossyStrings)
+        
+        return try T(from: newDecoder)
+    }
+
+    func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: Key) throws -> KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
+//        guard let keyed = try decoder.either.getKeyed().value(forKey: key.stringValue) as? D.Keyed else {
+//            throw DecodingError.incorrectValue
+//        }
+//
+//        let decoder = try D(keyed: keyed)
+//        fatalError()
+        
+        guard let keyed = try decoder.either.getKeyed().value(forKey: key.stringValue) as? D.Keyed else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try D(keyed: keyed, lossyIntegers: decoder.lossyIntegers, lossyStrings: decoder.lossyStrings).container(keyedBy: type)
+    }
+
+    func nestedUnkeyedContainer(forKey key: Key) throws -> UnkeyedDecodingContainer {
+        guard let unkeyed = try decoder.either.getKeyed().value(forKey: key.stringValue) as? D.Unkeyed else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try D(unkeyed: unkeyed, lossyIntegers: decoder.lossyIntegers, lossyStrings: decoder.lossyStrings).unkeyedContainer()
+    }
+
+    func superDecoder() throws -> Decoder {
+        guard let value = try decoder.either.getKeyed().value(forKey: "super") else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try D(any: value, lossyIntegers: decoder.lossyIntegers, lossyStrings: decoder.lossyStrings)
+    }
+
+    func superDecoder(forKey key: Key) throws -> Decoder {
+        guard let keyed = try decoder.either.getKeyed().value(forKey: key.stringValue) as? D.Keyed else {
+            throw DecodingError.incorrectValue
+        }
+        
+        return try D(keyed: keyed, lossyIntegers: decoder.lossyIntegers, lossyStrings: decoder.lossyStrings)
+    }
+}
+
 public protocol SingleValueDecodingContainerHelper : SingleValueDecodingContainer {
     associatedtype D: DecoderHelper
     
@@ -581,54 +748,60 @@ public protocol SingleValueDecodingContainerHelper : SingleValueDecodingContaine
 }
 
 extension SingleValueDecodingContainerHelper {
-    func decode(_ type: Int.Type) throws -> Int {
+    public func decode(_ type: Int.Type) throws -> Int {
         return try decoder.unwrap(try decoder.either.getValue())
     }
     
-    func decode(_ type: Int8.Type) throws -> Int8 {
+    public func decode(_ type: Int8.Type) throws -> Int8 {
         return try decoder.unwrap(try decoder.either.getValue())
     }
     
-    func decode(_ type: Int16.Type) throws -> Int16 {
+    public func decode(_ type: Int16.Type) throws -> Int16 {
         return try decoder.unwrap(try decoder.either.getValue())
     }
     
-    func decode(_ type: Int32.Type) throws -> Int32 {
+    public func decode(_ type: Int32.Type) throws -> Int32 {
         return try decoder.unwrap(try decoder.either.getValue())
     }
     
-    func decode(_ type: Int64.Type) throws -> Int64 {
+    public func decode(_ type: Int64.Type) throws -> Int64 {
         return try decoder.unwrap(try decoder.either.getValue())
     }
     
-    func decode(_ type: UInt.Type) throws -> UInt {
+    public func decode(_ type: UInt.Type) throws -> UInt {
         return try decoder.unwrap(try decoder.either.getValue())
     }
     
-    func decode(_ type: UInt8.Type) throws -> UInt8 {
+    public func decode(_ type: UInt8.Type) throws -> UInt8 {
         return try decoder.unwrap(try decoder.either.getValue())
     }
     
-    func decode(_ type: UInt16.Type) throws -> UInt16 {
+    public func decode(_ type: UInt16.Type) throws -> UInt16 {
         return try decoder.unwrap(try decoder.either.getValue())
     }
     
-    func decode(_ type: UInt32.Type) throws -> UInt32 {
+    public func decode(_ type: UInt32.Type) throws -> UInt32 {
         return try decoder.unwrap(try decoder.either.getValue())
     }
     
-    func decode(_ type: UInt64.Type) throws -> UInt64 {
+    public func decode(_ type: UInt64.Type) throws -> UInt64 {
         return try decoder.unwrap(try decoder.either.getValue())
     }
     
-    func decode(_ type: Float.Type) throws -> Float {
+    public func decode(_ type: Float.Type) throws -> Float {
         return try decoder.unwrap(try decoder.either.getValue())
     }
     
-    func decode(_ type: Double.Type) throws -> Double {
+    public func decode(_ type: Double.Type) throws -> Double {
         return try decoder.unwrap(try decoder.either.getValue())
+    }
+    
+    public func decode(_ type: Bool.Type) throws -> Bool {
+        return try decoder.decode(try decoder.either.getValue())
     }
 }
+
+
 
 enum DecodingError : Error {
     case failedLossyIntegerConversion, invalidContext, incorrectValue, unimplemented
