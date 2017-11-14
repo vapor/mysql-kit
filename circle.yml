@@ -5,8 +5,7 @@ jobs:
     macos:
       xcode: "9.0"
     steps:
-      - run: brew install vapor/tap/vapor
-      - run: brew install mysql
+      - run: brew install vapor/tap/vapor vapor/tap/cmysql
       - run: brew services start mysql
       - checkout
       - run: swift build
@@ -19,10 +18,10 @@ jobs:
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
     steps:
-      - run: apt-get install -yq libssl-dev
+      - run: eval "$(curl -sL https://apt.vapor.sh)"
+      - run: sudo apt-get install cmysql ctls
       - checkout
       - run: swift build
-      - run: swift build -c release
       - run: swift test
 
   # 3.1 backward compat checks
@@ -34,10 +33,10 @@ jobs:
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
     steps:
-      - run: apt-get install -yq libssl-dev
+      - run: eval "$(curl -sL https://apt.vapor.sh)"
+      - run: sudo apt-get install cmysql ctls
       - checkout
       - run: swift build
-      - run: swift build -c release
       - run: swift test
 
 workflows:
