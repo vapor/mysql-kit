@@ -19,7 +19,7 @@ jobs:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
     steps:
       - run: eval "$(curl -sL https://apt.vapor.sh)"
-      - run: sudo apt-get install cmysql ctls
+      - run: apt-get install cmysql ctls
       - checkout
       - run: swift build
       - run: swift test
@@ -34,7 +34,7 @@ jobs:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
     steps:
       - run: eval "$(curl -sL https://apt.vapor.sh)"
-      - run: sudo apt-get install cmysql ctls
+      - run: apt-get install cmysql ctls
       - checkout
       - run: swift build
       - run: swift test

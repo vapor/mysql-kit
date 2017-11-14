@@ -6,9 +6,9 @@ extension MySQL.Database {
         do {
             let mysql = try MySQL.Database(
                 hostname: "127.0.0.1",
-                user: "ubuntu",
+                user: "root",
                 password: "",
-                database: "circle_test"
+                database: "test"
             )
             let connection = try mysql.makeConnection()
             try connection.execute("SELECT @@version")
@@ -22,10 +22,10 @@ extension MySQL.Database {
             print("Error: \(error)")
             print()
             print("You must configure MySQL to run with the following configuration: ")
-            print("    user: 'ubuntu'")
+            print("    user: 'root'")
             print("    password: '' // (empty)")
             print("    host: '127.0.0.1'")
-            print("    database: 'circle_test'")
+            print("    database: 'test'")
             print()
 
             print()
