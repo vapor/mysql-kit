@@ -19,6 +19,7 @@ jobs:
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
     steps:
+      - run: apt-get update
       - run: apt-get install -y libmysqlclient-dev libssl-dev
       - checkout
       - run: swift build
@@ -33,6 +34,7 @@ jobs:
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
     steps:
+      - run: apt-get update
       - run: apt-get install -y libmysqlclient-dev libssl-dev
       - checkout
       - run: swift build
