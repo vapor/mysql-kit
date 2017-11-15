@@ -18,6 +18,7 @@ jobs:
       - image: mysql:5.7
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: test
     steps:
       - run: apt-get update
       - run: apt-get install -y libmysqlclient-dev libssl-dev
@@ -33,6 +34,7 @@ jobs:
       - image: mysql:5.7
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: test
     steps:
       - run: apt-get update
       - run: apt-get install -y libmysqlclient-dev libssl-dev
