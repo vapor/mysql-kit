@@ -7,7 +7,6 @@ jobs:
     steps:
       - run: brew install vapor/tap/vapor vapor/tap/cmysql
       - run: brew services start mysql
-      - run: mysql -u root -e "create database test"; 
       - checkout
       - run: swift build
       - run: swift test
@@ -46,6 +45,5 @@ workflows:
   version: 2
   tests:
     jobs:
-      - macos
       - linux
       - linux-3
