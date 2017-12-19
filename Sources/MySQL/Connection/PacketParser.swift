@@ -63,7 +63,7 @@ internal final class MySQLPacketParser: Async.Stream, ConnectionContext {
     
     /// Current state
     var state: ProtocolParserState
-
+    
     /// Create a new packet parser
     init() {
         downstreamDemand = 0
@@ -122,6 +122,7 @@ internal final class MySQLPacketParser: Async.Stream, ConnectionContext {
     }
     
     private func flush(_ data: Output) {
+        self.parsing = nil
         self.downstreamDemand -= 1
         self.downstream?.next(data)
     }
@@ -131,7 +132,7 @@ internal final class MySQLPacketParser: Async.Stream, ConnectionContext {
         if let (buffer, containing) = self.parsing {
             let dataSize = min(buffer.count &- containing, length)
             
-            memcpy(buffer.baseAddress!, pointer, dataSize)
+            memcpy(buffer.baseAddress!.advanced(by: containing), pointer, dataSize)
             
             upstreamBufferOffset += dataSize
             
@@ -233,6 +234,7 @@ internal final class MySQLPacketParser: Async.Stream, ConnectionContext {
         memcpy(bufferPointer, pointer, containing)
         
         self.parsing = (buffer, containing)
+        self.upstreamBuffer = nil
         upstream?.request()
     }
     
@@ -321,3 +323,4 @@ extension Packet {
         )
     }
 }
+
