@@ -17,26 +17,10 @@ jobs:
       - image: mysql:5.7
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: test
+          MYSQL_DATABASE: vapor_test
     steps:
       - run: apt-get update
-      - run: apt-get install -y libmysqlclient-dev libssl-dev
-      - checkout
-      - run: swift build
-      - run: swift test
-
-  # 3.1 backward compat checks
-
-  linux-3:
-    docker:
-      - image: swift:3.1
-      - image: mysql:5.7
-        environment:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: test
-    steps:
-      - run: apt-get update
-      - run: apt-get install -y libmysqlclient-dev libssl-dev
+      - run: apt-get install -y libssl-dev
       - checkout
       - run: swift build
       - run: swift test
