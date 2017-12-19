@@ -18,12 +18,9 @@ let package = Package(
 
         // Non-blocking networking for Swift (HTTP and WebSockets).
         .package(url: "https://github.com/vapor/engine.git", .branch("beta")),
-
-        // Transport layer security
-        .package(url: "https://github.com/vapor/tls.git", .branch("beta")),
     ],
     targets: [
-        .target(name: "MySQL", dependencies: ["Crypto", "TCP", "TLS"]),
+        .target(name: "MySQL", dependencies: ["CodableKit", "Crypto", "TCP", "TLS"]),
         .testTarget(name: "MySQLTests", dependencies: ["MySQL"]),
     ]
 )
