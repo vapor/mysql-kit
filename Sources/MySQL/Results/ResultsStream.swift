@@ -87,7 +87,22 @@ final class RowStream: Async.Stream, ConnectionContext {
     }
     
     func connection(_ event: ConnectionEvent) {
-        upstream?.connection(event)
+        switch event {
+        case .cancel:
+            self.downstreamDemand = 0
+        case .request(let amount):
+            self.downstreamDemand += amount
+            
+            if parsing == nil {
+                upstream?.request()
+            } else {
+                do {
+                    try transform()
+                } catch {
+                    downstream?.error(error)
+                }
+            }
+        }
     }
     
     func output<S>(to inputStream: S) where S : Async.InputStream, Output == S.Input {
@@ -96,6 +111,7 @@ final class RowStream: Async.Stream, ConnectionContext {
     }
     
     private func flush(_ data: Output) {
+        parsing = nil
         self.downstreamDemand -= 1
         self.downstream?.next(data)
     }
@@ -135,6 +151,8 @@ final class RowStream: Async.Stream, ConnectionContext {
             }
             
             self.columnCount = columnCount
+            
+            upstream?.request()
             return
         }
 
@@ -142,13 +160,15 @@ final class RowStream: Async.Stream, ConnectionContext {
         if columns.count != columnCount {
             // Parse the next column
             try parseColumns(from: parsing)
+            upstream?.request()
             return
         }
         
         // Otherwise, parse the next row
         try preParseRows(from: parsing)
+        upstream?.request()
     }
-
+    
     /// Parses a row from this packet, checks
     func preParseRows(from packet: Packet) throws {
         // End of file packet

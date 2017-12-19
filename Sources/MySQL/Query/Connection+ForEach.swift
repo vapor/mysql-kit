@@ -22,6 +22,7 @@ extension MySQLConnection {
             try handler(row)
             rowStream.request()
         }.catch { error in
+            rowStream.cancel()
             promise.fail(error)
         }.finally {
             rowStream.cancel()

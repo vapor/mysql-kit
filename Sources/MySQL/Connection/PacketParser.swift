@@ -111,7 +111,7 @@ internal final class MySQLPacketParser: Async.Stream, ConnectionContext {
             self.downstreamDemand += demand
         }
         
-        guard downstreamDemand > 0, parsing != nil else {
+        guard downstreamDemand > 0, let upstreamBuffer = upstreamBuffer, upstreamBuffer.count > upstreamBufferOffset else {
             upstream?.request()
             return
         }
