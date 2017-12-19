@@ -5,8 +5,6 @@ jobs:
     macos:
       xcode: "9.0"
     steps:
-      - run: brew install redis
-      - run: brew services start redis
       - run: brew install mysql
       - run: brew services start mysql
       - checkout
@@ -18,7 +16,6 @@ jobs:
   linux:
     docker:
       - image: swift:4.0
-      - image: redis:3.2
       - image: mysql:5.7
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
