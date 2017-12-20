@@ -184,6 +184,8 @@ final class RowStream: Async.Stream, ConnectionContext {
                 }
 
                 try onEOF?(flags)
+            } else {
+                endOfHeaders = true
             }
             return
         }
