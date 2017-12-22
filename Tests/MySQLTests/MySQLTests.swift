@@ -168,7 +168,7 @@ class MySQLTests: XCTestCase {
         try testPopulateUsersSchema()
         
         let tables = try connection.all(String.self, in: "SHOW TABLES").blockingAwait()
-        XCTAssertEqual(tables, ["users"])
+        XCTAssert(tables.contains("users"))
     }
     
     func testFailures() throws {
