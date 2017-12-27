@@ -138,10 +138,6 @@ final class RowStream: Async.Stream, ConnectionContext {
 
             // No columns means that this is likely the success response of a binary INSERT/UPDATE/DELETE query
             if columnCount == 0 {
-                guard binary else {
-                    throw MySQLError(packet: parsing)
-                }
-                
                 if let (affectedRows, lastInsertID) = try parsing.parseBinaryOK() {
                     self.packetOKcallback?(affectedRows, lastInsertID)
                 }
