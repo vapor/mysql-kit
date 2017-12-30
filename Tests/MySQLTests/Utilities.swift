@@ -103,6 +103,10 @@ public final class Table {
                 return ColumnType(name: "TINYINT", length: length, attributes: ["UNSIGNED"])
             }
             
+            public static func text() -> ColumnType {
+                return ColumnType(name: "TEXT", length: nil, attributes: [])
+            }
+            
             /// A single (signed SHORT) Int16 with a maximum (decimal) length, if specified
             public static func int16(length: Int? = nil) -> ColumnType {
                 return ColumnType(name: "SMALLINT", length: length)

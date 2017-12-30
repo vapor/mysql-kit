@@ -35,6 +35,7 @@ class MySQLTests: XCTestCase {
         _ = try? connection.dropTables(named: "users").blockingAwait(timeout: .seconds(3))
         _ = try? connection.dropTables(named: "complex").blockingAwait(timeout: .seconds(3))
         _ = try? connection.dropTables(named: "test").blockingAwait(timeout: .seconds(3))
+        _ = try? connection.dropTables(named: "articles").blockingAwait(timeout: .seconds(3))
     }
 
     func testPreparedStatements() throws {
@@ -175,11 +176,32 @@ class MySQLTests: XCTestCase {
         XCTAssertThrowsError(try connection.administrativeQuery("INSERT INTO users (username) VALUES ('Exampleuser')").blockingAwait(timeout: .seconds(3)))
         XCTAssertThrowsError(try connection.all(User.self, in: "SELECT * FORM users").blockingAwait(timeout: .seconds(3)))
     }
+    
+    func testText() throws {
+        let table = Table(named: "articles")
+        
+        table.schema.append(Table.Column(named: "id", type: .uint8(length: nil), autoIncrement: true, primary: true, unique: true))
+        
+        table.schema.append(Table.Column(named: "text", type: .text()))
+        
+        try connection.createTable(table).blockingAwait(timeout: .seconds(3))
+        
+        try connection.administrativeQuery("INSERT INTO articles (text) VALUES ('hello, world')").blockingAwait(timeout: .seconds(3))
+        
+        let articles = try connection.all(Article.self, in: "SELECT * FROM articles").blockingAwait(timeout: .seconds(5))
+        XCTAssertEqual(articles.count, 1)
+        XCTAssertEqual(articles.first?.text, "hello, world")
+    }
 }
 
 struct User: Decodable {
     var id: Int
     var username: String
+}
+
+struct Article: Decodable {
+    var id: Int
+    var text: String
 }
 
 struct Complex: Decodable {
