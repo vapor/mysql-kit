@@ -59,7 +59,7 @@ internal final class MySQLPacketParser: Async.BinaryParsingStream {
         } else {
             // Wait for more data
             self.partiallyParsed = (buffer, dataSize &+ containing)
-            return .uncompleted(consuming: dataSize)
+            return .uncompleted
         }
     }
     
@@ -69,7 +69,7 @@ internal final class MySQLPacketParser: Async.BinaryParsingStream {
         if headerBytes.count == 0 {
             guard buffer.count >= 3 else {
                 dumpHeader(from: buffer)
-                return .uncompleted(consuming: buffer.count)
+                return .uncompleted
             }
             
             let byte0: UInt32 = (numericCast(pointer[0]) as UInt32).littleEndian
@@ -87,7 +87,7 @@ internal final class MySQLPacketParser: Async.BinaryParsingStream {
                     from: ByteBuffer(start: pointer.advanced(by: 3), count: buffer.count - 3)
                 )
                 
-                return .uncompleted(consuming: buffer.count)
+                return .uncompleted
             } else {
                 return .completed(
                     consuming: 3 &+ fullPacketSize,
@@ -98,8 +98,8 @@ internal final class MySQLPacketParser: Async.BinaryParsingStream {
             }
         } else {
             switch parseHeader(from: buffer) {
-            case .uncompleted(let consumed):
-                return .uncompleted(consuming: consumed)
+            case .uncompleted:
+                return .uncompleted
             case .completed(let consumed, let header):
                 let fullPacketSize = 1 &+ header
                 
@@ -109,7 +109,7 @@ internal final class MySQLPacketParser: Async.BinaryParsingStream {
                         from: ByteBuffer(start: pointer.advanced(by: consumed), count: buffer.count - consumed)
                     )
                     
-                    return .uncompleted(consuming: buffer.count)
+                    return .uncompleted
                 } else {
                     return .completed(
                         consuming: consumed &+ fullPacketSize,
@@ -170,7 +170,7 @@ internal final class MySQLPacketParser: Async.BinaryParsingStream {
         
         guard buffer.count &+ headerBytes.count >= 3 else {
             dumpHeader(from: buffer)
-            return .uncompleted(consuming: buffer.count)
+            return .uncompleted
         }
         
         let pointer = buffer.baseAddress!
