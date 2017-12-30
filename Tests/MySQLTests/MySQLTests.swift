@@ -26,8 +26,8 @@ class MySQLTests: XCTestCase {
     override func setUp() {
         connection = try! MySQLConnection.makeConnection(
             hostname: "localhost",
-            user: "root",
-            password: nil,
+            user: "vapor",
+            password: "vapor3",
             database: "vapor_test",
             on: MySQLTests.poolQueue
         ).blockingAwait(timeout: .seconds(10))
@@ -35,6 +35,41 @@ class MySQLTests: XCTestCase {
         _ = try? connection.dropTables(named: "users").blockingAwait(timeout: .seconds(3))
         _ = try? connection.dropTables(named: "complex").blockingAwait(timeout: .seconds(3))
         _ = try? connection.dropTables(named: "test").blockingAwait(timeout: .seconds(3))
+    }
+    
+    func testStackOverflow() throws {
+        try testCreateUsersSchema()
+        
+        var signal = Signal.done
+        var amount = 10_000
+        
+        for _ in 0..<amount {
+            signal = signal.flatMap(to: Void.self) {
+                return self.connection.administrativeQuery("INSERT INTO users (username) VALUES ('Joannis')")
+            }
+        }
+        
+        var upstream: ConnectionContext?
+        let promise = Promise<Void>()
+        
+        let stream = DrainStream(User.self, onConnect: { req in
+            upstream = req
+        }, onInput: { user in
+            amount -= 1
+            XCTAssertEqual(user.username, "Joannis")
+        }, onError: { error in
+            XCTFail("\(error)")
+        }, onClose: {
+            promise.complete()
+        })
+        
+        try signal.blockingAwait(timeout: .seconds(30))
+        
+        try connection.stream(User.self, in: "SELECT * FROM users", to: stream)
+        upstream?.request(count: .max)
+        
+        try promise.future.blockingAwait(timeout: .seconds(5))
+        XCTAssertEqual(amount, 0)
     }
 
     func testPreparedStatements() throws {

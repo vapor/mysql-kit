@@ -92,7 +92,7 @@ fileprivate final class MySQLConnector {
             try client.connect(hostname: hostname, port: port)
             
             let source = socket.source(on: eventLoop)
-            let parser = MySQLPacketParser()
+            let parser = MySQLPacketParser(eventloop: eventLoop)
 
             let sink = socket.sink(on: eventLoop)
             self.serializer.output(to: sink)
