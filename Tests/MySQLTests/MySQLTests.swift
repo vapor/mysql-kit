@@ -26,8 +26,8 @@ class MySQLTests: XCTestCase {
     override func setUp() {
         connection = try! MySQLConnection.makeConnection(
             hostname: "localhost",
-            user: "root",
-            password: nil,
+            user: "vapor",
+            password: "vapor3",
             database: "vapor_test",
             on: MySQLTests.poolQueue
         ).blockingAwait(timeout: .seconds(10))
@@ -35,6 +35,42 @@ class MySQLTests: XCTestCase {
         _ = try? connection.dropTables(named: "users").blockingAwait(timeout: .seconds(3))
         _ = try? connection.dropTables(named: "complex").blockingAwait(timeout: .seconds(3))
         _ = try? connection.dropTables(named: "test").blockingAwait(timeout: .seconds(3))
+        _ = try? connection.dropTables(named: "articles").blockingAwait(timeout: .seconds(3))
+    }
+    
+    func testStackOverflow() throws {
+        try testCreateUsersSchema()
+        
+        var signal = Signal.done
+        var amount = 10_000
+        
+        for _ in 0..<amount {
+            signal = signal.flatMap(to: Void.self) {
+                return self.connection.administrativeQuery("INSERT INTO users (username) VALUES ('Joannis')")
+            }
+        }
+        
+        var upstream: ConnectionContext?
+        let promise = Promise<Void>()
+        
+        let stream = DrainStream(User.self, onConnect: { req in
+            upstream = req
+        }, onInput: { user in
+            amount -= 1
+            XCTAssertEqual(user.username, "Joannis")
+        }, onError: { error in
+            XCTFail("\(error)")
+        }, onClose: {
+            promise.complete()
+        })
+        
+        try signal.blockingAwait(timeout: .seconds(30))
+        
+        try connection.stream(User.self, in: "SELECT * FROM users", to: stream)
+        upstream?.request(count: .max)
+        
+        try promise.future.blockingAwait(timeout: .seconds(5))
+        XCTAssertEqual(amount, 0)
     }
 
     func testPreparedStatements() throws {
@@ -175,11 +211,32 @@ class MySQLTests: XCTestCase {
         XCTAssertThrowsError(try connection.administrativeQuery("INSERT INTO users (username) VALUES ('Exampleuser')").blockingAwait(timeout: .seconds(3)))
         XCTAssertThrowsError(try connection.all(User.self, in: "SELECT * FORM users").blockingAwait(timeout: .seconds(3)))
     }
+    
+    func testText() throws {
+        let table = Table(named: "articles")
+        
+        table.schema.append(Table.Column(named: "id", type: .uint8(length: nil), autoIncrement: true, primary: true, unique: true))
+        
+        table.schema.append(Table.Column(named: "text", type: .text()))
+        
+        try connection.createTable(table).blockingAwait(timeout: .seconds(3))
+        
+        try connection.administrativeQuery("INSERT INTO articles (text) VALUES ('hello, world')").blockingAwait(timeout: .seconds(3))
+        
+        let articles = try connection.all(Article.self, in: "SELECT * FROM articles").blockingAwait(timeout: .seconds(5))
+        XCTAssertEqual(articles.count, 1)
+        XCTAssertEqual(articles.first?.text, "hello, world")
+    }
 }
 
 struct User: Decodable {
     var id: Int
     var username: String
+}
+
+struct Article: Decodable {
+    var id: Int
+    var text: String
 }
 
 struct Complex: Decodable {

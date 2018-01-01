@@ -56,7 +56,7 @@ public final class MySQLConnection {
     /// Closes the connection
     public func close() {
         // Write `close`
-        serializer.queue([
+        serializer.send([
             0x01 // close identifier
         ])
         

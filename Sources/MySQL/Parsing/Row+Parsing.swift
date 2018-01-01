@@ -179,6 +179,8 @@ extension Row {
         switch field.fieldType {
         case .null:
             append(.null, forField: field)
+        case .blob:
+            append(.blob(value), forField: field)
         default:
             throw MySQLError(.unsupported)
         }

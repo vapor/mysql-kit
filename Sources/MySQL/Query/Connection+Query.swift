@@ -13,7 +13,7 @@ extension MySQLConnection {
         buffer.append(0x03)
         buffer.append(contentsOf: [UInt8](query.utf8))
         
-        self.serializer.queue(Packet(data: buffer))
+        self.serializer.send(Packet(data: buffer))
     }
     
     /// Writes a preparation message to the connection
@@ -25,7 +25,7 @@ extension MySQLConnection {
         buffer.append(0x16)
         buffer.append(contentsOf: [UInt8](query.utf8))
         
-        self.serializer.queue(Packet(data: buffer))
+        self.serializer.send(Packet(data: buffer))
     }
     
     /// An internal function that shoots a raw query without expecting a real answer
