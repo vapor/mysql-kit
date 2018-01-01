@@ -10,7 +10,7 @@ enum ProtocolSerializerState {
     case awaitingUpstream
 }
 
-final class MySQLPacketSerializer: Async.Stream, ConnectionContext {
+final class MySQLPacketSerializer: BinarySerializationStream {
     /// See InputStream.Input
     typealias Input = Packet
     
