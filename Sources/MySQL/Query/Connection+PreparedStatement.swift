@@ -104,7 +104,7 @@ extension MySQLConnection {
                 promise.complete()
             }.catch(onError: promise.fail)
         
-        self.serializer.queue(Packet(data: data))
+        self.serializer.send(Packet(data: data))
         
         return promise.future
     }
@@ -123,6 +123,6 @@ extension MySQLConnection {
             }
         }
         
-        self.serializer.queue(Packet(data: data))
+        self.serializer.send(Packet(data: data))
     }
 }

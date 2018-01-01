@@ -55,7 +55,7 @@ public final class BoundStatement {
             throw MySQLError(.notEnoughParametersBound)
         }
         
-        statement.connection.serializer.queue(Packet(data: header + parameterData))
+        statement.connection.serializer.send(Packet(data: header + parameterData))
     }
     
     /// Fetched `count` more results from MySQL
@@ -69,7 +69,7 @@ public final class BoundStatement {
             }
         }
         
-        statement.connection.serializer.queue(Packet(data: data))
+        statement.connection.serializer.send(Packet(data: data))
     }
     
     /// Executes the bound statement and returns all decoded results in a future array
