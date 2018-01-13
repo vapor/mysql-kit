@@ -115,9 +115,7 @@ fileprivate final class MySQLConnector {
                 promise.complete(connection)
             }
             
-            _ = source.stream(to: parser).drain { upstream in
-                parser.request()
-            }.output { packet in
+            source.stream(to: parser).drain { packet, upstream in
                 // https://mariadb.com/kb/en/library/1-connecting-connecting/
                 switch self.state {
                 case .start:
@@ -131,7 +129,7 @@ fileprivate final class MySQLConnector {
                         self.state = .sentHandshake
                     }
                     
-                    parser.request()
+                    upstream.request()
                 case .sentSSL:
                     self.handshake = try self.doHandshake(for: packet)
                     self.state = .sentHandshake
@@ -140,10 +138,10 @@ fileprivate final class MySQLConnector {
                     if try self.finishAuthentication(for: packet) {
                         try complete()
                     } else {
-                        parser.request()
+                        upstream.request()
                     }
                 }
-            }.catch(onError: promise.fail)
+            }.catch(onError: promise.fail).upstream?.request()
             
             return promise.future
         } catch {

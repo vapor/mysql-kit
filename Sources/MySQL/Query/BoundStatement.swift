@@ -86,9 +86,7 @@ public final class BoundStatement {
         let promise = Promise<Void>()
         
         // Set up a parser
-        _ = statement.connection.parser.drain { parser in
-            parser.request()
-        }.output { packet in
+        _ = statement.connection.parser.drain { packet, upstream in
             do {
                 if let (affectedRows, lastInsertID) = try packet.parseBinaryOK() {
                     self.statement.connection.affectedRows = affectedRows
@@ -101,7 +99,7 @@ public final class BoundStatement {
             }
         }.catch { err in
             promise.fail(err)
-        }
+        }.upstream?.request()
 
         // Send the query
         try send()
@@ -127,17 +125,15 @@ public final class BoundStatement {
             self.statement.connection.lastInsertID = lastInsertID
         }
         
-        self.statement.connection.parser.stream(to: rowStream).drain { connection in
-            connection.request()
-        }.output { row in
+        self.statement.connection.parser.stream(to: rowStream).drain { row, connection in
             try handler(row)
-            rowStream.request()
+            connection.request()
         }.catch { error in
             promise.fail(error)
         }.finally {
             rowStream.cancel()
             promise.complete()
-        }
+        }.upstream?.request()
 
         do {
             try send()
