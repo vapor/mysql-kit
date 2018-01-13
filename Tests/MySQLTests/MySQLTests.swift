@@ -7,7 +7,7 @@ import XCTest
 
 /// Requires a user with the username `vapor` and password `vapor` with permissions on the `vapor_test` database on localhost
 class MySQLTests: XCTestCase {
-    static let poolQueue = DispatchEventLoop(label: "multi")
+    static let poolQueue = try! DefaultEventLoop(label: "multi")
     
     var connection: MySQLConnection!
 
