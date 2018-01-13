@@ -16,14 +16,14 @@ extension MySQLConnection {
 
         let rowStream = RowStream(mysql41: self.handshake.mysql41)
         
-        _ = parser.stream(to: rowStream).drain { row, connection in
+        parser.stream(to: rowStream).drain { row, connection in
             try handler(row)
             connection.request()
         }.catch { error in
             promise.fail(error)
         }.finally {
             promise.complete()
-        }
+        }.upstream?.request()
         
         // Send the query
         do {

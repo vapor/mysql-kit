@@ -11,7 +11,7 @@ extension MySQLConnection {
     func prepare(query: MySQLQuery) -> Future<PreparedStatement> {
         let promise = Promise<PreparedStatement>()
         var statement: PreparedStatement?
-        _ = self.parser.drain { packet, upstream in
+        self.parser.drain { packet, upstream in
             if packet.payload.first == 0xfe {
                 // EOF, end of columns
                 if
@@ -65,7 +65,7 @@ extension MySQLConnection {
                 statement = preparedStatement
                 upstream.request()
             }
-        }.catch(onError: promise.fail)
+        }.catch(onError: promise.fail).upstream?.request()
         
         do {
             try self.prepare(query: query.queryString)
@@ -91,14 +91,14 @@ extension MySQLConnection {
         
         let promise = Promise<Void>()
         
-        _ = self.parser.drain { packet, _ in
+        self.parser.drain { packet, _ in
             guard packet.payload.first == 0x00 else {
                 promise.fail(MySQLError(packet: packet))
                 return
             }
             
             promise.complete()
-        }.catch(onError: promise.fail)
+        }.catch(onError: promise.fail).upstream?.request()
         
         self.serializer.next(Packet(data: data))
         

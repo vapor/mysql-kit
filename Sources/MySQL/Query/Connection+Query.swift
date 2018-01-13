@@ -33,7 +33,13 @@ extension MySQLConnection {
     public func administrativeQuery(_ query: MySQLQuery) -> Future<Void> {
         let promise = Promise<Void>()
         
-        _ = self.parser.drain { packet, _ in
+        do {
+            try self.write(query: query.queryString)
+        } catch {
+            return Future(error: error)
+        }
+        
+        self.parser.drain { packet, _ in
             // Expect an `OK` or `EOF` packet
             if packet.payload.first == 0xff {
                 // Otherwise, reutrn an error
@@ -45,13 +51,7 @@ extension MySQLConnection {
         }.catch(onError: promise.fail)
         .finally {
             promise.complete()
-        }
-        
-        do {
-            try self.write(query: query.queryString)
-        } catch {
-            return Future(error: error)
-        }
+        }.upstream?.request()
         
         return promise.future
     }

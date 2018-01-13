@@ -22,11 +22,9 @@ public final class MySQLConnection {
     var handshake: Handshake
     
     /// The incoming stream parser
-    let parser: AnyOutputStream<Packet>
+    let parser: ConnectingStream<Packet>
     
     let serializer: PushStream<Packet>
-    
-    let streamClose: () -> ()
     
     /// The inserted ID from the last successful query
     public var lastInsertID: UInt64?
@@ -39,11 +37,9 @@ public final class MySQLConnection {
     /// Doesn't finish the handshake synchronously
     init(
         handshake: Handshake,
-        parser: AnyOutputStream<Packet>,
-        serializer: PushStream<Packet>,
-        close: @escaping () -> ()
+        parser: ConnectingStream<Packet>,
+        serializer: PushStream<Packet>
     ) {
-        self.streamClose = close
         self.handshake = handshake
         self.parser = parser
         self.serializer = serializer
@@ -60,7 +56,7 @@ public final class MySQLConnection {
             0x01 // close identifier
         ])
         
-        streamClose()
+        serializer.close()
     }
 }
 
