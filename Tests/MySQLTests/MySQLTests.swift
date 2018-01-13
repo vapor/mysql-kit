@@ -26,8 +26,8 @@ class MySQLTests: XCTestCase {
     override func setUp() {
         connection = try! MySQLConnection.makeConnection(
             hostname: "localhost",
-            user: "root",
-            password: nil,
+            user: "vapor",
+            password: "vapor3",
             database: "vapor_test",
             on: MySQLTests.poolQueue
         ).blockingAwait(timeout: .seconds(10))
@@ -191,6 +191,18 @@ class MySQLTests: XCTestCase {
         let articles = try connection.all(Article.self, in: "SELECT * FROM articles").blockingAwait(timeout: .seconds(5))
         XCTAssertEqual(articles.count, 1)
         XCTAssertEqual(articles.first?.text, "hello, world")
+    }
+    
+    func testDeleteRead() throws {
+        try testPopulateUsersSchema()
+        
+        let users = connection.administrativeQuery("DELETE FROM users WHERE username LIKE 'Jo%'").flatMap(to: Int.self) { _ in
+            return self.connection.all(User.self, in: "SELECT * FROM users").map(to: Int.self) { users in
+                return users.count
+            }
+        }
+        
+        XCTAssertEqual(try users.blockingAwait(timeout: .seconds(3)), 2)
     }
 }
 

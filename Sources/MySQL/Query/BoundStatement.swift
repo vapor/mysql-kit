@@ -55,7 +55,7 @@ public final class BoundStatement {
             throw MySQLError(.notEnoughParametersBound)
         }
         
-        statement.connection.serializer.queue(Packet(data: header + parameterData))
+        statement.connection.serializer.next(Packet(data: header + parameterData))
     }
     
     /// Fetched `count` more results from MySQL
@@ -69,7 +69,7 @@ public final class BoundStatement {
             }
         }
         
-        statement.connection.serializer.queue(Packet(data: data))
+        statement.connection.serializer.next(Packet(data: data))
     }
     
     /// Executes the bound statement and returns all decoded results in a future array
@@ -86,19 +86,13 @@ public final class BoundStatement {
         let promise = Promise<Void>()
         
         // Set up a parser
-        _ = statement.connection.parser.drain { parser in
-            parser.request()
-        }.output { packet in
-            do {
-                if let (affectedRows, lastInsertID) = try packet.parseBinaryOK() {
-                    self.statement.connection.affectedRows = affectedRows
-                    self.statement.connection.lastInsertID = lastInsertID
-                }
-                
-                promise.complete()
-            } catch {
-                promise.fail(error)
+        _ = statement.connection.parser.drain { packet, _ in
+            if let (affectedRows, lastInsertID) = try packet.parseBinaryOK() {
+                self.statement.connection.affectedRows = affectedRows
+                self.statement.connection.lastInsertID = lastInsertID
             }
+            
+            promise.complete()
         }.catch { err in
             promise.fail(err)
         }
@@ -120,6 +114,13 @@ public final class BoundStatement {
     /// - returns: A future that will be completed when all results have been processed by the handler
     @discardableResult
     internal func forEachRow(_ handler: @escaping Callback<Row>) -> Future<Void> {
+        do {
+            try send()
+        } catch {
+            return Future(error: error)
+        }
+        
+        // On successful send
         let promise = Promise(Void.self)
 
         let rowStream = RowStream(mysql41: true, binary: true) { affectedRows, lastInsertID in
@@ -127,9 +128,7 @@ public final class BoundStatement {
             self.statement.connection.lastInsertID = lastInsertID
         }
         
-        self.statement.connection.parser.stream(to: rowStream).drain { connection in
-            connection.request()
-        }.output { row in
+        _ = self.statement.connection.parser.stream(to: rowStream).drain { row, connection in
             try handler(row)
             rowStream.request()
         }.catch { error in
@@ -137,12 +136,6 @@ public final class BoundStatement {
         }.finally {
             rowStream.cancel()
             promise.complete()
-        }
-
-        do {
-            try send()
-        } catch {
-            promise.fail(error)
         }
 
         rowStream.onEOF = { flags in

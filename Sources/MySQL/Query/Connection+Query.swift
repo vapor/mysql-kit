@@ -13,7 +13,7 @@ extension MySQLConnection {
         buffer.append(0x03)
         buffer.append(contentsOf: [UInt8](query.utf8))
         
-        self.serializer.queue(Packet(data: buffer))
+        self.serializer.next(Packet(data: buffer))
     }
     
     /// Writes a preparation message to the connection
@@ -25,7 +25,7 @@ extension MySQLConnection {
         buffer.append(0x16)
         buffer.append(contentsOf: [UInt8](query.utf8))
         
-        self.serializer.queue(Packet(data: buffer))
+        self.serializer.next(Packet(data: buffer))
     }
     
     /// An internal function that shoots a raw query without expecting a real answer
@@ -33,9 +33,7 @@ extension MySQLConnection {
     public func administrativeQuery(_ query: MySQLQuery) -> Future<Void> {
         let promise = Promise<Void>()
         
-        self.parser.drain { parser in
-            parser.request()
-        }.output { packet in
+        _ = self.parser.drain { packet, _ in
             // Expect an `OK` or `EOF` packet
             if packet.payload.first == 0xff {
                 // Otherwise, reutrn an error

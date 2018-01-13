@@ -22,9 +22,9 @@ public final class MySQLConnection {
     var handshake: Handshake
     
     /// The incoming stream parser
-    let parser: MySQLPacketParser
+    let parser: AnyOutputStream<Packet>
     
-    let serializer: MySQLPacketSerializer
+    let serializer: PushStream<Packet>
     
     let streamClose: () -> ()
     
@@ -39,8 +39,8 @@ public final class MySQLConnection {
     /// Doesn't finish the handshake synchronously
     init(
         handshake: Handshake,
-        parser: MySQLPacketParser,
-        serializer: MySQLPacketSerializer,
+        parser: AnyOutputStream<Packet>,
+        serializer: PushStream<Packet>,
         close: @escaping () -> ()
     ) {
         self.streamClose = close
@@ -56,7 +56,7 @@ public final class MySQLConnection {
     /// Closes the connection
     public func close() {
         // Write `close`
-        serializer.queue([
+        serializer.next([
             0x01 // close identifier
         ])
         
