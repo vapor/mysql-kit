@@ -109,27 +109,7 @@ fileprivate final class MySQLConnector: TranslatingStream {
             upstream.request()
         }.upstream?.request()
         
-        self.parser.drain { packet, upstream in
-            if self.completed {
-                self.passthrough.next(packet)
-            } else {
-                connectingStream.next(packet)
-            }
-            
-            upstream.request()
-        }.catch { error in
-            if self.completed {
-                self.passthrough.error(error)
-            } else {
-                connectingStream.error(error)
-            }
-        }.finally {
-            if self.completed {
-                self.passthrough.close()
-            } else {
-                connectingStream.close()
-            }
-        }.upstream?.request()
+        self.parser.output(to: connectingStream)
     }
     
     fileprivate func complete() throws {
@@ -145,7 +125,7 @@ fileprivate final class MySQLConnector: TranslatingStream {
         
         // reset
         _serializer.sequenceId = 0
-        self.passthrough.output(to: serializeStream)
+        self.parser.stream(to: self.passthrough).output(to: serializeStream)
         self.completed = true
         
         promise.complete(connection)
