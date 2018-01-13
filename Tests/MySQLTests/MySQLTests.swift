@@ -7,7 +7,19 @@ import XCTest
 
 /// Requires a user with the username `vapor` and password `vapor` with permissions on the `vapor_test` database on localhost
 class MySQLTests: XCTestCase {
-    static let poolQueue = try! DefaultEventLoop(label: "multi")
+    static let poolQueue: DefaultEventLoop = {
+        let l = try! DefaultEventLoop(label: "multi")
+        
+        if #available(OSX 10.12, *) {
+            Thread.detachNewThread {
+                l.runLoop()
+            }
+        } else {
+            fatalError("Unsupported OS")
+        }
+        
+        return l
+    }()
     
     var connection: MySQLConnection!
 
@@ -26,8 +38,8 @@ class MySQLTests: XCTestCase {
     override func setUp() {
         connection = try! MySQLConnection.makeConnection(
             hostname: "localhost",
-            user: "root",
-            password: nil,
+            user: "vapor",
+            password: "vapor3",
             database: "vapor_test",
             on: MySQLTests.poolQueue
         ).blockingAwait(timeout: .seconds(10))
