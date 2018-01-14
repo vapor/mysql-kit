@@ -51,6 +51,7 @@ public struct MySQLError : Swift.Error, Debuggable, Traceable, Helpable {
             return "The received data did not correctly decode into a `Decodable`"
         case .connectionInUse:
             return "Connections can't be used twice at the same time. Communicate using a separate connection or though the connection pool instead."
+        case .unexpectedResponse: return "The server responded an unexpected response which could not be matched to an action"
         case .invalidCredentials:
             return "Authentication was not successful"
         case .invalidTypeBound(let got, let expected):
@@ -157,6 +158,7 @@ public struct MySQLError : Swift.Error, Debuggable, Traceable, Helpable {
             case .connectionInUse: return "connectionInuse"
             case .invalidCredentials: return "invalidCredentials"
             case .tooManyParametersBound: return "tooManyParametersBound"
+            case .unexpectedResponse: return "unexpectedResponse"
             case .notEnoughParametersBound: return "notEnoughParametersBound"
             case .invalidTypeBound(_, _): return "invalidTypeBound"
             case .invalidBinding(_): return "invalidBinding"
@@ -170,6 +172,7 @@ public struct MySQLError : Swift.Error, Debuggable, Traceable, Helpable {
         case invalidResponse
         case unsupported
         case parsingError
+        case unexpectedResponse
         case decodingError
         case connectionInUse
         case invalidCredentials

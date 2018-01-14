@@ -17,8 +17,8 @@ public struct MySQLSSLConfig {
 }
 
 /// A connectio to a MySQL database servers
-public final class MySQLConnection {
-    var stateMachine: MySQLStateMachine
+public struct MySQLConnection {
+    let stateMachine: MySQLStateMachine
     
     /// The inserted ID from the last successful query
     public var lastInsertID: UInt64?
@@ -32,12 +32,14 @@ public final class MySQLConnection {
     init(
         handshake: Handshake,
         parser: ConnectingStream<Packet>,
-        serializer: PushStream<Packet>
+        serializer: PushStream<Packet>,
+        worker: Worker
     ) {
         self.stateMachine = MySQLStateMachine(
             handshake: handshake,
             parser: parser,
-            serializer: serializer
+            serializer: serializer,
+            worker: worker
         )
     }
     

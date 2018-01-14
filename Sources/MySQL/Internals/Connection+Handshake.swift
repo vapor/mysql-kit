@@ -120,7 +120,8 @@ fileprivate final class MySQLConnector: TranslatingStream {
         let connection = MySQLConnection(
             handshake: handshake,
             parser: passthrough,
-            serializer: serializer
+            serializer: serializer,
+            worker: eventLoop
         )
         
         // reset
