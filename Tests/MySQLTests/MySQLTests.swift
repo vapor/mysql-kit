@@ -39,7 +39,7 @@ class MySQLTests: XCTestCase {
         connection = try! MySQLConnection.makeConnection(
             hostname: "localhost",
             user: "root",
-            password: "vapor",
+            password: nil,
             database: "vapor_test",
             on: MySQLTests.poolQueue
         ).blockingAwait(timeout: .seconds(10))

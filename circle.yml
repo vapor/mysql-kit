@@ -22,7 +22,7 @@ jobs:
           MYSQL_DATABASE: vapor_test
           # MYSQL_ROOT_HOST: %
           MYSQL_USER: root
-          MYSQL_PASSWORD: vapor
+          # MYSQL_PASSWORD: vapor
     steps:
       - run: apt-get install -yq libssl-dev
       - checkout
