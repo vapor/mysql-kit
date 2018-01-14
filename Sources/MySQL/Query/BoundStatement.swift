@@ -180,20 +180,3 @@ import Foundation
 //    }
 //}
 //
-//extension Packet {
-//    func parseBinaryOK() throws -> (UInt64, UInt64)? {
-//        var parser = Parser(packet: self)
-//        let byte = try parser.byte()
-//
-//        if byte == 0x00 {
-//            return (try parser.parseLenEnc(), try parser.parseLenEnc())
-//        } else if byte == 0xfe {
-//            return nil
-//        } else if byte == 0xff {
-//            throw MySQLError(packet: self)
-//        }
-//
-//        return nil
-//    }
-//}
-

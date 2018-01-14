@@ -6,6 +6,21 @@ extension Packet {
         return payload.count > 0 && (payload[0] == 0xff || payload[0] == 0xfe || payload[0] == 0x00)
     }
     
+    func parseBinaryOK() throws -> (UInt64, UInt64)? {
+        var parser = Parser(packet: self)
+        let byte = try parser.byte()
+        
+        if byte == 0x00 {
+            return (try parser.parseLenEnc(), try parser.parseLenEnc())
+        } else if byte == 0xfe {
+            return nil
+        } else if byte == 0xff {
+            throw MySQLError(packet: self)
+        }
+        
+        return nil
+    }
+    
     /// Parses this packet into a TextProtocol Response
     func parseResponse(mysql41: Bool) throws -> Response {
         guard self.payload.count > 0 else {

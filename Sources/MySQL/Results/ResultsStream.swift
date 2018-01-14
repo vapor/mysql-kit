@@ -5,7 +5,7 @@ import Async
 /// This API is currently internal so we don't break the public API when finalizing the "raw" row API
 struct RowParser: TranslatingStream {
     enum RowStreamState {
-        case headers, endOfHeaders
+        case headers, rows
     }
     
     /// See InputStream.Input
@@ -46,7 +46,7 @@ struct RowParser: TranslatingStream {
         self.state = .headers
     }
     
-    func translate(input: Packet) throws -> Future<TranslatingStreamResult<Row>> {
+    mutating func translate(input: Packet) throws -> Future<TranslatingStreamResult<Row>> {
         // If the header (column count) is not yet set
         guard let columnCount = self.columnCount else {
             // Parse the column count
@@ -57,9 +57,8 @@ struct RowParser: TranslatingStream {
                 if case .error(let error) = try input.parseResponse(mysql41: mysql41) {
                     throw error
                 } else {
-                    self.close()
+                    return Future(.closed)
                 }
-                return
             }
 
             // No columns means that this is likely the success response of a binary INSERT/UPDATE/DELETE query
@@ -68,52 +67,57 @@ struct RowParser: TranslatingStream {
                     self.packetOKcallback?(affectedRows, lastInsertID)
                 }
                 
-                self.close()
-                return
+                return Future(.closed)
             }
             
             self.columnCount = columnCount
             
-            upstream?.request()
-            return
-        }
-
-        // if the column count isn't met yet
-        if columns.count != columnCount {
-            // Parse the next column
-            try parseColumns(from: parsing)
-            upstream?.request()
-            return
+            return Future(.insufficient)
         }
         
-        // Otherwise, parse the next row
-        try preParseRows(from: parsing)
-        upstream?.request()
-    }
-    
-    /// Parses a row from this packet, checks
-    func preParseRows(from packet: Packet) throws {
-        // End of file packet
-        if packet.payload.first == 0xfe {
-            if endOfHeaders {
-                var parser = Parser(packet: packet)
+        // EOF packet
+        if input.payload.first == 0xfe {
+            switch state {
+            case .rows:
+                var parser = Parser(packet: input)
+                
+                // Offset past EOF byte
                 parser.position = 1
+                
                 let flags = try parser.parseUInt16()
                 
                 if flags & serverMoreResultsExists == 0 {
-                    self.close()
-                    return
+                    return Future(.closed)
                 }
-
-                try onEOF?(flags)
-            } else {
-                endOfHeaders = true
+                
+                // TODO: try onEOF?(flags)
+            case .headers:
+                self.state = .rows
             }
-            return
+            
+            // Next packet
+            return Future(.insufficient)
         }
-        
-        endOfHeaders = true
 
+        switch state {
+        case .headers:
+            // if the column count isn't met yet
+            if columns.count == columnCount {
+                return try row(from: input)
+            } else {
+                // Parse the next column
+                try appendColumn(from: input)
+                
+                return Future(.insufficient)
+            }
+        case .rows:
+            // Otherwise, parse the next row
+            return try row(from: input)
+        }
+    }
+    
+    /// Parses a row from this packet, checks
+    mutating func row(from packet: Packet) throws -> Future<TranslatingStreamResult<Row>> {
         // If it's an error packet
         if packet.payload.count > 0,
             let pointer = packet.payload.baseAddress,
@@ -129,36 +133,28 @@ struct RowParser: TranslatingStream {
             self.reserveCapacity = row.fields.count
         }
         
-        flush(row)
+        return Future(.sufficient(row))
     }
 
     /// Parses the packet as a columm specification
-    func parseColumns(from packet: Packet) throws {
+    mutating func appendColumn(from packet: Packet) throws {
         // Normal responses indicate an end of columns or an error
         if packet.isTextProtocolResponse {
-            do {
-                switch try packet.parseResponse(mysql41: mysql41) {
-                case .error(let error):
-                    throw error
-                case .ok(_):
-                    fallthrough
-                case .eof(_):
-                    // If this is the end of the stream, stop
-                    return
-                }
-            } catch {
-                throw MySQLError(.invalidPacket)
+            switch try packet.parseResponse(mysql41: mysql41) {
+            case .error(let error):
+                throw error
+            case .ok(_):
+                fallthrough
+            case .eof(_):
+                // If this is the end of the stream, stop
+                return
             }
         }
         
-        do {
-            // Parse the column field definition
-            let field = try packet.parseFieldDefinition()
+        // Parse the column field definition
+        let field = try packet.parseFieldDefinition()
 
-            self.columns.append(field)
-        } catch {
-            throw MySQLError(.invalidPacket)
-        }
+        self.columns.append(field)
     }
 }
 
