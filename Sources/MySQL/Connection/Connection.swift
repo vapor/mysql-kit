@@ -18,13 +18,7 @@ public struct MySQLSSLConfig {
 
 /// A connectio to a MySQL database servers
 public final class MySQLConnection {
-    /// The state of the server's handshake
-    var handshake: Handshake
-    
-    /// The incoming stream parser
-    let parser: ConnectingStream<Packet>
-    
-    let serializer: PushStream<Packet>
+    var stateMachine: MySQLStateMachine
     
     /// The inserted ID from the last successful query
     public var lastInsertID: UInt64?
@@ -40,23 +34,16 @@ public final class MySQLConnection {
         parser: ConnectingStream<Packet>,
         serializer: PushStream<Packet>
     ) {
-        self.handshake = handshake
-        self.parser = parser
-        self.serializer = serializer
-    }
-
-    deinit {
-        self.close()
+        self.stateMachine = MySQLStateMachine(
+            handshake: handshake,
+            parser: parser,
+            serializer: serializer
+        )
     }
     
     /// Closes the connection
     public func close() {
-        // Write `close`
-        serializer.next([
-            0x01 // close identifier
-        ])
-        
-        serializer.close()
+        stateMachine.close()
     }
 }
 

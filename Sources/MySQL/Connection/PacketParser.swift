@@ -13,7 +13,7 @@ enum ProtocolParserState {
 
 
 /// Parses buffers into packets
-internal final class MySQLPacketParser: ByteParser {
+internal struct MySQLPacketParser: ByteParser {
     enum PartialState {
         case header([UInt8])
         case body(buffer: Packet, containing: Int)
@@ -61,6 +61,7 @@ internal final class MySQLPacketParser: ByteParser {
                     )
                 )
             } else {
+                // Pass a packet pointing to the original buffer
                 let buffer = ByteBuffer(start: buffer.baseAddress, count: fullPacket)
                 
                 let packet = Packet(payload: buffer, containsPacketSize: true)

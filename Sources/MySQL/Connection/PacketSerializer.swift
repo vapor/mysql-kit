@@ -15,8 +15,6 @@ final class MySQLPacketSerializer: ByteSerializer {
     
     var serializing: Packet?
     
-//    var state: ProtocolParserState
-    
     var sequenceId: UInt8
     
     init() {
