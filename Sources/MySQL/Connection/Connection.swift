@@ -29,18 +29,8 @@ public struct MySQLConnection {
     /// Creates a new connection
     ///
     /// Doesn't finish the handshake synchronously
-    init(
-        handshake: Handshake,
-        parser: ConnectingStream<Packet>,
-        serializer: PushStream<Packet>,
-        worker: Worker
-    ) {
-        self.stateMachine = MySQLStateMachine(
-            handshake: handshake,
-            parser: parser,
-            serializer: serializer,
-            worker: worker
-        )
+    init(stateMachine: MySQLStateMachine) {
+        self.stateMachine = stateMachine
     }
     
     /// Closes the connection

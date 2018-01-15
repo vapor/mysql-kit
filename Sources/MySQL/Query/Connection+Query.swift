@@ -6,11 +6,16 @@ extension MySQLConnection {
     @discardableResult
     public func administrativeQuery(_ query: MySQLQuery) -> Future<Void> {
         let promise = Promise<Void>()
-        let stream = DrainStream<Row>().catch(onError: promise.fail).finally {
+        
+        let rowParser = stateMachine.makeRowParser(binary: false)
+        
+        stateMachine.send(.textQuery(query.queryString, rowParser))
+        
+        _ = rowParser.drain { row, upstream in
+            upstream.request()
+        }.catch(onError: promise.fail).finally {
             promise.complete()
         }
-        
-        stateMachine.send(.textQuery(query.queryString, AnyInputStream(stream)))
         
         return promise.future
     }

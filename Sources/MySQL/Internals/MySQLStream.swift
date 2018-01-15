@@ -9,37 +9,67 @@ final class MySQLStateMachine {
     typealias Input = Task
     typealias Output = Packet
     
+    let user: String
+    let password: String?
+    let database: String
+    
     var state: StreamState
     var currentTask: Task
-    
+    var handshake: Handshake?
+    var sequenceId: UInt8
+    var ssl: MySQLSSLConfig?
+    var connected = Promise<Void>()
+    var connectionState: ConnectionState
     var worker: Worker
-    let handshake: Handshake
-    let parser: ConnectingStream<Packet>
+    let parser: TranslatingStreamWrapper<MySQLPacketParser>
     let executor: PushStream<Task>
     let serializer: PushStream<Packet>
+    let _serializer: MySQLPacketSerializer
+    let delta: DeltaStream<Packet>
     
-    init(
-        handshake: Handshake,
-        parser: ConnectingStream<Packet>,
-        serializer: PushStream<Packet>,
+    init<S>(
+        source: SocketSource<S>,
+        sink: SocketSink<S>,
+        user: String,
+        password: String?,
+        database: String,
+        ssl: MySQLSSLConfig?,
         worker: Worker
     ) {
         self.state = .nothing
-        self.handshake = handshake
-        self.parser = parser
+        self.parser = MySQLPacketParser().stream(on: worker)
+        self.ssl = ssl
+        self.sequenceId = 0
         self.currentTask = .none
+        self.connectionState = .start
         self.worker = worker
-        self.serializer = serializer
+        self.serializer = PushStream<Packet>()
         self.executor = PushStream<Task>()
+        self._serializer = MySQLPacketSerializer()
+        self.user = user
+        self.password = password
+        self.database = database
+        self.delta = source.stream(to: parser).split { packet in
+            
+        }
+        
+        self.serializer.stream(to: _serializer.stream(on: worker)).output(to: sink)
         
         self.executor.drain { task, _ in
             try self.process(task: task)
         }.upstream?.request()
-        
-        self.parser.drain(onInput: parse).upstream?.request()
     }
     
-    fileprivate func parse(packet: Packet, upstream: ConnectionContext) throws {
+    func parse(packet: Packet) throws {
+        guard self.connectionState == .done else {
+            if let packet = try self.handshake(for: packet, state: &self.connectionState) {
+                self.serializer.next(packet)
+            }
+            
+            self.delta.request()
+            return
+        }
+        
         switch state {
         case .nothing:
             throw MySQLError(.unexpectedResponse)
@@ -82,18 +112,8 @@ final class MySQLStateMachine {
         switch task {
         case .close:
             return .closed
-        case .textQuery(_, let listener):
-            let stream = self.makeRowParser(binary: false)
-            
-            _ = stream.drain { row, upstream in
-                listener.next(row)
-            }.catch(onError: listener.error).finally {
-                listener.close()
-                self.completeTask()
-            }
-            
-            listener.connect(to: stream)
-            
+        case .textQuery(_, let stream):
+            stream.connect(to: parser)
             return .textQuerySent(stream)
         case .none:
             return .nothing
@@ -109,7 +129,7 @@ enum TaskResult {
 
 enum Task {
     case close
-    case textQuery(String, AnyInputStream<Row>)
+    case textQuery(String, TranslatingStreamWrapper<RowParser>)
     case prepare(String)
     case none
     

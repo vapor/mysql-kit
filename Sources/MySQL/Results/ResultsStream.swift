@@ -3,7 +3,7 @@ import Async
 /// A stream of decoded rows related to a query
 ///
 /// This API is currently internal so we don't break the public API when finalizing the "raw" row API
-struct RowParser: TranslatingStream {
+final class RowParser: TranslatingStream {
     enum RowStreamState {
         case headers, rows
     }
@@ -46,7 +46,7 @@ struct RowParser: TranslatingStream {
         self.state = .headers
     }
     
-    mutating func translate(input: Packet) throws -> Future<TranslatingStreamResult<Row>> {
+    func translate(input: Packet) throws -> Future<TranslatingStreamResult<Row>> {
         // If the header (column count) is not yet set
         guard let columnCount = self.columnCount else {
             // Parse the column count
@@ -117,7 +117,7 @@ struct RowParser: TranslatingStream {
     }
     
     /// Parses a row from this packet, checks
-    mutating func row(from packet: Packet) throws -> Future<TranslatingStreamResult<Row>> {
+    func row(from packet: Packet) throws -> Future<TranslatingStreamResult<Row>> {
         // If it's an error packet
         if packet.payload.count > 0,
             let pointer = packet.payload.baseAddress,
@@ -137,7 +137,7 @@ struct RowParser: TranslatingStream {
     }
 
     /// Parses the packet as a columm specification
-    mutating func appendColumn(from packet: Packet) throws {
+    func appendColumn(from packet: Packet) throws {
         // Normal responses indicate an end of columns or an error
         if packet.isTextProtocolResponse {
             switch try packet.parseResponse(mysql41: mysql41) {
@@ -162,7 +162,7 @@ fileprivate let serverMoreResultsExists: UInt16 = 0x0008
 
 extension MySQLStateMachine {
     func makeRowParser(binary: Bool) -> TranslatingStreamWrapper<RowParser> {
-        return RowParser(mysql41: self.handshake.mysql41, binary: binary).stream(on: worker)
+        return RowParser(mysql41: self.handshake!.mysql41, binary: binary).stream(on: worker)
     }
 }
 

@@ -19,19 +19,19 @@ extension MySQLConnection {
             let socket = try TCPSocket(isNonBlocking: true)
             let client = try TCPClient(socket: socket)
             
-            let connector = try MySQLConnector(
+            let state = MySQLStateMachine(
                 source: socket.source(on: eventLoop),
                 sink: socket.sink(on: eventLoop),
                 user: user,
                 password: password,
                 database: database,
                 ssl: ssl,
-                on: eventLoop
+                worker: eventLoop
             )
             
             try client.connect(hostname: hostname, port: port)
             
-            return connector.promise.future
+            return state.connected.future.transform(to: MySQLConnection(stateMachine: state))
         }
     }
 }
@@ -45,133 +45,51 @@ var capabilities: Capabilities {
     return base
 }
 
-extension Handshake {
-    /// If `true`, both parties support MySQL's v4.1 protocol
-    var mysql41: Bool {
-        // client && server 4.1 support
-        return self.isGreaterThan4 == true && capabilities.contains(.protocol41) && self.capabilities.contains(.protocol41) == true
-    }
+enum ConnectionState {
+    case start, sentSSL, sentHandshake, done
 }
 
-fileprivate final class MySQLConnector: TranslatingStream {
-    typealias Input = Packet
-    typealias Output = Packet
-    
-    enum ConnectionState {
-        case start, sentHandshake, sentSSL
-    }
-    
-    let user: String
-    let password: String?
-    let database: String
-    let ssl: MySQLSSLConfig?
-    let eventLoop: EventLoop
-    
-    let parser: TranslatingStreamWrapper<MySQLPacketParser>
-    let _serializer: MySQLPacketSerializer
-    let serializer: PushStream<Packet>
-    let serializeStream: TranslatingStreamWrapper<MySQLPacketSerializer>
-    let passthrough: ConnectingStream<Packet>
-    fileprivate let promise: Promise<MySQLConnection>
-    var completed: Bool
-    
-    var state: ConnectionState
-    var handshake: Handshake?
-    
-    init<S>(
-        source: SocketSource<S>,
-        sink: SocketSink<S>,
-        user: String,
-        password: String?,
-        database: String,
-        ssl: MySQLSSLConfig?,
-        on eventLoop: EventLoop
-    ) throws {
-        self.state = .start
-        self.user = user
-        self.password = password
-        self.database = database
-        self.passthrough = .init()
-        self.ssl = ssl
-        self.eventLoop = eventLoop
-        self.serializer = .init()
-        self.promise = .init()
-        self._serializer = MySQLPacketSerializer()
-        self.completed = false
-        self.serializeStream = _serializer.stream(on: eventLoop)
-        self.parser = source.stream(to: MySQLPacketParser().stream(on: eventLoop))
-        
-        let connectingStream = self.stream(on: eventLoop)
-        serializer.stream(to: serializeStream).output(to: sink)
-        
-        connectingStream.drain { packet, upstream in
-            self.serializer.next(packet)
-            upstream.request()
-        }.upstream?.request()
-        
-        self.parser.output(to: connectingStream)
-    }
-    
-    fileprivate func complete() throws {
-        guard let handshake = self.handshake else {
-            throw MySQLError(.invalidHandshake)
-        }
-        
-        let connection = MySQLConnection(
-            handshake: handshake,
-            parser: passthrough,
-            serializer: serializer,
-            worker: eventLoop
-        )
-        
-        // reset
-        _serializer.sequenceId = 0
-        self.parser.stream(to: self.passthrough).output(to: serializeStream)
-        self.completed = true
-        
-        promise.complete(connection)
-    }
-    
-    func translate(input: Packet) throws -> Future<TranslatingStreamResult<Packet>> {
-        func doHandshake() throws -> Future<TranslatingStreamResult<Packet>> {
+extension MySQLStateMachine {
+    func handshake(for input: Packet, state: inout ConnectionState) throws -> Packet? {
+        func doHandshake() throws -> Packet {
             let handshake = try input.parseHandshake()
             self.handshake = handshake
-            self.state = .sentHandshake
-            return try Future(.sufficient(self.makeHandshake(for: handshake)))
+            state = .sentHandshake
+            return try self.makeHandshake(for: handshake)
         }
         
-        do {
-            // https://mariadb.com/kb/en/library/1-connecting-connecting/
-            switch self.state {
-            case .start:
-                if  let ssl = self.ssl, capabilities.contains(.ssl) {
-                    _ = ssl
-                    fatalError("Unsupported StartTLS")
-                    // Do SSL upgrade
-                    // self.state = .sendSSL
-                } else {
-                    return try doHandshake()
-                }
-            case .sentSSL:
+        // https://mariadb.com/kb/en/library/1-connecting-connecting/
+        switch state {
+        case .start:
+            if  let ssl = self.ssl, capabilities.contains(.ssl) {
+                _ = ssl
+                fatalError("Unsupported StartTLS")
+                // Do SSL upgrade
+                // self.state = .sendSSL
+            } else {
+                state = .sentHandshake
                 return try doHandshake()
-            case .sentHandshake:
-                guard let packet = try self.finishAuthentication(for: input) else {
-                    try complete()
-                    return Future(.insufficient)
-                }
-                
-                return Future(.sufficient(packet))
             }
-        } catch {
-            promise.fail(error)
+        case .sentSSL:
+            state = .sentHandshake
+            return try doHandshake()
+        case .sentHandshake:
+            state = .done
             
-            return Future(.sufficient([0x01])) // close
+            guard let packet = try self.finishAuthentication(for: input) else {
+                self.connected.complete()
+                return nil
+            }
+            
+            return packet
+        case .done:
+            return nil
         }
     }
     
     /// Send the handshake to the client
     func makeHandshake(for handshake: Handshake) throws -> Packet {
-        self._serializer.sequenceId += 1
+        self.sequenceId += 1
         
         if handshake.isGreaterThan4 {
             var data = Data()
@@ -183,7 +101,7 @@ fileprivate final class MySQLConnector: TranslatingStream {
                 UInt8((combinedCapabilities >> 8) & 0xff),
                 UInt8((combinedCapabilities >> 16) & 0xff),
                 UInt8((combinedCapabilities >> 24) & 0xff),
-            ])
+                ])
             
             // UInt32(0) for the maximum packet length, or, undefined
             // pointer is already 0 here
@@ -213,7 +131,9 @@ fileprivate final class MySQLConnector: TranslatingStream {
                 data.append(0)
             }
             
-            return Packet(data: data)
+            let packet = Packet(data: data)
+            packet.sequenceId = self.sequenceId
+            return packet
         } else {
             throw MySQLError(.invalidHandshake)
         }
@@ -233,7 +153,7 @@ fileprivate final class MySQLConnector: TranslatingStream {
     
     /// Parse the authentication request
     func finishAuthentication(for packet: Packet) throws -> Packet? {
-        self._serializer.sequenceId += 1
+        self.sequenceId += 1
         
         switch packet.payload.first {
         case 0xfe:
@@ -250,8 +170,8 @@ fileprivate final class MySQLConnector: TranslatingStream {
                     offset < packet.payload.count,
                     let password = self.password,
                     let mechanism = String(bytes: packet.payload[1..<offset], encoding: .utf8)
-                else {
-                    throw MySQLError(.invalidHandshake)
+                    else {
+                        throw MySQLError(.invalidHandshake)
                 }
                 
                 switch mechanism {
@@ -262,9 +182,13 @@ fileprivate final class MySQLConnector: TranslatingStream {
                     
                     let hash = sha1Encrypted(from: password, seed: Array(packet.payload[(offset &+ 1)...]))
                     
-                    return Packet(data: hash)
+                    let packet = Packet(data: hash)
+                    packet.sequenceId = self.sequenceId
+                    return packet
                 case "mysql_clear_password":
-                    return Packet(data: Data(password.utf8))
+                    let packet = Packet(data: Data(password.utf8))
+                    packet.sequenceId = self.sequenceId
+                    return packet
                 default:
                     throw MySQLError(.invalidHandshake)
                 }
@@ -278,4 +202,10 @@ fileprivate final class MySQLConnector: TranslatingStream {
     }
 }
 
-
+extension Handshake {
+    /// If `true`, both parties support MySQL's v4.1 protocol
+    var mysql41: Bool {
+        // client && server 4.1 support
+        return self.isGreaterThan4 == true && capabilities.contains(.protocol41) && self.capabilities.contains(.protocol41) == true
+    }
+}
