@@ -101,4 +101,24 @@ extension MySQLConnection {
         
         return promise.future
     }
+    
+    /// Prepares a query and calls the captured closure with the prepared statement
+    ///
+    /// [Learn More →](https://docs.vapor.codes/3.0/databases/mysql/prepared-statements/)
+    public func withPreparation<T>(statement: MySQLQuery, run closure: @escaping ((PreparedStatement) throws -> Future<T>)) -> Future<T> {
+        let promise = Promise<T>()
+        
+        stateMachine.send(
+            .prepare(statement.queryString, { statement in
+                    do {
+                        try closure(statement).chain(to: promise)
+                    } catch {
+                        promise.fail(error)
+                    }
+                }
+            )
+        )
+        
+        return promise.future
+    }
 }

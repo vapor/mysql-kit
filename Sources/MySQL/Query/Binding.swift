@@ -1,378 +1,378 @@
 import Bits
 import Foundation
 
-///// https://mariadb.com/kb/en/library/packet_bindata/
-/////
-///// TODO: Geometry, Enum, Set
-///// TODO: Date related types
-//extension PreparationBinding {
-//    /// TODO: Better method? This is the "official" way
-//    /// https://mariadb.com/kb/en/library/packet_bindata/
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(decimal: String) throws {
-//        try self.bind(.decimal, unsigned: false, data: decimal.makeData())
-//    }
-//    
-//    /// TODO: Better method? This is the "official" way
-//    /// https://mariadb.com/kb/en/library/packet_bindata/
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(newDecimal: String) throws {
-//        try self.bind(.decimal, unsigned: false, data: newDecimal.makeData())
-//    }
-//    
-//    /// Binds an Int8
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(_ int: Int8) throws {
-//        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
-//        
-//        if try PseudoType.int.supports(expecting: type) == .text {
-//            try self.bind(
-//                .string,
-//                unsigned: false,
-//                data: int.description.makeData()
-//            )
-//            
-//            return
-//        }
-//        
-//        try self.bind(
-//            type,
-//            unsigned: false,
-//            data: Data([numericCast(int)])
-//        )
-//    }
-//    
-//    /// Binds an UInt8
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(_ int: UInt8) throws {
-//        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
-//        
-//        if try PseudoType.int.supports(expecting: type) == .text {
-//            try self.bind(
-//                .string,
-//                unsigned: false,
-//                data: int.description.makeData()
-//            )
-//            
-//            return
-//        }
-//        
-//        try self.bind(
-//            type,
-//            unsigned: true,
-//            data: Data([int])
-//        )
-//    }
-//    
-//    /// Binds an Int16
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(_ int: Int16) throws {
-//        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
-//        
-//        if try PseudoType.int.supports(expecting: type) == .text {
-//            try self.bind(
-//                .string,
-//                unsigned: false,
-//                data: int.description.makeData()
-//            )
-//            
-//            return
-//        }
-//        
-//        try self.bind(
-//            type,
-//            unsigned: false,
-//            data: int.makeData()
-//        )
-//    }
-//    
-//    /// Binds an UInt16
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(_ int: UInt16) throws {
-//        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
-//        
-//        if try PseudoType.int.supports(expecting: type) == .text {
-//            try self.bind(
-//                .string,
-//                unsigned: false,
-//                data: int.description.makeData()
-//            )
-//            
-//            return
-//        }
-//        
-//        try self.bind(
-//            type,
-//            unsigned: false,
-//            data: int.makeData()
-//        )
-//    }
-//    
-//    /// Binds to either Int32 or Int24
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(_ int: Int32) throws {
-//        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
-//        
-//        if try PseudoType.int.supports(expecting: type) == .text {
-//            try self.bind(
-//                .string,
-//                unsigned: false,
-//                data: int.description.makeData()
-//            )
-//            
-//            return
-//        }
-//        
-//        try self.bind(
-//            type,
-//            unsigned: false,
-//            data: int.makeData()
-//        )
-//    }
-//    
-//    /// Binds to either UInt32 or UInt24
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(_ int: UInt32) throws {
-//        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
-//        
-//        if try PseudoType.int.supports(expecting: type) == .text {
-//            try self.bind(
-//                .string,
-//                unsigned: false,
-//                data: int.description.makeData()
-//            )
-//            
-//            return
-//        }
-//        
-//        try self.bind(
-//            type,
-//            unsigned: true,
-//            data: int.makeData()
-//        )
-//    }
-//    
-//    /// Binds to an `Int32` or `Int64` depending on the processor architecture
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(_ int: Int) throws {
-//        #if arch(x86_64) || arch(arm64)
-//            try self.bind(numericCast(int) as Int64)
-//        #else
-//            try self.bind(numericCast(int) as Int32)
-//        #endif
-//    }
-//    
-//    /// Binds to an `UInt32` or `UInt64` depending on the processor architecture
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(_ int: UInt) throws {
-//        #if arch(x86_64) || arch(arm64)
-//            try self.bind(numericCast(int) as UInt64)
-//        #else
-//            try self.bind(numericCast(int) as UInt32)
-//        #endif
-//    }
-//    
-//    /// Binds to an `Int64`
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(_ int: Int64) throws {
-//        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
-//        
-//        if try PseudoType.int.supports(expecting: type) == .text {
-//            try self.bind(
-//                .string,
-//                unsigned: false,
-//                data: int.description.makeData()
-//            )
-//            
-//            return
-//        }
-//        
-//        try self.bind(
-//            type,
-//            unsigned: false,
-//            data: int.makeData()
-//        )
-//    }
-//    
-//    /// Binds to an `UInt64`
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    public func bind(_ int: UInt64) throws {
-//        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
-//        
-//        if try PseudoType.int.supports(expecting: type) == .text {
-//            try self.bind(
-//                .string,
-//                unsigned: false,
-//                data: int.description.makeData()
-//            )
-//            
-//            return
-//        }
-//        
-//        try self.bind(
-//            type,
-//            unsigned: true,
-//            data: int.makeData()
-//        )
-//    }
-//    
-//    /// Binds to a float
-//    ///
-//    /// Binds to the first unbound parameter
-//    ///
-//    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
-//    /// - TODO: Float/Float64? MariaDB doesn't support those directly
-//    public func bind(_ float: Float32) throws {
-//        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
-//        
-//        if try PseudoType.double.supports(expecting: type) == .text {
-//            try self.bind(
-//                .string,
-//                unsigned: false,
-//                data: float.description.makeData()
-//            )
-//            
-//            return
-//        }
-//        
-//        try self.bind(
-//            .float,
-//            unsigned: true,
-//            data: float.makeData(size: 4)
-//        )
-//    }
-//    
-//    public func bind(date: Date) throws {
-//        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
-//        
-//        if try PseudoType.double.supports(expecting: type) == .text {
-//            let formatter = DateFormatter()
-//            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
-//            
-//            try self.bind(
-//                .string,
-//                unsigned: false,
-//                data: formatter.string(from: date).makeData()
-//            )
-//            
-//            return
-//        }
-//        
-//        switch type {
-//        case .datetime:
-//            let calendar = Calendar(identifier: .gregorian)
-//            
-//            let components = calendar.dateComponents(
-//                [
-//                    .year,
-//                    .month,
-//                    .day,
-//                    .hour,
-//                    .minute,
-//                    .second
-//                ],
-//                from: date
-//            )
-//            
-//            guard
-//                let year = components.year,
-//                let month = components.month,
-//                let day = components.day,
-//                let hour = components.hour,
-//                let minute = components.minute,
-//                let second = components.second,
-//                year < Int16.max,
-//                year > Int16.min
-//            else {
-//                throw MySQLError(
-//                    .invalidBinding(for: type)
-//                )
-//            }
-//            
-//            let yearInt16: Int16 = numericCast(year)
-//            
-//            let data = Data([
-//                numericCast(yearInt16.bigEndian >> 8),
-//                numericCast(yearInt16.bigEndian & 0xff),
-//                numericCast(month),
-//                numericCast(month),
-//                numericCast(day),
-//                numericCast(hour),
-//                numericCast(minute),
-//                numericCast(second),
-//            ])
-//            
-//            try bind(type, unsigned: false, data: data)
-//        default:
-//            throw MySQLError(
-//                .invalidBinding(for: type)
-//            )
-//        }
-//    }
-//    
-//    /// Binds to a `Double`
-//    public func bind(_ double: Double) throws {
-//        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
-//        
-//        if try PseudoType.double.supports(expecting: type) == .text {
-//            try self.bind(
-//                .string,
-//                unsigned: false,
-//                data: double.description.makeData()
-//            )
-//            
-//            return
-//        }
-//        
-//        try self.bind(.double, unsigned: false, data: double.makeData(size: 8))
-//    }
-//    
-//    /// Binds to a `Blob`, doesn't require specifying the type of blob
-//    public func bind(_ data: Data) throws {
-//        try self.bind(.blob, unsigned: false, data: data.makeLenEnc())
-//    }
-//    
-//    /// Binds to a `varchar`, `string` or `varString`, doesn't require specifying the type of string
-//    public func bind(_ string: String) throws {
-//        try self.bind(.string, unsigned: false, data: string.makeData())
-//    }
-//}
+/// https://mariadb.com/kb/en/library/packet_bindata/
+///
+/// TODO: Geometry, Enum, Set
+/// TODO: Date related types
+extension PreparationBinding {
+    /// TODO: Better method? This is the "official" way
+    /// https://mariadb.com/kb/en/library/packet_bindata/
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(decimal: String) throws {
+        try self.bind(.decimal, unsigned: false, data: decimal.makeData())
+    }
+    
+    /// TODO: Better method? This is the "official" way
+    /// https://mariadb.com/kb/en/library/packet_bindata/
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(newDecimal: String) throws {
+        try self.bind(.decimal, unsigned: false, data: newDecimal.makeData())
+    }
+    
+    /// Binds an Int8
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(_ int: Int8) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.int.supports(expecting: type) == .text {
+            try self.bind(
+                .string,
+                unsigned: false,
+                data: int.description.makeData()
+            )
+            
+            return
+        }
+        
+        try self.bind(
+            type,
+            unsigned: false,
+            data: Data([numericCast(int)])
+        )
+    }
+    
+    /// Binds an UInt8
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(_ int: UInt8) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.int.supports(expecting: type) == .text {
+            try self.bind(
+                .string,
+                unsigned: false,
+                data: int.description.makeData()
+            )
+            
+            return
+        }
+        
+        try self.bind(
+            type,
+            unsigned: true,
+            data: Data([int])
+        )
+    }
+    
+    /// Binds an Int16
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(_ int: Int16) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.int.supports(expecting: type) == .text {
+            try self.bind(
+                .string,
+                unsigned: false,
+                data: int.description.makeData()
+            )
+            
+            return
+        }
+        
+        try self.bind(
+            type,
+            unsigned: false,
+            data: int.makeData()
+        )
+    }
+    
+    /// Binds an UInt16
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(_ int: UInt16) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.int.supports(expecting: type) == .text {
+            try self.bind(
+                .string,
+                unsigned: false,
+                data: int.description.makeData()
+            )
+            
+            return
+        }
+        
+        try self.bind(
+            type,
+            unsigned: false,
+            data: int.makeData()
+        )
+    }
+    
+    /// Binds to either Int32 or Int24
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(_ int: Int32) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.int.supports(expecting: type) == .text {
+            try self.bind(
+                .string,
+                unsigned: false,
+                data: int.description.makeData()
+            )
+            
+            return
+        }
+        
+        try self.bind(
+            type,
+            unsigned: false,
+            data: int.makeData()
+        )
+    }
+    
+    /// Binds to either UInt32 or UInt24
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(_ int: UInt32) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.int.supports(expecting: type) == .text {
+            try self.bind(
+                .string,
+                unsigned: false,
+                data: int.description.makeData()
+            )
+            
+            return
+        }
+        
+        try self.bind(
+            type,
+            unsigned: true,
+            data: int.makeData()
+        )
+    }
+    
+    /// Binds to an `Int32` or `Int64` depending on the processor architecture
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(_ int: Int) throws {
+        #if arch(x86_64) || arch(arm64)
+            try self.bind(numericCast(int) as Int64)
+        #else
+            try self.bind(numericCast(int) as Int32)
+        #endif
+    }
+    
+    /// Binds to an `UInt32` or `UInt64` depending on the processor architecture
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(_ int: UInt) throws {
+        #if arch(x86_64) || arch(arm64)
+            try self.bind(numericCast(int) as UInt64)
+        #else
+            try self.bind(numericCast(int) as UInt32)
+        #endif
+    }
+    
+    /// Binds to an `Int64`
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(_ int: Int64) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.int.supports(expecting: type) == .text {
+            try self.bind(
+                .string,
+                unsigned: false,
+                data: int.description.makeData()
+            )
+            
+            return
+        }
+        
+        try self.bind(
+            type,
+            unsigned: false,
+            data: int.makeData()
+        )
+    }
+    
+    /// Binds to an `UInt64`
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(_ int: UInt64) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.int.supports(expecting: type) == .text {
+            try self.bind(
+                .string,
+                unsigned: false,
+                data: int.description.makeData()
+            )
+            
+            return
+        }
+        
+        try self.bind(
+            type,
+            unsigned: true,
+            data: int.makeData()
+        )
+    }
+    
+    /// Binds to a float
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    /// - TODO: Float/Float64? MariaDB doesn't support those directly
+    public func bind(_ float: Float32) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.double.supports(expecting: type) == .text {
+            try self.bind(
+                .string,
+                unsigned: false,
+                data: float.description.makeData()
+            )
+            
+            return
+        }
+        
+        try self.bind(
+            .float,
+            unsigned: true,
+            data: float.makeData(size: 4)
+        )
+    }
+    
+    public func bind(date: Date) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.double.supports(expecting: type) == .text {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+            
+            try self.bind(
+                .string,
+                unsigned: false,
+                data: formatter.string(from: date).makeData()
+            )
+            
+            return
+        }
+        
+        switch type {
+        case .datetime:
+            let calendar = Calendar(identifier: .gregorian)
+            
+            let components = calendar.dateComponents(
+                [
+                    .year,
+                    .month,
+                    .day,
+                    .hour,
+                    .minute,
+                    .second
+                ],
+                from: date
+            )
+            
+            guard
+                let year = components.year,
+                let month = components.month,
+                let day = components.day,
+                let hour = components.hour,
+                let minute = components.minute,
+                let second = components.second,
+                year < Int16.max,
+                year > Int16.min
+            else {
+                throw MySQLError(
+                    .invalidBinding(for: type)
+                )
+            }
+            
+            let yearInt16: Int16 = numericCast(year)
+            
+            let data = Data([
+                numericCast(yearInt16.bigEndian >> 8),
+                numericCast(yearInt16.bigEndian & 0xff),
+                numericCast(month),
+                numericCast(month),
+                numericCast(day),
+                numericCast(hour),
+                numericCast(minute),
+                numericCast(second),
+            ])
+            
+            try bind(type, unsigned: false, data: data)
+        default:
+            throw MySQLError(
+                .invalidBinding(for: type)
+            )
+        }
+    }
+    
+    /// Binds to a `Double`
+    public func bind(_ double: Double) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.double.supports(expecting: type) == .text {
+            try self.bind(
+                .string,
+                unsigned: false,
+                data: double.description.makeData()
+            )
+            
+            return
+        }
+        
+        try self.bind(.double, unsigned: false, data: double.makeData(size: 8))
+    }
+    
+    /// Binds to a `Blob`, doesn't require specifying the type of blob
+    public func bind(_ data: Data) throws {
+        try self.bind(.blob, unsigned: false, data: data.makeLenEnc())
+    }
+    
+    /// Binds to a `varchar`, `string` or `varString`, doesn't require specifying the type of string
+    public func bind(_ string: String) throws {
+        try self.bind(.string, unsigned: false, data: string.makeData())
+    }
+}
 
 enum PseudoType {
     case decimal

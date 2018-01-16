@@ -1,4 +1,5 @@
 import Async
+import Bits
 
 enum StreamState {
     // Authenticating
@@ -9,12 +10,14 @@ enum StreamState {
     
     struct QueryContext {
         let output: AnyInputStream<Row>
-        let binary: Bool
+        let binary: UInt32?
     }
     
     case columnCount(QueryContext)
     case columns(Int, acceptsEOF: Bool, QueryContext)
     case rows(acceptsEOF: Bool, QueryContext)
+    
+    case resettingPreparation
 }
 
 final class MySQLStateMachine: ConnectionContext {
@@ -219,11 +222,19 @@ final class MySQLStateMachine: ConnectionContext {
             
             if downstreamDemand > 0 {
                 downstreamDemand -= 1
-                let row = try packet.parseRow(columns: columns, binary: context.binary)
+                let row = try packet.parseRow(columns: columns, binary: context.binary != nil)
                 context.output.next(row)
                 upstream.request()
             } else {
                 unprocessedPacket = packet
+            }
+        case .resettingPreparation:
+            defer {
+                self.state = .nothing
+            }
+            
+            guard packet.payload.first == 0x00 else {
+                throw MySQLError(packet: packet)
             }
         }
     }
@@ -283,7 +294,7 @@ final class MySQLStateMachine: ConnectionContext {
         case .close:
             return .closed
         case .textQuery(_, let stream):
-            let context = StreamState.QueryContext(output: stream, binary: false)
+            let context = StreamState.QueryContext(output: stream, binary: nil)
             stream.connect(to: self)
             self.request()
             
@@ -292,12 +303,14 @@ final class MySQLStateMachine: ConnectionContext {
             return .nothing
         case .prepare:
             fatalError()
+        case .closePreparation(_):
+            return .nothing
+        case .resetPreparation(_):
+            return .resettingPreparation
+        case .getMore(_, let context):
+            return .rows(acceptsEOF: false, context)
         }
     }
-}
-
-enum TaskResult {
-    case none
 }
 
 struct EOF {
@@ -319,7 +332,10 @@ struct EOF {
 enum Task {
     case close
     case textQuery(String, AnyInputStream<Row>)
-    case prepare(String)
+    case prepare(String, (PreparedStatement) -> ())
+    case closePreparation(UInt32)
+    case resetPreparation(UInt32)
+    case getMore(UInt32, StreamState.QueryContext)
     case none
     
     var packet: Packet? {
@@ -328,8 +344,43 @@ enum Task {
             return [0x01]
         case .textQuery(let query, _):
             return Packet(data: [0x03] + Array(query.utf8))
-        case .prepare(let query):
+        case .prepare(let query, _):
             return Packet(data: [0x16] + Array(query.utf8))
+        case .closePreparation(let id):
+            var data = [UInt8](repeating: 0x19, count: 5)
+            
+            data.withUnsafeMutableBufferPointer { buffer in
+                buffer.baseAddress!.advanced(by: 1).withMemoryRebound(to: UInt32.self, capacity: 1) { pointer in
+                    pointer.pointee = id
+                }
+            }
+            
+            return Packet(data: data)
+        case .resetPreparation(let id):
+            var data = [UInt8](repeating: 0x1a, count: 5)
+            
+            data.withUnsafeMutableBufferPointer { buffer in
+                buffer.baseAddress!.advanced(by: 1).withMemoryRebound(to: UInt32.self, capacity: 1) { pointer in
+                    pointer.pointee = id
+                }
+            }
+            
+            return Packet(data: data)
+        case .getMore(let amount, let context):
+            guard let id = context.binary else {
+                return nil
+            }
+            
+            var data = [UInt8](repeating: 0x1c, count: 9)
+            
+            data.withUnsafeMutableBufferPointer { buffer in
+                buffer.baseAddress!.advanced(by: 1).withMemoryRebound(to: UInt32.self, capacity: 2) { pointer in
+                    pointer[0] = id
+                    pointer[1] = amount
+                }
+            }
+            
+            return Packet(data: data)
         case .none:
             return nil
         }
