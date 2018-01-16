@@ -102,14 +102,14 @@ final class MySQLStateMachine: ConnectionContext {
     func error(_ error: Error) {
         switch state {
         case .columnCount(let context):
-            context.output.error(error)
             self.state = .nothing
+            context.output.error(error)
         case .columns(_, _, let context):
-            context.output.error(error)
             self.state = .nothing
+            context.output.error(error)
         case .rows(_, let context):
-            context.output.error(error)
             self.state = .nothing
+            context.output.error(error)
         default: break
         }
     }
@@ -144,17 +144,19 @@ final class MySQLStateMachine: ConnectionContext {
             state = .sentAuthentication
             serializer.push(packet)
         case .sentAuthentication:
-            _ = try packet.parseBinaryOK()
             state = .nothing
+            _ = try packet.parseBinaryOK()
         case .nothing:
             throw MySQLError(.unexpectedResponse)
         case .closed:
             throw MySQLError(.unexpectedResponse)
         case .columnCount(let context):
-            // Ignore EOF
-            if packet.payload.first == 0xfe, packet.payload.count == 5 {
-                upstream.request()
-                return
+            if context.binary != nil {
+                // Ignore EOF
+                if packet.payload.first == 0xfe, packet.payload.count == 5 {
+                    upstream.request()
+                    return
+                }
             }
             
             var parser = Parser(packet: packet)
@@ -165,9 +167,10 @@ final class MySQLStateMachine: ConnectionContext {
             }
             
             if length == 0 {
-                defer { context.output.close() }
-                state = .nothing
-                
+                defer {
+                    state = .nothing
+                    context.output.close()
+                }
                 if let (affectedRows, lastInsertID) = try packet.parseBinaryOK() {
                     self.affectedRows = affectedRows
                     self.lastInsertID = lastInsertID
@@ -186,8 +189,8 @@ final class MySQLStateMachine: ConnectionContext {
                     let eof = try EOF(packet: packet)
                     
                     if eof.flags & EOF.serverMoreResultsExists == 0 {
-                        context.output.close()
                         state = .nothing
+                        context.output.close()
                         return
                     }
                     
@@ -224,8 +227,8 @@ final class MySQLStateMachine: ConnectionContext {
             
             // End of Rows
             if packet.payload.first == 0xfe {
-                context.output.close()
                 state = .nothing
+                context.output.close()
                 return
             }
             
@@ -272,7 +275,7 @@ final class MySQLStateMachine: ConnectionContext {
                     self.state = .preparingColumns(id, parameters, [], columnCount, callback: callback)
                     upstream.request()
                 } else {
-                    let statement = PreparedStatement(statementID: id, columns: [], stateMachine: self, parameters: [])
+                    let statement = PreparedStatement(statementID: id, columns: [], stateMachine: self, parameters: parameters)
                     callback(statement)
                     return
                 }

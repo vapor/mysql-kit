@@ -290,7 +290,7 @@ extension PreparationBinding {
             try self.bind(
                 .string,
                 unsigned: false,
-                data: Array(float.description.utf8)
+                data: float.description.makeData()
             )
             
             return
@@ -313,7 +313,7 @@ extension PreparationBinding {
             try self.bind(
                 .string,
                 unsigned: false,
-                data: Array(formatter.string(from: date).utf8)
+                data: formatter.string(from: date).makeData()
             )
             
             return
@@ -379,7 +379,7 @@ extension PreparationBinding {
             try self.bind(
                 .string,
                 unsigned: false,
-                data: Array(double.description.utf8)
+                data: double.description.makeData()
             )
             
             return
