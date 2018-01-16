@@ -17,6 +17,9 @@ enum StreamState {
     case columns(Int, acceptsEOF: Bool, QueryContext)
     case rows(acceptsEOF: Bool, QueryContext)
     
+    case preparing(callback: (PreparedStatement) -> ())
+    case preparingParameters(UInt32, [Field], UInt16, UInt16, callback: (PreparedStatement) -> ())
+    case preparingColumns(UInt32, [Field], [Field], UInt16, callback: (PreparedStatement) -> ())
     case resettingPreparation
 }
 
@@ -228,6 +231,55 @@ final class MySQLStateMachine: ConnectionContext {
             } else {
                 unprocessedPacket = packet
             }
+        case .preparing(let callback):
+            guard packet.payload.first == 0x00, packet.payload.count == 12 else {
+                throw MySQLError(packet: packet)
+            }
+            
+            var parser = Parser(packet: packet, position: 1)
+            
+            let id = try parser.parseUInt32()
+            let columns = try parser.parseUInt16()
+            let parameters = try parser.parseUInt16()
+            
+            if parameters > 0 {
+                self.state = .preparingParameters(id, [], parameters, columns, callback: callback)
+            } else if columns > 0 {
+                self.state = .preparingColumns(id, [], [], columns, callback: callback)
+            } else {
+                let statement = PreparedStatement(statementID: id, columns: [], stateMachine: self, parameters: [])
+                return
+            }
+            
+            upstream.request()
+        case .preparingParameters(let id, var parameters, let paramCount, let columnCount, let callback):
+            if paramCount == 0 {
+                self.state = .preparingColumns(id, parameters, [], columnCount, callback: callback)
+                self.parse(packet: packet, upstream: upstream)
+            }
+            
+            let field = try packet.parseFieldDefinition()
+            
+            if parameters.count == paramCount {
+                self.state = .preparingColumns(id, parameters, [], columnCount, callback: callback)
+            }
+            
+            upstream.request()
+        case .preparingColumns(let id, let parameters, var columns, let columnCount, let callback):
+            if columnCount == 0 {
+                self.state = .preparingColumns(id, parameters, [], columnCount, callback: callback)
+                self.parse(packet: packet, upstream: upstream)
+            }
+            
+            let field = try packet.parseFieldDefinition()
+            
+            if columns.count == columnCount {
+                let statement = PreparedStatement(statementID: id, columns: columnCount, stateMachine: self, parameters: parameters)
+                
+                callback(statement)
+            } else {
+                upstream.request()
+            }
         case .resettingPreparation:
             defer {
                 self.state = .nothing
@@ -301,12 +353,14 @@ final class MySQLStateMachine: ConnectionContext {
             return .columnCount(context)
         case .none:
             return .nothing
-        case .prepare:
-            fatalError()
+        case .prepare(_, let callback):
+            return .preparing
         case .closePreparation(_):
             return .nothing
         case .resetPreparation(_):
             return .resettingPreparation
+        case .executePreparation(_, let context):
+            return .columnCount(context)
         case .getMore(_, let context):
             return .rows(acceptsEOF: false, context)
         }
@@ -335,6 +389,7 @@ enum Task {
     case prepare(String, (PreparedStatement) -> ())
     case closePreparation(UInt32)
     case resetPreparation(UInt32)
+    case executePreparation([UInt8], StreamState.QueryContext) // raw packet
     case getMore(UInt32, StreamState.QueryContext)
     case none
     
@@ -380,6 +435,8 @@ enum Task {
                 }
             }
             
+            return Packet(data: data)
+        case .executePreparation(let data, _):
             return Packet(data: data)
         case .none:
             return nil

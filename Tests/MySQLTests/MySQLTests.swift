@@ -51,20 +51,20 @@ class MySQLTests: XCTestCase {
         _ = try? connection.dropTables(named: "articles").blockingAwait(timeout: .seconds(10))
     }
 
-//    func testPreparedStatements() throws {
-//        try testPopulateUsersSchema()
-//
-//        let query = "SELECT * FROM users WHERE `username` = ?"
-//
-//        let users = try connection.withPreparation(statement: query) { statement in
-//            return try statement.bind { binding in
-//                try binding.bind("Joannis")
-//            }.all(User.self)
-//        }.blockingAwait(timeout: .seconds(10))
-//
-//        XCTAssertEqual(users.count, 1)
-//        XCTAssertEqual(users.first?.username, "Joannis")
-//    }
+    func testPreparedStatements() throws {
+        try testPopulateUsersSchema()
+
+        let query = "SELECT * FROM users WHERE `username` = ?"
+
+        let users = try connection.withPreparation(statement: query) { statement in
+            return try statement.bind { binding in
+                try binding.bind("Joannis")
+            }.all(User.self)
+        }.blockingAwait(timeout: .seconds(10))
+
+        XCTAssertEqual(users.count, 1)
+        XCTAssertEqual(users.first?.username, "Joannis")
+    }
     
     func testCreateUsersSchema() throws {
         let table = Table(named: "users")

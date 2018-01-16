@@ -1,23 +1,8 @@
 import Async
-import Foundation
 
 extension MySQLConnection {
     /// A simple callback closure
     public typealias ForEachCallback<T> = (T) throws -> ()
-    
-    /// Collects all resulting rows and returs them in the future
-    ///
-    /// - parameter query: The query to be executed to receive results from
-    /// - returns: A future containing all results
-    internal func allRows(in query: MySQLQuery) -> Future<[Row]> {
-        var rows = [Row]()
-        
-        return forEachRow(in: query) { entity in
-            rows.append(entity)
-        }.map(to: [Row].self) {
-            return rows
-        }
-    }
     
     /// Collects all decoded results and returs them in the future
     ///

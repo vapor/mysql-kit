@@ -9,22 +9,17 @@ public final class PreparedStatement {
     /// The internal statement ID
     let statementID: UInt32
     
-    var output: AnyInputStream<Row>?
-    
     /// The connection this statment is bound to
-    let connection: MySQLConnection
-    
-    /// The amount of columns to be returned
-    let columnCount: UInt16
-    
-    /// The amount of parameters that can and must be bound
-    let parameterCount: UInt16
+    let stateMachine: MySQLStateMachine
     
     /// The parsed column definition
     var columns = [Field]()
     
     /// The required parameters to be bound
     var parameters = [Field]()
+    
+    /// Indicates this statement needs to be reset
+    var executed: Bool
     
     /// Closes/cleans up this statement
     ///
@@ -36,7 +31,7 @@ public final class PreparedStatement {
     /// Resets this prepared statement to it's prepared state (rather than fetching/executed)
     ///
     /// [Learn More →](https://docs.vapor.codes/3.0/databases/mysql/prepared-statements/)
-    public func reset() {
+    public func reset()  {
         connection.stateMachine.executor.push(.resetPreparation(statementID))
     }
     
@@ -54,11 +49,12 @@ public final class PreparedStatement {
     }
     
     /// Creates a new prepared statement from parsed data
-    init(statementID: UInt32, columnCount: UInt16, connection: MySQLConnection, parameterCount: UInt16) {
+    init(statementID: UInt32, columns: [Field], stateMachine: MySQLStateMachine, parameters: [Field]) {
         self.statementID = statementID
-        self.columnCount = columnCount
-        self.connection = connection
-        self.parameterCount = parameterCount
+        self.columns = columns
+        self.stateMachine = stateMachine
+        self.parameters = parameters
+        self.executed = false
     }
     
     deinit {
