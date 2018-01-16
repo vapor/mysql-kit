@@ -7,9 +7,14 @@ enum StreamState {
     // Idle states
     case nothing, closed
     
-    case columnCount(AnyInputStream<Row>, binary: Bool)
-    case columns(Int, AnyInputStream<Row>, binary: Bool, acceptsEOF: Bool)
-    case rows(AnyInputStream<Row>, binary: Bool, acceptsEOF: Bool)
+    struct QueryContext {
+        let output: AnyInputStream<Row>
+        let binary: Bool
+    }
+    
+    case columnCount(QueryContext)
+    case columns(Int, acceptsEOF: Bool, QueryContext)
+    case rows(acceptsEOF: Bool, QueryContext)
 }
 
 final class MySQLStateMachine: ConnectionContext {
@@ -90,14 +95,14 @@ final class MySQLStateMachine: ConnectionContext {
     
     func error(_ error: Error) {
         switch state {
-        case .columnCount(let stream, _):
-            stream.error(error)
+        case .columnCount(let context):
+            context.output.error(error)
             self.state = .nothing
-        case .columns(_, let stream, _, _):
-            stream.error(error)
+        case .columns(_, _, let context):
+            context.output.error(error)
             self.state = .nothing
-        case .rows(let stream, _, _):
-            stream.error(error)
+        case .rows(_, let context):
+            context.output.error(error)
             self.state = .nothing
         default: break
         }
@@ -139,7 +144,7 @@ final class MySQLStateMachine: ConnectionContext {
             throw MySQLError(.unexpectedResponse)
         case .closed:
             throw MySQLError(.unexpectedResponse)
-        case .columnCount(let results, let binary):
+        case .columnCount(let context):
             var parser = Parser(packet: packet)
             let length = try parser.parseLenEnc()
             
@@ -148,7 +153,7 @@ final class MySQLStateMachine: ConnectionContext {
             }
             
             if length == 0 {
-                defer { results.close() }
+                defer { context.output.close() }
                 state = .nothing
                 
                 if let (affectedRows, lastInsertID) = try packet.parseBinaryOK() {
@@ -159,22 +164,23 @@ final class MySQLStateMachine: ConnectionContext {
                 return
             }
             
-            state = .columns(numericCast(length), results, binary: binary, acceptsEOF: true)
+            state = .columns(numericCast(length), acceptsEOF: true, context)
             upstream.request()
-        case .columns(let columns, let results, let binary, let acceptsEOF):
+        case .columns(let columnCount, let acceptsEOF, let context):
             if acceptsEOF {
-                self.state = .columns(columns, results, binary: binary, acceptsEOF: false)
+                self.state = .columns(columnCount, acceptsEOF: false, context)
                 
                 if packet.payload.first == 0xfe {
                     let eof = try EOF(packet: packet)
                     
                     if eof.flags & EOF.serverMoreResultsExists == 0 {
-                        results.close()
+                        context.output.close()
                         state = .nothing
                         return
                     }
                     
                     upstream.request()
+                    return
                 }
             }
             
@@ -183,32 +189,39 @@ final class MySQLStateMachine: ConnectionContext {
             }
             
             self.columns?.append(try packet.parseFieldDefinition())
-        case .rows(let results, let binary, let acceptsEOF):
+            
+            if self.columns?.count == columnCount {
+                self.state = .rows(acceptsEOF: true, context)
+            }
+            
+            upstream.request()
+        case .rows(let acceptsEOF, let context):
             if acceptsEOF {
-                self.state = .rows(results, binary: binary, acceptsEOF: false)
+                self.state = .rows(acceptsEOF: false, context)
                 
                 // If EOF
                 if (try? EOF(packet: packet)) != nil {
                     upstream.request()
+                    return
                 }
             }
             
             guard let columns = self.columns else {
                 throw MySQLError(identifier: "row-columns", reason: "The rows were being parsed but no columns were found")
-                return
             }
             
             // End of Rows
             if packet.payload.first == 0xfe {
-                results.close()
+                context.output.close()
                 state = .nothing
                 return
             }
             
             if downstreamDemand > 0 {
                 downstreamDemand -= 1
-                let row = try packet.parseRow(columns: columns, binary: binary)
-                results.next(row)
+                let row = try packet.parseRow(columns: columns, binary: context.binary)
+                context.output.next(row)
+                upstream.request()
             } else {
                 unprocessedPacket = packet
             }
@@ -221,6 +234,15 @@ final class MySQLStateMachine: ConnectionContext {
             downstreamDemand = 0
         case .request(let amount):
             downstreamDemand += amount
+            
+            // If data is being awaited
+            if let packet = self.unprocessedPacket {
+                do {
+                    try self.parse(packet: packet, upstream: self.parser)
+                } catch {
+                    self.error(error)
+                }
+            }
         }
     }
     
@@ -261,7 +283,11 @@ final class MySQLStateMachine: ConnectionContext {
         case .close:
             return .closed
         case .textQuery(_, let stream):
-            return .columnCount(stream, binary: false)
+            let context = StreamState.QueryContext(output: stream, binary: false)
+            stream.connect(to: self)
+            self.request()
+            
+            return .columnCount(context)
         case .none:
             return .nothing
         case .prepare:

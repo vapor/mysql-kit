@@ -85,19 +85,19 @@ class MySQLTests: XCTestCase {
         try connection.administrativeQuery("INSERT INTO users (username) VALUES ('Tanner')").blockingAwait(timeout: .seconds(10))
     }
     
-//    func testForEach() throws {
-//        try testPopulateUsersSchema()
-//
-//        var iterator = ["Joannis", "Jonas", "Logan", "Tanner"].makeIterator()
-//        var count = 0
-//
-//        try connection.forEach(User.self, in: "SELECT * FROM users") { user in
-//            XCTAssertEqual(user.username, iterator.next())
-//            count += 1
-//        }.blockingAwait(timeout: .seconds(10))
-//
-//        XCTAssertEqual(count, 4)
-//    }
+    func testForEach() throws {
+        try testPopulateUsersSchema()
+
+        var iterator = ["Joannis", "Jonas", "Logan", "Tanner"].makeIterator()
+        var count = 0
+
+        try connection.forEach(User.self, in: "SELECT * FROM users") { user in
+            XCTAssertEqual(user.username, iterator.next())
+            count += 1
+        }.blockingAwait(timeout: .seconds(10))
+
+        XCTAssertEqual(count, 4)
+    }
 //
 //    func testAll() throws {
 //        try testPopulateUsersSchema()

@@ -9,13 +9,13 @@ extension MySQLConnection {
         
         let rows = ConnectingStream<Row>()
         
-        stateMachine.send(.textQuery(query.queryString, AnyInputStream(rows)))
-        
         _ = rows.drain { _, upstream in
             upstream.request()
         }.catch(onError: promise.fail).finally {
             promise.complete()
         }
+        
+        stateMachine.send(.textQuery(query.queryString, AnyInputStream(rows)))
         
         return promise.future
     }
