@@ -23,6 +23,9 @@ final class MySQLStateMachine: ConnectionContext {
     var state: StreamState {
         didSet {
             if case .nothing = state {
+                self.columns = nil
+                self.unprocessedPacket = nil
+                self.downstreamDemand = 0
                 executor.request()
             }
         }
@@ -57,7 +60,7 @@ final class MySQLStateMachine: ConnectionContext {
         ssl: MySQLSSLConfig?,
         worker: Worker
     ) {
-        self.state = .nothing
+        self.state = .start
         self.parser = MySQLPacketParser().stream(on: worker)
         self.ssl = ssl
         self.sequenceId = 0
@@ -69,6 +72,14 @@ final class MySQLStateMachine: ConnectionContext {
         self.password = password
         self.database = database
         self.downstreamDemand = 0
+
+        source.stream(to: parser).drain { packet, upstream in
+            do {
+                try self.parse(packet: packet, upstream: upstream)
+            } catch {
+                self.error(error)
+            }
+        }.upstream?.request()
         
         self.serializer.stream(to: _serializer.stream(on: worker)).output(to: sink)
         
@@ -77,7 +88,22 @@ final class MySQLStateMachine: ConnectionContext {
         }.upstream?.request()
     }
     
-    func parse(packet: Packet) throws {
+    func error(_ error: Error) {
+        switch state {
+        case .columnCount(let stream, _):
+            stream.error(error)
+            self.state = .nothing
+        case .columns(_, let stream, _, _):
+            stream.error(error)
+            self.state = .nothing
+        case .rows(let stream, _, _):
+            stream.error(error)
+            self.state = .nothing
+        default: break
+        }
+    }
+    
+    func parse(packet: Packet, upstream: ConnectionContext) throws {
         switch state {
         case .start:
             // https://mariadb.com/kb/en/library/1-connecting-connecting/
@@ -89,6 +115,7 @@ final class MySQLStateMachine: ConnectionContext {
             } else {
                 state = .sentHandshake
                 serializer.push(try doHandshake(from: packet))
+                upstream.request()
             }
         case .sentSSL:
             // https://mariadb.com/kb/en/library/1-connecting-connecting/
@@ -133,7 +160,7 @@ final class MySQLStateMachine: ConnectionContext {
             }
             
             state = .columns(numericCast(length), results, binary: binary, acceptsEOF: true)
-            self.parser.request()
+            upstream.request()
         case .columns(let columns, let results, let binary, let acceptsEOF):
             if acceptsEOF {
                 self.state = .columns(columns, results, binary: binary, acceptsEOF: false)
@@ -147,21 +174,34 @@ final class MySQLStateMachine: ConnectionContext {
                         return
                     }
                     
-                    self.parser.request()
+                    upstream.request()
                 }
             }
+            
+            if self.columns == nil {
+                self.columns = []
+            }
+            
+            self.columns?.append(try packet.parseFieldDefinition())
         case .rows(let results, let binary, let acceptsEOF):
             if acceptsEOF {
                 self.state = .rows(results, binary: binary, acceptsEOF: false)
                 
                 // If EOF
                 if (try? EOF(packet: packet)) != nil {
-                    self.parser.request()
+                    upstream.request()
                 }
             }
             
             guard let columns = self.columns else {
-                self.close(immediately: true)
+                throw MySQLError(identifier: "row-columns", reason: "The rows were being parsed but no columns were found")
+                return
+            }
+            
+            // End of Rows
+            if packet.payload.first == 0xfe {
+                results.close()
+                state = .nothing
                 return
             }
             
@@ -192,6 +232,7 @@ final class MySQLStateMachine: ConnectionContext {
         self.state = makeState(for: task)
         
         serializer.next(packet)
+        parser.request()
     }
     
     func close(immediately: Bool = false) {
