@@ -21,10 +21,14 @@ public struct MySQLConnection {
     let stateMachine: MySQLStateMachine
     
     /// The inserted ID from the last successful query
-    public var lastInsertID: UInt64?
+    public var lastInsertID: UInt64? {
+        return stateMachine.lastInsertID
+    }
     
     /// Amount of affected rows in the last successful query
-    public var affectedRows: UInt64?
+    public var affectedRows: UInt64? {
+        return stateMachine.affectedRows
+    }
     
     /// Creates a new connection
     ///

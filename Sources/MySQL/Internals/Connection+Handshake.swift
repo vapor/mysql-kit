@@ -45,46 +45,12 @@ var capabilities: Capabilities {
     return base
 }
 
-enum ConnectionState {
-    case start, sentSSL, sentHandshake, done
-}
-
 extension MySQLStateMachine {
-    func handshake(for input: Packet, state: inout ConnectionState) throws -> Packet? {
-        func doHandshake() throws -> Packet {
-            let handshake = try input.parseHandshake()
-            self.handshake = handshake
-            state = .sentHandshake
-            return try self.makeHandshake(for: handshake)
-        }
-        
-        // https://mariadb.com/kb/en/library/1-connecting-connecting/
-        switch state {
-        case .start:
-            if  let ssl = self.ssl, capabilities.contains(.ssl) {
-                _ = ssl
-                fatalError("Unsupported StartTLS")
-                // Do SSL upgrade
-                // self.state = .sendSSL
-            } else {
-                state = .sentHandshake
-                return try doHandshake()
-            }
-        case .sentSSL:
-            state = .sentHandshake
-            return try doHandshake()
-        case .sentHandshake:
-            state = .done
-            
-            guard let packet = try self.finishAuthentication(for: input) else {
-                self.connected.complete()
-                return nil
-            }
-            
-            return packet
-        case .done:
-            return nil
-        }
+    func doHandshake(from input: Packet) throws -> Packet {
+        let handshake = try input.parseHandshake()
+        self.handshake = handshake
+        self.state = .sentHandshake
+        return try self.makeHandshake(for: handshake)
     }
     
     /// Send the handshake to the client
@@ -101,7 +67,7 @@ extension MySQLStateMachine {
                 UInt8((combinedCapabilities >> 8) & 0xff),
                 UInt8((combinedCapabilities >> 16) & 0xff),
                 UInt8((combinedCapabilities >> 24) & 0xff),
-                ])
+            ])
             
             // UInt32(0) for the maximum packet length, or, undefined
             // pointer is already 0 here

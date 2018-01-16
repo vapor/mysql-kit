@@ -54,6 +54,7 @@ public struct MySQLError : Swift.Error, Debuggable, Traceable, Helpable {
         case .unexpectedResponse: return "The server responded an unexpected response which could not be matched to an action"
         case .invalidCredentials:
             return "Authentication was not successful"
+        case .other(_, let reason): return reason
         case .invalidTypeBound(let got, let expected):
             return "Field of type `\(got)` was bound, mismatching the expected type `\(expected)`"
         case.tooManyParametersBound:
@@ -129,6 +130,22 @@ public struct MySQLError : Swift.Error, Debuggable, Traceable, Helpable {
         }
     }
     
+    init(
+        identifier: String,
+        reason: String,
+        file: String = #file,
+        function: String = #function,
+        line: UInt = #line,
+        column: UInt = #column
+    ) {
+        self.problem = .other(identifier: identifier, reason: reason)
+        self.stackTrace = MySQLError.makeStackTrace()
+        self.file = file
+        self.function = function
+        self.line = line
+        self.column = column
+    }
+    
     /// The file this occurred in
     public let file: String
     
@@ -148,6 +165,7 @@ public struct MySQLError : Swift.Error, Debuggable, Traceable, Helpable {
     enum Problem {
         var rawValue: String {
             switch self {
+            case .other(let identifier, _): return identifier
             case .invalidQuery(_): return "invalidQuery"
             case .invalidPacket: return "invalidPacket"
             case .invalidHandshake: return "invalidHandshake"
@@ -167,6 +185,7 @@ public struct MySQLError : Swift.Error, Debuggable, Traceable, Helpable {
         
         case invalidTypeBound(got: PseudoType, expected: Field.FieldType)
         case invalidQuery(UInt16, String)
+        case other(identifier: String, reason: String)
         case invalidPacket
         case invalidHandshake
         case invalidResponse

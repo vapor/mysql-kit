@@ -7,11 +7,11 @@ extension MySQLConnection {
     public func administrativeQuery(_ query: MySQLQuery) -> Future<Void> {
         let promise = Promise<Void>()
         
-        let rowParser = stateMachine.makeRowParser(binary: false)
+        let rows = ConnectingStream<Row>()
         
-        stateMachine.send(.textQuery(query.queryString, rowParser))
+        stateMachine.send(.textQuery(query.queryString, AnyInputStream(rows)))
         
-        _ = rowParser.drain { row, upstream in
+        _ = rows.drain { _, upstream in
             upstream.request()
         }.catch(onError: promise.fail).finally {
             promise.complete()

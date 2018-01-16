@@ -74,30 +74,6 @@ final class RowParser: TranslatingStream {
             
             return Future(.insufficient)
         }
-        
-        // EOF packet
-        if input.payload.first == 0xfe {
-            switch state {
-            case .rows:
-                var parser = Parser(packet: input)
-                
-                // Offset past EOF byte
-                parser.position = 1
-                
-                let flags = try parser.parseUInt16()
-                
-                if flags & serverMoreResultsExists == 0 {
-                    return Future(.closed)
-                }
-                
-                // TODO: try onEOF?(flags)
-            case .headers:
-                self.state = .rows
-            }
-            
-            // Next packet
-            return Future(.insufficient)
-        }
 
         switch state {
         case .headers:
@@ -157,8 +133,6 @@ final class RowParser: TranslatingStream {
         self.columns.append(field)
     }
 }
-
-fileprivate let serverMoreResultsExists: UInt16 = 0x0008
 
 extension MySQLStateMachine {
     func makeRowParser(binary: Bool) -> TranslatingStreamWrapper<RowParser> {
