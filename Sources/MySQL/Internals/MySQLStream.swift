@@ -169,6 +169,7 @@ final class MySQLStateMachine: ConnectionContext {
             if length == 0 {
                 defer {
                     state = .nothing
+                    self.cancel()
                     context.output.close()
                 }
                 if let (affectedRows, lastInsertID) = try packet.parseBinaryOK() {
@@ -190,6 +191,7 @@ final class MySQLStateMachine: ConnectionContext {
                     
                     if eof.flags & EOF.serverMoreResultsExists == 0 {
                         state = .nothing
+                        self.cancel()
                         context.output.close()
                         return
                     }
@@ -228,6 +230,7 @@ final class MySQLStateMachine: ConnectionContext {
             // End of Rows
             if packet.payload.first == 0xfe {
                 state = .nothing
+                self.cancel()
                 context.output.close()
                 return
             }
