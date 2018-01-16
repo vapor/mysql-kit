@@ -4,25 +4,27 @@ import Bits
 
 extension Packet {
     /// Reads this packet as a row containing the data related to the provided columns
-    func parseRow(columns: [Field], binary: Bool, reserveCapacity: Int? = nil) throws -> Row {
+    func parseRow(columns: [Field], reserveCapacity: Int? = nil) throws -> Row {
+        let binary = self.payload.first == 0x00
+        
         var parser = Parser(packet: self)
         var row = Row()
         
         if let reserveCapacity = reserveCapacity {
             row.reserveCapacity(reserveCapacity)
         }
-        
+
         // Binary packets have a bit more data to carry `null`s  and a header
         if binary {
             guard try parser.byte() == 0 else {
                 throw MySQLError(.invalidPacket)
             }
-            
+
             let nullBytes = (columns.count + 9) / 8
-            
+
             parser.position += nullBytes
         }
-        
+
         var offset = 0
         
         // Parses each field

@@ -5,7 +5,7 @@ import Foundation
 /// A single prepared statement that can be binded, executed, reset and closed
 ///
 /// [Learn More →](https://docs.vapor.codes/3.0/databases/mysql/prepared-statements/)
-public final class PreparedStatement {
+public struct PreparedStatement {
     /// The internal statement ID
     let statementID: UInt32
     
@@ -17,9 +17,6 @@ public final class PreparedStatement {
     
     /// The required parameters to be bound
     var parameters = [Field]()
-    
-    /// Indicates this statement needs to be reset
-    var executed: Bool
     
     /// Closes/cleans up this statement
     ///
@@ -54,11 +51,6 @@ public final class PreparedStatement {
         self.columns = columns
         self.stateMachine = stateMachine
         self.parameters = parameters
-        self.executed = false
-    }
-    
-    deinit {
-        self.close()
     }
 }
 

@@ -46,6 +46,7 @@ struct Capabilities : OptionSet, ExpressibleByIntegerLiteral {
     static let protocol41: Capabilities = 512
     static let ssl: Capabilities = 2048
     static let secureConnection: Capabilities = 32_768
+    static let deprecateEOF: Capabilities = 0x1000000
     
     init(rawValue: UInt32) {
         self.rawValue = rawValue

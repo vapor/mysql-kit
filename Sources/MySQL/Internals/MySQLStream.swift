@@ -14,8 +14,8 @@ enum StreamState {
     }
     
     case columnCount(QueryContext)
-    case columns(Int, acceptsEOF: Bool, QueryContext)
-    case rows(acceptsEOF: Bool, QueryContext)
+    case columns(Int, QueryContext)
+    case rows(QueryContext)
     
     case preparing(callback: (PreparedStatement) -> ())
     case preparingParameters(UInt32, [Field], UInt16, UInt16, callback: (PreparedStatement) -> ())
@@ -104,10 +104,10 @@ final class MySQLStateMachine: ConnectionContext {
         case .columnCount(let context):
             self.state = .nothing
             context.output.error(error)
-        case .columns(_, _, let context):
+        case .columns(_, let context):
             self.state = .nothing
             context.output.error(error)
-        case .rows(_, let context):
+        case .rows(let context):
             self.state = .nothing
             context.output.error(error)
         default: break
@@ -121,8 +121,6 @@ final class MySQLStateMachine: ConnectionContext {
             if  let ssl = self.ssl, capabilities.contains(.ssl) {
                 _ = ssl
                 fatalError("Unsupported StartTLS")
-                // Do SSL upgrade
-                // self.state = .sendSSL
             } else {
                 state = .sentHandshake
                 serializer.push(try doHandshake(from: packet))
@@ -168,9 +166,9 @@ final class MySQLStateMachine: ConnectionContext {
             
             if length == 0 {
                 defer {
-                    state = .nothing
                     self.cancel()
                     context.output.close()
+                    self.executor.request()
                 }
                 if let (affectedRows, lastInsertID) = try packet.parseBinaryOK() {
                     self.affectedRows = affectedRows
@@ -180,25 +178,20 @@ final class MySQLStateMachine: ConnectionContext {
                 return
             }
             
-            state = .columns(numericCast(length), acceptsEOF: true, context)
+            state = .columns(numericCast(length), context)
             upstream.request()
-        case .columns(let columnCount, let acceptsEOF, let context):
-            if acceptsEOF {
-                self.state = .columns(columnCount, acceptsEOF: false, context)
+        case .columns(let columnCount, let context):
+            if packet.payload.first == 0xfe {
+                let eof = try EOF(packet: packet)
                 
-                if packet.payload.first == 0xfe {
-                    let eof = try EOF(packet: packet)
-                    
-                    if eof.flags & EOF.serverMoreResultsExists == 0 {
-                        state = .nothing
-                        self.cancel()
-                        context.output.close()
-                        return
-                    }
-                    
-                    upstream.request()
+                if eof.flags & EOF.serverMoreResultsExists == 0 {
+                    self.cancel()
+                    context.output.close()
                     return
                 }
+                
+                upstream.request()
+                return
             }
             
             if self.columns == nil {
@@ -208,36 +201,34 @@ final class MySQLStateMachine: ConnectionContext {
             self.columns?.append(try packet.parseFieldDefinition())
             
             if self.columns?.count == columnCount {
-                self.state = .rows(acceptsEOF: true, context)
+                self.state = .rows(context)
             }
             
             upstream.request()
-        case .rows(let acceptsEOF, let context):
-            if acceptsEOF {
-                self.state = .rows(acceptsEOF: false, context)
-                
-                // If EOF
-                if (try? EOF(packet: packet)) != nil {
-                    upstream.request()
-                    return
-                }
-            }
-            
+        case .rows(let context):
             guard let columns = self.columns else {
                 throw MySQLError(identifier: "row-columns", reason: "The rows were being parsed but no columns were found")
             }
             
             // End of Rows
             if packet.payload.first == 0xfe {
-                state = .nothing
+                guard let (affectedRows, lastInsertID) = try packet.parseBinaryOK() else {
+                    upstream.request()
+                    return
+                }
+                
+                self.affectedRows = affectedRows
+                self.lastInsertID = lastInsertID
+                
                 self.cancel()
                 context.output.close()
+                self.executor.request()
                 return
             }
             
             if downstreamDemand > 0 {
                 downstreamDemand -= 1
-                let row = try packet.parseRow(columns: columns, binary: context.binary != nil)
+                let row = try packet.parseRow(columns: columns)
                 context.output.next(row)
                 upstream.request()
             } else {
@@ -262,7 +253,8 @@ final class MySQLStateMachine: ConnectionContext {
                 upstream.request()
             } else {
                 let statement = PreparedStatement(statementID: id, columns: [], stateMachine: self, parameters: [])
-                return
+                self.cancel()
+                callback(statement)
             }
         case .preparingParameters(let id, var parameters, let paramCount, let columnCount, let callback):
             if packet.payload.first == 0xfe, packet.payload.count == 5 {
@@ -279,13 +271,14 @@ final class MySQLStateMachine: ConnectionContext {
                     upstream.request()
                 } else {
                     let statement = PreparedStatement(statementID: id, columns: [], stateMachine: self, parameters: parameters)
+                    self.cancel()
                     callback(statement)
                     return
                 }
             } else {
                 self.state = .preparingParameters(id, parameters, paramCount, columnCount, callback: callback)
+                upstream.request()
             }
-            upstream.request()
         case .preparingColumns(let id, let parameters, var columns, let columnCount, let callback):
             if packet.payload.first == 0xfe, packet.payload.count == 5 {
                 upstream.request()
@@ -297,7 +290,7 @@ final class MySQLStateMachine: ConnectionContext {
             
             if columns.count == columnCount {
                 let statement = PreparedStatement(statementID: id, columns: columns, stateMachine: self, parameters: parameters)
-                
+                self.cancel()
                 callback(statement)
             } else {
                 self.state = .preparingColumns(id, parameters, columns, columnCount, callback: callback)
@@ -317,9 +310,14 @@ final class MySQLStateMachine: ConnectionContext {
     func connection(_ event: ConnectionEvent) {
         switch event {
         case .cancel:
+            state = .nothing
             downstreamDemand = 0
         case .request(let amount):
-            downstreamDemand += amount
+            if amount == .max {
+                self.downstreamDemand = .max
+            } else {
+                downstreamDemand += amount
+            }
             
             // If data is being awaited
             if let packet = self.unprocessedPacket {
@@ -389,7 +387,7 @@ final class MySQLStateMachine: ConnectionContext {
         case .getMore(_, let context):
             context.output.connect(to: self)
             self.request()
-            return .rows(acceptsEOF: false, context)
+            return .rows(context)
         }
     }
 }

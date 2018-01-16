@@ -7,13 +7,17 @@ extension Packet {
     }
     
     func parseBinaryOK() throws -> (UInt64, UInt64)? {
+        if self.payload.count == 5 {
+            return nil
+        }
+        
         var parser = Parser(packet: self)
         let byte = try parser.byte()
         
         if byte == 0x00 {
             return (try parser.parseLenEnc(), try parser.parseLenEnc())
         } else if byte == 0xfe {
-            return nil
+            return (try parser.parseLenEnc(), try parser.parseLenEnc())
         } else if byte == 0xff {
             throw MySQLError(packet: self)
         }

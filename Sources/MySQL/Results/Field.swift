@@ -171,11 +171,7 @@ class Field: Hashable {
     let originalName: String?
     
     /// The character set
-    let charSet: Byte
-    
-    /// The collation applied on this field
-    /// TODO: Move this to a separate collation enum
-    let collation: Byte
+    let charSet: UInt16
     
     /// The field's length (in bytes?)
     let length: UInt32
@@ -186,7 +182,7 @@ class Field: Hashable {
     /// The flags applied to this field, most are never set
     let flags: Flags
     
-    let decimals: Byte
+    let decimals: Byte?
     
     /// If `true`, parse this field from binary blobs, not text strings
     var isBinary: Bool {
@@ -206,12 +202,11 @@ class Field: Hashable {
          originalTable: String?,
          name: String,
          originalName: String?,
-         charSet: Byte,
-         collation: Byte,
+         charSet: UInt16,
          length: UInt32,
          fieldType: FieldType,
          flags: Flags,
-         decimals: Byte
+         decimals: Byte?
     ) {
         self.catalog = catalog
         self.database = database
@@ -220,7 +215,6 @@ class Field: Hashable {
         self.name = name
         self.originalName = originalName
         self.charSet = charSet
-        self.collation = collation
         self.length = length
         self.fieldType = fieldType
         self.flags = flags

@@ -103,7 +103,7 @@ internal struct MySQLPacketParser: ByteParser {
                 return Future(.completed(consuming: fullPacketSize, result: packet))
             }
         case .body(let packet, let containing):
-            let dataSize = min(buffer.count &- containing, buffer.count)
+            let dataSize = min(packet.buffer.count &- containing, packet.buffer.count)
             let pointer = buffer.baseAddress!
             
             guard case .mutable(let buffer) = packet._buffer else {
@@ -182,16 +182,14 @@ extension Packet {
         var parser = Parser(packet: self)
         
         try parser.skipLenEnc() // let catalog = try parser.parseLenEncString()
-        try parser.skipLenEnc() // let database = try parser.parseLenEncString()
+        try parser.skipLenEnc() // let schema = try parser.parseLenEncString()
+        try parser.skipLenEnc() // let tableAlias = try parser.parseLenEncString()
         try parser.skipLenEnc() // let table = try parser.parseLenEncString()
-        try parser.skipLenEnc() // let originalTable = try parser.parseLenEncString()
         let name = try parser.parseLenEncString()
-        try parser.skipLenEnc() // let originalName = try parser.parseLenEncString()
+        try parser.skipLenEnc() // let columnAlias = try parser.parseLenEncString()
+        _ = try parser.parseLenEnc() // let originalName = try parser.parseLenEncString()
         
-        parser.position += 1
-        
-        let charSet = try parser.byte()
-        let collation = try parser.byte()
+        let charSet = try parser.parseUInt16()
         
         let length = try parser.parseUInt32()
         
@@ -201,8 +199,6 @@ extension Packet {
         
         let flags = Field.Flags(rawValue: try parser.parseUInt16())
         
-        let decimals = try parser.byte()
-        
         return Field(
             catalog: nil,
             database: nil,
@@ -211,11 +207,10 @@ extension Packet {
             name: name,
             originalName: nil,
             charSet: charSet,
-            collation: collation,
             length: length,
             fieldType: fieldType,
             flags: flags,
-            decimals: decimals
+            decimals: nil
         )
     }
 }

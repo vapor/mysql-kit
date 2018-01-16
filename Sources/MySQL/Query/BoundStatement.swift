@@ -51,15 +51,9 @@ public final class BoundStatement {
     ///     2    cursor for update
     ///     4    scrollable cursor
     func execute(into stream: AnyInputStream<Row>) throws {
-        if statement.executed {
-            statement.reset()
-        }
-        
         guard boundParameters == statement.parameters.count else {
             throw MySQLError(.notEnoughParametersBound)
         }
-        
-        statement.executed = true
         
         let context = StreamState.QueryContext(output: stream, binary: self.statement.statementID)
 

@@ -28,7 +28,7 @@ extension MySQLConnection {
         rowStream.map(to: D.self) { row in
             let decoder = try RowDecoder(keyed: row, lossyIntegers: true, lossyStrings: true)
             return try D(from: decoder)
-            }.output(to: stream)
+        }.output(to: stream)
         
         stateMachine.send(.textQuery(query.queryString, AnyInputStream(rowStream)))
     }
