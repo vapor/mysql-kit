@@ -15,7 +15,7 @@ enum StreamState {
     
     case columnCount(QueryContext)
     case columns(Int, QueryContext)
-    case rows(QueryContext)
+    case rows(Bool, QueryContext)
     
     case preparing(callback: (PreparedStatement) -> ())
     case preparingParameters(UInt32, [Field], UInt16, UInt16, callback: (PreparedStatement) -> ())
@@ -107,7 +107,7 @@ final class MySQLStateMachine: ConnectionContext {
         case .columns(_, let context):
             self.state = .nothing
             context.output.error(error)
-        case .rows(let context):
+        case .rows(_, let context):
             self.state = .nothing
             context.output.error(error)
         default: break
@@ -201,28 +201,36 @@ final class MySQLStateMachine: ConnectionContext {
             self.columns?.append(try packet.parseFieldDefinition())
             
             if self.columns?.count == columnCount {
-                self.state = .rows(context)
+                self.state = .rows(false, context)
             }
             
             upstream.request()
-        case .rows(let context):
+        case .rows(let cancelOnEof, let context):
             guard let columns = self.columns else {
                 throw MySQLError(identifier: "row-columns", reason: "The rows were being parsed but no columns were found")
             }
             
             // End of Rows
             if packet.payload.first == 0xfe {
-                guard let (affectedRows, lastInsertID) = try packet.parseBinaryOK() else {
-                    upstream.request()
+                if let (affectedRows, lastInsertID) = try packet.parseBinaryOK() {
+                    self.affectedRows = affectedRows
+                    self.lastInsertID = lastInsertID
+                    
+                    self.cancel()
+                    context.output.close()
+                    self.executor.request()
                     return
                 }
                 
-                self.affectedRows = affectedRows
-                self.lastInsertID = lastInsertID
+                if cancelOnEof {
+                    self.cancel()
+                    context.output.close()
+                    self.executor.request()
+                    return
+                }
                 
-                self.cancel()
-                context.output.close()
-                self.executor.request()
+                self.state = .rows(true, context)
+                upstream.request()
                 return
             }
             
@@ -387,7 +395,7 @@ final class MySQLStateMachine: ConnectionContext {
         case .getMore(_, let context):
             context.output.connect(to: self)
             self.request()
-            return .rows(context)
+            return .rows(false, context)
         }
     }
 }
