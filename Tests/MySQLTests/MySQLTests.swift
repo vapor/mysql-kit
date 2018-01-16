@@ -98,38 +98,38 @@ class MySQLTests: XCTestCase {
 
         XCTAssertEqual(count, 4)
     }
-//
-//    func testAll() throws {
-//        try testPopulateUsersSchema()
-//
-//        var iterator = ["Joannis", "Jonas", "Logan", "Tanner"].makeIterator()
-//
-//        let users = try connection.all(User.self, in: "SELECT * FROM users").blockingAwait(timeout: .seconds(10))
-//        for user in users {
-//            XCTAssertEqual(user.username, iterator.next())
-//        }
-//
-//        XCTAssertEqual(users.count, 4)
-//    }
-//
-//    func testStream() throws {
-//        try testPopulateUsersSchema()
-//
-//        var iterator = ["Joannis", "Jonas", "Logan", "Tanner"].makeIterator()
-//        var count = 0
-//        let promise = Promise<Int>()
-//
-//        connection.forEach(User.self, in: "SELECT * FROM users") { user in
-//            XCTAssertEqual(user.username, iterator.next())
-//            count += 1
-//
-//            if count == 4 {
-//                promise.complete(4)
-//            }
-//        }.catch { XCTFail("\($0)") }
-//
-//        XCTAssertEqual(4, try promise.future.blockingAwait(timeout: .seconds(10)))
-//    }
+
+    func testAll() throws {
+        try testPopulateUsersSchema()
+
+        var iterator = ["Joannis", "Jonas", "Logan", "Tanner"].makeIterator()
+
+        let users = try connection.all(User.self, in: "SELECT * FROM users").blockingAwait(timeout: .seconds(10))
+        for user in users {
+            XCTAssertEqual(user.username, iterator.next())
+        }
+
+        XCTAssertEqual(users.count, 4)
+    }
+
+    func testStream() throws {
+        try testPopulateUsersSchema()
+
+        var iterator = ["Joannis", "Jonas", "Logan", "Tanner"].makeIterator()
+        var count = 0
+        let promise = Promise<Int>()
+
+        connection.forEach(User.self, in: "SELECT * FROM users") { user in
+            XCTAssertEqual(user.username, iterator.next())
+            count += 1
+
+            if count == 4 {
+                promise.complete(4)
+            }
+        }.catch { XCTFail("\($0)") }
+
+        XCTAssertEqual(4, try promise.future.blockingAwait(timeout: .seconds(10)))
+    }
 //
 //    func testComplexModel() throws {
 //        let table = Table(named: "complex")
