@@ -82,8 +82,7 @@ fileprivate struct RowEncodingContainer<K: CodingKey>: KeyedEncodingContainerPro
     }
     
     func encode(_ value: Bool, forKey key: K) throws {
-        fatalError()
-//        try encoder.context.bind(true)
+        try encoder.context.bind(true)
     }
     
     func encode(_ value: Int, forKey key: K) throws {

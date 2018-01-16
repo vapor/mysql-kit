@@ -89,7 +89,7 @@ public final class PreparationBinding {
         boundStatement.boundParameters += 1
     }
     
-    func bind(_ type: Field.FieldType, unsigned: Bool, data: Data) throws {
+    func bind(_ type: Field.FieldType, unsigned: Bool, data: [UInt8]) throws {
         guard boundStatement.boundParameters < boundStatement.statement.parameters.count else {
             throw MySQLError(.tooManyParametersBound)
         }

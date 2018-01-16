@@ -13,7 +13,7 @@ extension PreparationBinding {
     ///
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(decimal: String) throws {
-        try self.bind(.decimal, unsigned: false, data: decimal.makeData())
+        try self.bind(.decimal, unsigned: false, data: Array(decimal.utf8))
     }
     
     /// TODO: Better method? This is the "official" way
@@ -23,7 +23,32 @@ extension PreparationBinding {
     ///
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(newDecimal: String) throws {
-        try self.bind(.decimal, unsigned: false, data: newDecimal.makeData())
+        try self.bind(.decimal, unsigned: false, data: Array(newDecimal.utf8))
+    }
+    
+    /// Binds a bool
+    ///
+    /// Binds to the first unbound parameter
+    ///
+    /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
+    public func bind(_ bool: Bool) throws {
+        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        
+        if try PseudoType.int.supports(expecting: type) == .text {
+            try self.bind(
+                .tiny,
+                unsigned: true,
+                data: Array((bool ? 1 : 0).description.utf8)
+            )
+            
+            return
+        }
+        
+        try self.bind(
+            type,
+            unsigned: false,
+            data: [numericCast(bool ? 1 : 0)]
+        )
     }
     
     /// Binds an Int8
@@ -47,7 +72,7 @@ extension PreparationBinding {
         try self.bind(
             type,
             unsigned: false,
-            data: Data([numericCast(int)])
+            data: [numericCast(int)]
         )
     }
     
@@ -72,7 +97,7 @@ extension PreparationBinding {
         try self.bind(
             type,
             unsigned: true,
-            data: Data([int])
+            data: [int]
         )
     }
     
@@ -265,7 +290,7 @@ extension PreparationBinding {
             try self.bind(
                 .string,
                 unsigned: false,
-                data: float.description.makeData()
+                data: Array(float.description.utf8)
             )
             
             return
@@ -288,7 +313,7 @@ extension PreparationBinding {
             try self.bind(
                 .string,
                 unsigned: false,
-                data: formatter.string(from: date).makeData()
+                data: Array(formatter.string(from: date).utf8)
             )
             
             return
@@ -327,7 +352,7 @@ extension PreparationBinding {
             
             let yearInt16: Int16 = numericCast(year)
             
-            let data = Data([
+            let data: [UInt8] = [
                 numericCast(yearInt16.bigEndian >> 8),
                 numericCast(yearInt16.bigEndian & 0xff),
                 numericCast(month),
@@ -336,7 +361,7 @@ extension PreparationBinding {
                 numericCast(hour),
                 numericCast(minute),
                 numericCast(second),
-            ])
+            ]
             
             try bind(type, unsigned: false, data: data)
         default:
@@ -354,7 +379,7 @@ extension PreparationBinding {
             try self.bind(
                 .string,
                 unsigned: false,
-                data: double.description.makeData()
+                data: Array(double.description.utf8)
             )
             
             return
@@ -364,7 +389,7 @@ extension PreparationBinding {
     }
     
     /// Binds to a `Blob`, doesn't require specifying the type of blob
-    public func bind(_ data: Data) throws {
+    public func bind(_ data: [UInt8]) throws {
         try self.bind(.blob, unsigned: false, data: data.makeLenEnc())
     }
     
@@ -429,12 +454,12 @@ enum MySQLEncoding {
 }
 
 extension FloatingPoint {
-    fileprivate func makeData(size bytes: Int) -> Data {
+    fileprivate func makeData(size bytes: Int) -> [UInt8] {
         var int = self
         
         return withUnsafePointer(to: &int) { pointer in
             return pointer.withMemoryRebound(to: UInt8.self, capacity: bytes) { pointer in
-                return Data(bytes: pointer, count: bytes)
+                return Array(ByteBuffer(start: pointer, count: bytes))
             }
         }
     }
@@ -442,14 +467,14 @@ extension FloatingPoint {
 
 extension BinaryInteger {
     // TODO: Don't require length hint
-    fileprivate func makeData() -> Data {
+    fileprivate func makeData() -> [UInt8] {
         var int = self
         
         let bytes = self.bitWidth / 8
         
         return withUnsafePointer(to: &int) { pointer in
             return pointer.withMemoryRebound(to: UInt8.self, capacity: bytes) { pointer in
-                return Data(bytes: pointer, count: bytes)
+                return Array(ByteBuffer(start: pointer, count: bytes))
             }
         }
     }
@@ -459,23 +484,23 @@ extension String {
     /// Enocodes the string using lenEnc
     ///
     /// - TODO: Collations?
-    fileprivate func makeData() -> Data {
-        return Data(self.utf8).makeLenEnc()
+    fileprivate func makeData() -> [UInt8] {
+        return Array(self.utf8).makeLenEnc()
     }
 }
 
-extension Data {
+extension Array where Element == UInt8 {
     /// Enocodes the data using lenEnc
-    fileprivate func makeLenEnc() -> Data {
+    fileprivate func makeLenEnc() -> [UInt8] {
         /// < 0xfc we can use the literal count
         if self.count < 0xfc {
-            return Data([numericCast(self.count)]) + self
+            return [numericCast(self.count)] + self
         // <= UInt16.max we need to prefix with `0xfc` and the append the length
         } else if self.count <= numericCast(UInt16.max) {
-            var lenEnc = Data(repeating: 0xfc, count: 3)
+            var lenEnc = [UInt8](repeating: 0xfc, count: 3)
             
-            lenEnc.withUnsafeMutableBytes { (pointer: MutableBytesPointer) in
-                pointer.advanced(by: 1).withMemoryRebound(to: UInt16.self, capacity: 1) { pointer in
+            lenEnc.withUnsafeMutableBufferPointer { buffer in
+                buffer.baseAddress!.advanced(by: 1).withMemoryRebound(to: UInt16.self, capacity: 1) { pointer in
                     pointer.pointee = numericCast(self.count)
                 }
             }
@@ -483,10 +508,10 @@ extension Data {
             return lenEnc + self
         // <= UInt32.max we need to prefix with `0xfd` and the append the length
         } else if self.count <= numericCast(UInt32.max) {
-            var lenEnc = Data(repeating: 0xfd, count: 5)
+            var lenEnc = [UInt8](repeating: 0xfd, count: 5)
             
-            lenEnc.withUnsafeMutableBytes { (pointer: MutableBytesPointer) in
-                pointer.advanced(by: 1).withMemoryRebound(to: UInt32.self, capacity: 1) { pointer in
+            lenEnc.withUnsafeMutableBufferPointer { buffer in
+                buffer.baseAddress!.advanced(by: 1).withMemoryRebound(to: UInt32.self, capacity: 1) { pointer in
                     pointer.pointee = numericCast(self.count)
                 }
             }
@@ -494,10 +519,10 @@ extension Data {
             return lenEnc + self
         // <= UInt64.max we need to prefix with `0xfe` and the append the length
         } else {
-            var lenEnc = Data(repeating: 0xfe, count: 9)
+            var lenEnc = [UInt8](repeating: 0xfe, count: 9)
             
-            lenEnc.withUnsafeMutableBytes { (pointer: MutableBytesPointer) in
-                pointer.advanced(by: 1).withMemoryRebound(to: UInt64.self, capacity: 1) { pointer in
+            lenEnc.withUnsafeMutableBufferPointer { buffer in
+                buffer.baseAddress!.advanced(by: 1).withMemoryRebound(to: UInt64.self, capacity: 1) { pointer in
                     pointer.pointee = numericCast(self.count)
                 }
             }

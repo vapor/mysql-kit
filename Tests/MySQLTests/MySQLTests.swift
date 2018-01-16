@@ -24,17 +24,18 @@ class MySQLTests: XCTestCase {
     
     var connection: MySQLConnection!
 
-//    static let allTests = [
-//        ("testPreparedStatements", testPreparedStatements),
-//        ("testCreateUsersSchema", testCreateUsersSchema),
-//        ("testPopulateUsersSchema", testPopulateUsersSchema),
-//        ("testForEach", testForEach),
-//        ("testAll", testAll),
-//        ("testStream", testStream),
-//        ("testComplexModel", testComplexModel),
-//        ("testFailures", testFailures),
-//        ("testSingleValueDecoding", testSingleValueDecoding),
-//    ]
+    static let allTests = [
+        ("testPreparedStatements", testPreparedStatements),
+        ("testPreparedStatements2", testPreparedStatements2),
+        ("testCreateUsersSchema", testCreateUsersSchema),
+        ("testPopulateUsersSchema", testPopulateUsersSchema),
+        ("testForEach", testForEach),
+        ("testAll", testAll),
+        ("testStream", testStream),
+        ("testComplexModel", testComplexModel),
+        ("testFailures", testFailures),
+        ("testSingleValueDecoding", testSingleValueDecoding),
+    ]
     
     override func setUp() {
         connection = try! MySQLConnection.makeConnection(
@@ -63,7 +64,24 @@ class MySQLTests: XCTestCase {
         }.blockingAwait(timeout: .seconds(10))
 
         XCTAssertEqual(users.count, 1)
+        XCTAssertEqual(users.first?.admin, false)
         XCTAssertEqual(users.first?.username, "Joannis")
+    }
+    
+    func testPreparedStatements2() throws {
+        try testPopulateUsersSchema()
+        
+        let query = "SELECT * FROM users WHERE `id` = ?"
+        
+        let users = try connection.withPreparation(statement: query) { statement in
+            return try statement.bind { binding in
+                try binding.bind(4) // Tanner
+            }.all(User.self)
+        }.blockingAwait(timeout: .seconds(10))
+        
+        XCTAssertEqual(users.count, 1)
+        XCTAssertEqual(users.first?.admin, true)
+        XCTAssertEqual(users.first?.username, "Tanner")
     }
     
     func testCreateUsersSchema() throws {
@@ -72,6 +90,8 @@ class MySQLTests: XCTestCase {
         table.schema.append(Table.Column(named: "id", type: .int16(length: nil), autoIncrement: true, primary: true, unique: true))
      
         table.schema.append(Table.Column(named: "username", type: .varChar(length: 32, binary: false), autoIncrement: false, primary: false, unique: false))
+        
+        table.schema.append(Table.Column(named: "admin", type: .uint8(length: 1)))
      
         try connection.createTable(table).blockingAwait(timeout: .seconds(10))
     }
@@ -79,10 +99,10 @@ class MySQLTests: XCTestCase {
     func testPopulateUsersSchema() throws {
         try testCreateUsersSchema()
      
-        try connection.administrativeQuery("INSERT INTO users (username) VALUES ('Joannis')").blockingAwait(timeout: .seconds(10))
-        try connection.administrativeQuery("INSERT INTO users (username) VALUES ('Jonas')").blockingAwait(timeout: .seconds(10))
-        try connection.administrativeQuery("INSERT INTO users (username) VALUES ('Logan')").blockingAwait(timeout: .seconds(10))
-        try connection.administrativeQuery("INSERT INTO users (username) VALUES ('Tanner')").blockingAwait(timeout: .seconds(10))
+        try connection.administrativeQuery("INSERT INTO users (username, admin) VALUES ('Joannis', false)").blockingAwait(timeout: .seconds(10))
+        try connection.administrativeQuery("INSERT INTO users (username, admin) VALUES ('Jonas', false)").blockingAwait(timeout: .seconds(10))
+        try connection.administrativeQuery("INSERT INTO users (username, admin) VALUES ('Logan', true)").blockingAwait(timeout: .seconds(10))
+        try connection.administrativeQuery("INSERT INTO users (username, admin) VALUES ('Tanner', true)").blockingAwait(timeout: .seconds(10))
     }
     
     func testForEach() throws {
@@ -222,6 +242,7 @@ class MySQLTests: XCTestCase {
 struct User: Decodable {
     var id: Int
     var username: String
+    var admin: Bool
 }
 
 struct Article: Decodable {
