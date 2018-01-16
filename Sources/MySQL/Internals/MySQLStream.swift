@@ -151,6 +151,12 @@ final class MySQLStateMachine: ConnectionContext {
         case .closed:
             throw MySQLError(.unexpectedResponse)
         case .columnCount(let context):
+            // Ignore EOF
+            if packet.payload.first == 0xfe, packet.payload.count == 5 {
+                upstream.request()
+                return
+            }
+            
             var parser = Parser(packet: packet)
             let length = try parser.parseLenEnc()
             
@@ -244,40 +250,51 @@ final class MySQLStateMachine: ConnectionContext {
             
             if parameters > 0 {
                 self.state = .preparingParameters(id, [], parameters, columns, callback: callback)
+                upstream.request()
             } else if columns > 0 {
                 self.state = .preparingColumns(id, [], [], columns, callback: callback)
+                upstream.request()
             } else {
                 let statement = PreparedStatement(statementID: id, columns: [], stateMachine: self, parameters: [])
                 return
             }
-            
-            upstream.request()
         case .preparingParameters(let id, var parameters, let paramCount, let columnCount, let callback):
-            if paramCount == 0 {
-                self.state = .preparingColumns(id, parameters, [], columnCount, callback: callback)
-                self.parse(packet: packet, upstream: upstream)
+            if packet.payload.first == 0xfe, packet.payload.count == 5 {
+                upstream.request()
+                return
             }
             
             let field = try packet.parseFieldDefinition()
+            parameters.append(field)
             
             if parameters.count == paramCount {
-                self.state = .preparingColumns(id, parameters, [], columnCount, callback: callback)
+                if columnCount > 0 {
+                    self.state = .preparingColumns(id, parameters, [], columnCount, callback: callback)
+                    upstream.request()
+                } else {
+                    let statement = PreparedStatement(statementID: id, columns: [], stateMachine: self, parameters: [])
+                    callback(statement)
+                    return
+                }
+            } else {
+                self.state = .preparingParameters(id, parameters, paramCount, columnCount, callback: callback)
             }
-            
             upstream.request()
         case .preparingColumns(let id, let parameters, var columns, let columnCount, let callback):
-            if columnCount == 0 {
-                self.state = .preparingColumns(id, parameters, [], columnCount, callback: callback)
-                self.parse(packet: packet, upstream: upstream)
+            if packet.payload.first == 0xfe, packet.payload.count == 5 {
+                upstream.request()
+                return
             }
             
             let field = try packet.parseFieldDefinition()
+            columns.append(field)
             
             if columns.count == columnCount {
-                let statement = PreparedStatement(statementID: id, columns: columnCount, stateMachine: self, parameters: parameters)
+                let statement = PreparedStatement(statementID: id, columns: columns, stateMachine: self, parameters: parameters)
                 
                 callback(statement)
             } else {
+                self.state = .preparingColumns(id, parameters, columns, columnCount, callback: callback)
                 upstream.request()
             }
         case .resettingPreparation:
@@ -354,14 +371,18 @@ final class MySQLStateMachine: ConnectionContext {
         case .none:
             return .nothing
         case .prepare(_, let callback):
-            return .preparing
+            return .preparing(callback: callback)
         case .closePreparation(_):
             return .nothing
         case .resetPreparation(_):
             return .resettingPreparation
         case .executePreparation(_, let context):
+            context.output.connect(to: self)
+            self.request()
             return .columnCount(context)
         case .getMore(_, let context):
+            context.output.connect(to: self)
+            self.request()
             return .rows(acceptsEOF: false, context)
         }
     }

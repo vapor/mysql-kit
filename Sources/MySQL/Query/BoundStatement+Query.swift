@@ -29,13 +29,6 @@ extension BoundStatement {
     
     fileprivate func forEachRow(_ handler: @escaping ForEachCallback<Row>) -> Future<Void> {
         let rows = ConnectingStream<Row>()
-        
-        do {
-            try self.execute(into: AnyInputStream(rows))
-        } catch {
-            return Future(error: error)
-        }
-        
         let promise = Promise<Void>()
         
         _ = rows.drain { row, upstream in
@@ -43,6 +36,12 @@ extension BoundStatement {
             upstream.request()
         }.catch(onError: promise.fail).finally {
             promise.complete()
+        }
+        
+        do {
+            try self.execute(into: AnyInputStream(rows))
+        } catch {
+            return Future(error: error)
         }
         
         return promise.future

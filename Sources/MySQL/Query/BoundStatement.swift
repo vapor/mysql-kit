@@ -63,13 +63,13 @@ public final class BoundStatement {
         
         let context = StreamState.QueryContext(output: stream, binary: self.statement.statementID)
 
-        statement.connection.stateMachine.executor.push(.executePreparation(header + parameterData, context))
+        statement.stateMachine.executor.push(.executePreparation(header + parameterData, context))
     }
 
     /// Fetched `count` more results from MySQL
     func getMore(count: UInt32, output: AnyInputStream<Row>) {
         let context = StreamState.QueryContext(output: output, binary: self.statement.statementID)
         
-        statement.connection.stateMachine.executor.push(.getMore(count, context))
+        statement.stateMachine.executor.push(.getMore(count, context))
     }
 }

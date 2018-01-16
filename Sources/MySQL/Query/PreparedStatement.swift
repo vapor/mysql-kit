@@ -25,14 +25,14 @@ public final class PreparedStatement {
     ///
     /// [Learn More →](https://docs.vapor.codes/3.0/databases/mysql/prepared-statements/)
     public func close() {
-        connection.stateMachine.executor.push(.closePreparation(statementID))
+        stateMachine.executor.push(.closePreparation(statementID))
     }
     
     /// Resets this prepared statement to it's prepared state (rather than fetching/executed)
     ///
     /// [Learn More →](https://docs.vapor.codes/3.0/databases/mysql/prepared-statements/)
     public func reset()  {
-        connection.stateMachine.executor.push(.resetPreparation(statementID))
+        stateMachine.executor.push(.resetPreparation(statementID))
     }
     
     /// Executes the `closure` with the preparation binding statement
@@ -74,7 +74,7 @@ public final class PreparationBinding {
     
     /// Binds `NULL` to the next parameter
     public func bindNull() throws {
-        guard boundStatement.boundParameters < boundStatement.statement.parameterCount else {
+        guard boundStatement.boundParameters < boundStatement.statement.parameters.count else {
             throw MySQLError(.tooManyParametersBound)
         }
         
@@ -90,7 +90,7 @@ public final class PreparationBinding {
     }
     
     func bind(_ type: Field.FieldType, unsigned: Bool, data: Data) throws {
-        guard boundStatement.boundParameters < boundStatement.statement.parameterCount else {
+        guard boundStatement.boundParameters < boundStatement.statement.parameters.count else {
             throw MySQLError(.tooManyParametersBound)
         }
         
