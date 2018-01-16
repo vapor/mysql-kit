@@ -130,93 +130,93 @@ class MySQLTests: XCTestCase {
 
         XCTAssertEqual(4, try promise.future.blockingAwait(timeout: .seconds(10)))
     }
-//
-//    func testComplexModel() throws {
-//        let table = Table(named: "complex")
-//
-//        table.schema.append(Table.Column(named: "id", type: .uint8(length: nil), autoIncrement: true, primary: true, unique: true))
-//
-//        table.schema.append(Table.Column(named: "number0", type: .float()))
-//        table.schema.append(Table.Column(named: "number1", type: .double()))
-//        table.schema.append(Table.Column(named: "i16", type: .int16()))
-//        table.schema.append(Table.Column(named: "ui16", type: .uint16()))
-//        table.schema.append(Table.Column(named: "i32", type: .int32()))
-//        table.schema.append(Table.Column(named: "ui32", type: .uint32()))
-//        table.schema.append(Table.Column(named: "i64", type: .int64()))
-//        table.schema.append(Table.Column(named: "ui64", type: .uint64()))
-//
-//        do {
-//            try connection.createTable(table).blockingAwait(timeout: .seconds(10))
-//
-//            try connection.administrativeQuery("INSERT INTO complex (number0, number1, i16, ui16, i32, ui32, i64, ui64) VALUES (3.14, 6.28, -5, 5, -10000, 10000, 5000, 0)").blockingAwait(timeout: .seconds(10))
-//
-//            try connection.administrativeQuery("INSERT INTO complex (number0, number1, i16, ui16, i32, ui32, i64, ui64) VALUES (3.14, 6.28, -5, 5, -10000, 10000, 5000, 0)").blockingAwait(timeout: .seconds(10))
-//        } catch {
-//            debugPrint(error)
-//            XCTFail()
-//            throw error
-//        }
-//
-//        let all = try connection.all(Complex.self, in: "SELECT * FROM complex").blockingAwait(timeout: .seconds(10))
-//
-//        XCTAssertEqual(all.count, 2)
-//
-//        guard let first = all.first else {
-//            XCTFail()
-//            return
-//        }
-//
-//        XCTAssertEqual(first.number0, 3.14)
-//        XCTAssertEqual(first.number1, 6.28)
-//        XCTAssertEqual(first.i16, -5)
-//        XCTAssertEqual(first.ui16, 5)
-//        XCTAssertEqual(first.i32, -10_000)
-//        XCTAssertEqual(first.ui32, 10_000)
-//        XCTAssertEqual(first.i64, 5_000)
-//        XCTAssertEqual(first.ui64, 0)
-//
-//        try connection.dropTable(named: "complex").blockingAwait(timeout: .seconds(10))
-//    }
-//
-//    func testSingleValueDecoding() throws {
-//        try testPopulateUsersSchema()
-//
-//        let tables = try connection.all(String.self, in: "SHOW TABLES").blockingAwait(timeout: .seconds(10))
-//        XCTAssert(tables.contains("users"))
-//    }
-//
-//    func testFailures() throws {
-//        XCTAssertThrowsError(try connection.administrativeQuery("INSERT INTO users (username) VALUES ('Exampleuser')").blockingAwait(timeout: .seconds(10)))
-//        XCTAssertThrowsError(try connection.all(User.self, in: "SELECT * FORM users").blockingAwait(timeout: .seconds(10)))
-//    }
-//
-//    func testText() throws {
-//        let table = Table(named: "articles")
-//
-//        table.schema.append(Table.Column(named: "id", type: .uint8(length: nil), autoIncrement: true, primary: true, unique: true))
-//
-//        table.schema.append(Table.Column(named: "text", type: .text()))
-//
-//        try connection.createTable(table).blockingAwait(timeout: .seconds(10))
-//
-//        try connection.administrativeQuery("INSERT INTO articles (text) VALUES ('hello, world')").blockingAwait(timeout: .seconds(10))
-//
-//        let articles = try connection.all(Article.self, in: "SELECT * FROM articles").blockingAwait(timeout: .seconds(10))
-//        XCTAssertEqual(articles.count, 1)
-//        XCTAssertEqual(articles.first?.text, "hello, world")
-//    }
-//
-//    func testDeleteRead() throws {
-//        try testPopulateUsersSchema()
-//
-//        let users = connection.administrativeQuery("DELETE FROM users WHERE username LIKE 'Jo%'").flatMap(to: Int.self) { _ in
-//            return self.connection.all(User.self, in: "SELECT * FROM users").map(to: Int.self) { users in
-//                return users.count
-//            }
-//        }
-//
-//        XCTAssertEqual(try users.blockingAwait(timeout: .seconds(10)), 2)
-//    }
+
+    func testComplexModel() throws {
+        let table = Table(named: "complex")
+
+        table.schema.append(Table.Column(named: "id", type: .uint8(length: nil), autoIncrement: true, primary: true, unique: true))
+
+        table.schema.append(Table.Column(named: "number0", type: .float()))
+        table.schema.append(Table.Column(named: "number1", type: .double()))
+        table.schema.append(Table.Column(named: "i16", type: .int16()))
+        table.schema.append(Table.Column(named: "ui16", type: .uint16()))
+        table.schema.append(Table.Column(named: "i32", type: .int32()))
+        table.schema.append(Table.Column(named: "ui32", type: .uint32()))
+        table.schema.append(Table.Column(named: "i64", type: .int64()))
+        table.schema.append(Table.Column(named: "ui64", type: .uint64()))
+
+        do {
+            try connection.createTable(table).blockingAwait(timeout: .seconds(10))
+
+            try connection.administrativeQuery("INSERT INTO complex (number0, number1, i16, ui16, i32, ui32, i64, ui64) VALUES (3.14, 6.28, -5, 5, -10000, 10000, 5000, 0)").blockingAwait(timeout: .seconds(10))
+
+            try connection.administrativeQuery("INSERT INTO complex (number0, number1, i16, ui16, i32, ui32, i64, ui64) VALUES (3.14, 6.28, -5, 5, -10000, 10000, 5000, 0)").blockingAwait(timeout: .seconds(10))
+        } catch {
+            debugPrint(error)
+            XCTFail()
+            throw error
+        }
+
+        let all = try connection.all(Complex.self, in: "SELECT * FROM complex").blockingAwait(timeout: .seconds(10))
+
+        XCTAssertEqual(all.count, 2)
+
+        guard let first = all.first else {
+            XCTFail()
+            return
+        }
+
+        XCTAssertEqual(first.number0, 3.14)
+        XCTAssertEqual(first.number1, 6.28)
+        XCTAssertEqual(first.i16, -5)
+        XCTAssertEqual(first.ui16, 5)
+        XCTAssertEqual(first.i32, -10_000)
+        XCTAssertEqual(first.ui32, 10_000)
+        XCTAssertEqual(first.i64, 5_000)
+        XCTAssertEqual(first.ui64, 0)
+
+        try connection.dropTable(named: "complex").blockingAwait(timeout: .seconds(10))
+    }
+
+    func testSingleValueDecoding() throws {
+        try testPopulateUsersSchema()
+
+        let tables = try connection.all(String.self, in: "SHOW TABLES").blockingAwait(timeout: .seconds(10))
+        XCTAssert(tables.contains("users"))
+    }
+
+    func testFailures() throws {
+        XCTAssertThrowsError(try connection.administrativeQuery("INSERT INTO users (username) VALUES ('Exampleuser')").blockingAwait(timeout: .seconds(10)))
+        XCTAssertThrowsError(try connection.all(User.self, in: "SELECT * FORM users").blockingAwait(timeout: .seconds(10)))
+    }
+
+    func testText() throws {
+        let table = Table(named: "articles")
+
+        table.schema.append(Table.Column(named: "id", type: .uint8(length: nil), autoIncrement: true, primary: true, unique: true))
+
+        table.schema.append(Table.Column(named: "text", type: .text()))
+
+        try connection.createTable(table).blockingAwait(timeout: .seconds(10))
+
+        try connection.administrativeQuery("INSERT INTO articles (text) VALUES ('hello, world')").blockingAwait(timeout: .seconds(10))
+
+        let articles = try connection.all(Article.self, in: "SELECT * FROM articles").blockingAwait(timeout: .seconds(10))
+        XCTAssertEqual(articles.count, 1)
+        XCTAssertEqual(articles.first?.text, "hello, world")
+    }
+
+    func testDeleteRead() throws {
+        try testPopulateUsersSchema()
+
+        let users = connection.administrativeQuery("DELETE FROM users WHERE username LIKE 'Jo%'").flatMap(to: Int.self) { _ in
+            return self.connection.all(User.self, in: "SELECT * FROM users").map(to: Int.self) { users in
+                return users.count
+            }
+        }
+
+        XCTAssertEqual(try users.blockingAwait(timeout: .seconds(10)), 2)
+    }
 }
 
 struct User: Decodable {
