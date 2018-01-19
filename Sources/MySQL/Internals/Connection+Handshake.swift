@@ -15,7 +15,7 @@ extension MySQLConnection {
         database: String,
         on eventLoop: EventLoop
     ) -> Future<MySQLConnection> {
-        return Future {
+        return .flatMap {
             let socket = try TCPSocket(isNonBlocking: true)
             let client = try TCPClient(socket: socket)
             
