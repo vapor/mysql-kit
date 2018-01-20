@@ -25,13 +25,30 @@ extension Packet {
             parser.position += nullBytes
         }
 
-        var offset = 0
+        // Starts at the third bit
+        // https://mariadb.com/kb/en/library/resultset-row/
+        var offset = 2
+        
+        // second byte, the first byte for binary packets is a `0x00` header
+        var byte = 1
         
         // Parses each field
         for field in columns {
-            defer { offset += 1 }
-            
             if binary {
+                // End of byte -> next byte
+                if offset >= 8 {
+                    offset = 0
+                    byte += 1
+                }
+                
+                // Increment bit after this function
+                defer { offset += 1 }
+                
+                // If the NULL bit is set, don't parse
+                guard 1 << offset & payload[byte] == 0 else {
+                    continue
+                }
+                
                 // Binary packets are parsed more literally (binary)
                 let value = try parser.parseColumn(forField: field, index: offset)
                 
