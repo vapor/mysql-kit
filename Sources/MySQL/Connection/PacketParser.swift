@@ -50,8 +50,8 @@ internal struct MySQLPacketParser: ByteParser {
                 // Build a buffer size, we need to copy this since it's not complete
                 let bufferPointer = UnsafeMutablePointer<UInt8>.allocate(capacity: fullPacketSize)
                 
-                // dump payload inside packet
-                memcpy(bufferPointer, buffer.baseAddress!, remainder)
+                // dump payload inside packet excluding header
+                memcpy(bufferPointer, buffer.baseAddress!.advanced(by: 3), remainder)
                 
                 let packet = Packet(payload: MutableByteBuffer(start: bufferPointer, count: fullPacketSize))
                 
@@ -115,7 +115,7 @@ internal struct MySQLPacketParser: ByteParser {
             let newContaining = containing &+ dataSize
             
             if newContaining == buffer.count {
-                return Future(.completed(consuming: newContaining, result: packet))
+                return Future(.completed(consuming: dataSize, result: packet))
             } else {
                 return Future(
                     .uncompleted(
