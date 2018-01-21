@@ -23,7 +23,7 @@ final class RowDecoder : DecoderHelper {
 
     /// Unkeyed (arrays/sets) are not supported (yet)
     required init(unkeyed: NSNull, lossyIntegers: Bool, lossyStrings: Bool) throws {
-        throw DecodingError.unimplemented
+        throw CodableDecodingError.unimplemented
     }
 
     /// Creates a decoder for a column. Should decode nested structs, but that's not supported (yet)
@@ -68,12 +68,12 @@ final class RowDecoder : DecoderHelper {
             return string
         } else if case .blob(let data) = type {
             guard let string = String(data: data, encoding: .utf8) else {
-                throw DecodingError.incorrectValue
+                throw CodableDecodingError.incorrectValue
             }
             
             return string
         } else {
-            throw DecodingError.incorrectValue
+            throw CodableDecodingError.incorrectValue
         }
     }
     
@@ -84,7 +84,7 @@ final class RowDecoder : DecoderHelper {
         } else if case .uint8(let num) = type {
             return num == 1
         } else {
-            throw DecodingError.incorrectValue
+            throw CodableDecodingError.incorrectValue
         }
     }
     
@@ -121,7 +121,7 @@ final class RowDecoder : DecoderHelper {
     
     /// Creates a new unkeyed container, will always throw since it's currently unsupported
     func unkeyedContainer() throws -> UnkeyedDecodingContainer {
-        throw DecodingError.unimplemented
+        throw CodableDecodingError.unimplemented
     }
     
     /// Creates a new single value column container
