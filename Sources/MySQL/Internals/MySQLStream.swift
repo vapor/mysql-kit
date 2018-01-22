@@ -37,7 +37,6 @@ final class MySQLStateMachine: ConnectionContext {
                 self.columns = nil
                 self.unprocessedPacket = nil
                 self.downstreamDemand = 0
-                executor.request()
             }
         }
     }
@@ -166,9 +165,7 @@ final class MySQLStateMachine: ConnectionContext {
             
             if length == 0 {
                 defer {
-                    self.cancel()
-                    context.output.close()
-                    self.executor.request()
+                    whileReady(context.output.close)
                 }
                 if let (affectedRows, lastInsertID) = try packet.parseBinaryOK() {
                     self.affectedRows = affectedRows
@@ -216,17 +213,12 @@ final class MySQLStateMachine: ConnectionContext {
                     self.affectedRows = affectedRows
                     self.lastInsertID = lastInsertID
                     
-                    self.cancel()
-                    context.output.close()
-                    self.executor.request()
+                    whileReady(context.output.close)
                     return
                 }
                 
                 if cancelOnEof {
-                    self.cancel()
-                    context.output.close()
-                    self.executor.request()
-                    return
+                    whileReady(context.output.close)
                 }
                 
                 self.state = .rows(true, context)
@@ -365,9 +357,15 @@ final class MySQLStateMachine: ConnectionContext {
         self.executor.next(task)
     }
     
-    fileprivate func completeTask() {
-        self.state = .nothing
-        self.executor.request()
+    fileprivate func whileReady(_ run: ()->()) {
+        self.processing = false
+        self.cancel()
+        
+        run()
+        
+        if !self.processing {
+            executor.request()
+        }
     }
     
     fileprivate func makeState(for task: Task) -> StreamState {
