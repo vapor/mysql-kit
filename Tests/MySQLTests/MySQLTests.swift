@@ -1,7 +1,6 @@
 import Async
 import Dispatch
 @testable import MySQL
-import Service
 import TCP
 import XCTest
 
