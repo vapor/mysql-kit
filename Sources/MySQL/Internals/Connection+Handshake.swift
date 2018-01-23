@@ -71,7 +71,6 @@ extension MySQLStateMachine {
     func doHandshake(from input: Packet) throws -> Packet {
         let handshake = try input.parseHandshake()
         self.handshake = handshake
-        self.state = .sentHandshake
         return try self.makeHandshake(for: handshake)
     }
     

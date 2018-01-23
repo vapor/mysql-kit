@@ -15,6 +15,12 @@ let package = Package(
 
         // Cryptography modules
         .package(url: "https://github.com/vapor/crypto.git", .branch("beta")),
+        
+        // Networking
+        .package(url: "https://github.com/vapor/sockets.git", .branch("beta")),
+
+        // SSL support
+        .package(url: "https://github.com/vapor/tls.git", .branch("beta")),
 
         // Non-blocking networking for Swift (HTTP and WebSockets).
         .package(url: "https://github.com/vapor/engine.git", .branch("beta")),

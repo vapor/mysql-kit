@@ -10,7 +10,7 @@ extension MySQLConnection {
     ///
     /// - parameter query: The query to be executed to receive results from
     /// - returns: A future containing all results
-    public func all<D: Decodable>(_ type: D.Type, in query: MySQLQuery) -> Future<[D]> {
+    public func all<D: Decodable>(_ type: D.Type, in query: String) -> Future<[D]> {
         var results = [D]()
         
         return forEach(D.self, in: query) { entity in
@@ -20,31 +20,31 @@ extension MySQLConnection {
         }
     }
     
-    public func stream<D, Stream>(_ type: D.Type, in query: MySQLQuery, to stream: Stream) throws
+    public func stream<D, Stream>(_ type: D.Type, in query: String, to stream: Stream) throws
         where D: Decodable, Stream: Async.InputStream, Stream.Input == D
     {
-        let rowStream = ConnectingStream<Row>()
+        let rowStream = PushStream<Row>()
         
         rowStream.map(to: D.self) { row in
             let decoder = try RowDecoder(keyed: row, lossyIntegers: true, lossyStrings: true)
             return try D(from: decoder)
         }.output(to: stream)
         
-        stateMachine.send(.textQuery(query.queryString, AnyInputStream(rowStream)))
+        
+        stateMachine.execute(TextQuery(query: query, stream: rowStream, context: self.stateMachine))
     }
     
-    fileprivate func forEachRow(in query: MySQLQuery, _ handler: @escaping ForEachCallback<Row>) -> Future<Void> {
+    fileprivate func forEachRow(in query: String, _ handler: @escaping ForEachCallback<Row>) -> Future<Void> {
         let promise = Promise<Void>()
         
-        let rows = ConnectingStream<Row>()
+        let rows = PushStream<Row>()
         
-        stateMachine.send(.textQuery(query.queryString, AnyInputStream(rows)))
+        stateMachine.execute(TextQuery(query: query, stream: rows, context: self.stateMachine))
         
-        _ = rows.drain { row, upstream in
+        _ = rows.drain { row in
             try handler(row)
-            upstream.request()
-            }.catch(onError: promise.fail).finally {
-                promise.complete()
+        }.catch(onError: promise.fail).finally {
+            promise.complete()
         }
         
         return promise.future
@@ -58,7 +58,7 @@ extension MySQLConnection {
     /// - throws: Network error
     /// - returns: A future that will be completed when all results have been processed by the handler
     @discardableResult
-    public func forEach<D>(_ type: D.Type, in query: MySQLQuery, _ handler: @escaping ForEachCallback<D>) -> Future<Void>
+    public func forEach<D>(_ type: D.Type, in query: String, _ handler: @escaping ForEachCallback<D>) -> Future<Void>
         where D: Decodable
     {
         return forEachRow(in: query) { row in
@@ -71,18 +71,16 @@ extension MySQLConnection {
     
     /// A function that shoots a raw query without expecting a real answer
     @discardableResult
-    public func administrativeQuery(_ query: MySQLQuery) -> Future<Void> {
+    public func administrativeQuery(_ query: String) -> Future<Void> {
         let promise = Promise<Void>()
         
-        let rows = ConnectingStream<Row>()
+        let rows = PushStream<Row>()
         
-        _ = rows.drain { _, upstream in
-            upstream.request()
-        }.catch(onError: promise.fail).finally {
+        _ = rows.drain { _ in }.catch(onError: promise.fail).finally {
             promise.complete()
         }
         
-        stateMachine.send(.textQuery(query.queryString, AnyInputStream(rows)))
+        stateMachine.execute(TextQuery(query: query, stream: rows, context: self.stateMachine))
         
         return promise.future
     }
@@ -90,19 +88,18 @@ extension MySQLConnection {
     /// Prepares a query and calls the captured closure with the prepared statement
     ///
     /// [Learn More →](https://docs.vapor.codes/3.0/databases/mysql/prepared-statements/)
-    public func withPreparation<T>(statement: MySQLQuery, run closure: @escaping ((PreparedStatement) throws -> Future<T>)) -> Future<T> {
+    public func withPreparation<T>(statement: String, run closure: @escaping ((PreparedStatement) throws -> Future<T>)) -> Future<T> {
         let promise = Promise<T>()
         
-        stateMachine.send(
-            .prepare(statement.queryString, { statement in
-                    do {
-                        try closure(statement).chain(to: promise)
-                    } catch {
-                        promise.fail(error)
-                    }
-                }
-            )
-        )
+        let task = PrepareQuery(query: statement, context: self.stateMachine) { statement in
+            do {
+                try closure(statement).chain(to: promise)
+            } catch {
+                promise.fail(error)
+            }
+        }
+        
+        stateMachine.execute(task)
         
         return promise.future
     }

@@ -32,7 +32,7 @@ extension PreparationBinding {
     ///
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(_ bool: Bool) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.int.supports(expecting: type) == .text {
             try self.bind(
@@ -57,7 +57,7 @@ extension PreparationBinding {
     ///
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(_ int: Int8) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.int.supports(expecting: type) == .text {
             try self.bind(
@@ -82,7 +82,7 @@ extension PreparationBinding {
     ///
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(_ int: UInt8) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.int.supports(expecting: type) == .text {
             try self.bind(
@@ -107,7 +107,7 @@ extension PreparationBinding {
     ///
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(_ int: Int16) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.int.supports(expecting: type) == .text {
             try self.bind(
@@ -132,7 +132,7 @@ extension PreparationBinding {
     ///
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(_ int: UInt16) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.int.supports(expecting: type) == .text {
             try self.bind(
@@ -157,7 +157,7 @@ extension PreparationBinding {
     ///
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(_ int: Int32) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.int.supports(expecting: type) == .text {
             try self.bind(
@@ -182,7 +182,7 @@ extension PreparationBinding {
     ///
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(_ int: UInt32) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.int.supports(expecting: type) == .text {
             try self.bind(
@@ -227,13 +227,21 @@ extension PreparationBinding {
         #endif
     }
     
+    private func assertBindableParameter() throws -> Field.FieldType {
+        guard boundStatement.statement.parameters.count > boundStatement.boundParameters else {
+            throw MySQLError(.tooManyParametersBound)
+        }
+        
+        return boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+    }
+    
     /// Binds to an `Int64`
     ///
     /// Binds to the first unbound parameter
     ///
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(_ int: Int64) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.int.supports(expecting: type) == .text {
             try self.bind(
@@ -258,7 +266,7 @@ extension PreparationBinding {
     ///
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(_ int: UInt64) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.int.supports(expecting: type) == .text {
             try self.bind(
@@ -284,7 +292,7 @@ extension PreparationBinding {
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     /// - TODO: Float/Float64? MariaDB doesn't support those directly
     public func bind(_ float: Float32) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.double.supports(expecting: type) == .text {
             try self.bind(
@@ -304,7 +312,7 @@ extension PreparationBinding {
     }
     
     public func bind(date: Date) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.double.supports(expecting: type) == .text {
             let formatter = DateFormatter()
@@ -373,7 +381,7 @@ extension PreparationBinding {
     
     /// Binds to a `Double`
     public func bind(_ double: Double) throws {
-        let type = boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
+        let type = try assertBindableParameter()
         
         if try PseudoType.double.supports(expecting: type) == .text {
             try self.bind(

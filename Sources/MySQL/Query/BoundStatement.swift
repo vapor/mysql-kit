@@ -55,15 +55,20 @@ public final class BoundStatement {
             throw MySQLError(.notEnoughParametersBound)
         }
         
-        let context = StreamState.QueryContext(output: stream, binary: self.statement.statementID)
-
-        statement.stateMachine.executor.push(.executePreparation(header + parameterData, context))
+        let pushStream = PushStream<Row>()
+        pushStream.output(to: stream)
+        
+        let packet = Packet(data: header + parameterData)
+        
+        let parseResults = ParseResults(stream: pushStream, context: self.statement.stateMachine)
+        let task = ExecutePreparation(packet: packet, parse: parseResults)
+        
+        statement.stateMachine.execute(task)
     }
 
     /// Fetched `count` more results from MySQL
     func getMore(count: UInt32, output: AnyInputStream<Row>) {
-        let context = StreamState.QueryContext(output: output, binary: self.statement.statementID)
-        
-        statement.stateMachine.executor.push(.getMore(count, context))
+        let task = GetMore(id: self.statement.statementID, amount: count, output: output)
+        statement.stateMachine.execute(task)
     }
 }

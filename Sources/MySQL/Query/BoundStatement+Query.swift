@@ -31,9 +31,8 @@ extension BoundStatement {
         let rows = ConnectingStream<Row>()
         let promise = Promise<Void>()
         
-        _ = rows.drain { row, upstream in
+        _ = rows.drain { row in
             try handler(row)
-            upstream.request()
         }.catch(onError: promise.fail).finally {
             promise.complete()
         }
@@ -45,6 +44,10 @@ extension BoundStatement {
         }
         
         return promise.future
+    }
+    
+    public func execute() throws -> Future<Void> {
+        return self.forEachRow { _ in }
     }
     
     /// Loops over all rows resulting from the query

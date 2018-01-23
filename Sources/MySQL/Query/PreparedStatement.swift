@@ -22,14 +22,14 @@ public struct PreparedStatement {
     ///
     /// [Learn More →](https://docs.vapor.codes/3.0/databases/mysql/prepared-statements/)
     public func close() {
-        stateMachine.executor.push(.closePreparation(statementID))
+        stateMachine.execute(ClosePreparation(id: statementID))
     }
     
     /// Resets this prepared statement to it's prepared state (rather than fetching/executed)
     ///
     /// [Learn More →](https://docs.vapor.codes/3.0/databases/mysql/prepared-statements/)
     public func reset()  {
-        stateMachine.executor.push(.resetPreparation(statementID))
+        stateMachine.execute(ResetPreparation(id: statementID))
     }
     
     /// Executes the `closure` with the preparation binding statement

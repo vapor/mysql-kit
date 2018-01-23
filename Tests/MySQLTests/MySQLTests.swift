@@ -40,8 +40,8 @@ class MySQLTests: XCTestCase {
     override func setUp() {
         connection = try! MySQLConnection.makeConnection(
             hostname: "localhost",
-            user: "root",
-            password: nil,
+            user: "vapor",
+            password: "vapor3",
             database: "vapor_test",
             on: MySQLTests.poolQueue
         ).blockingAwait()
@@ -206,7 +206,7 @@ class MySQLTests: XCTestCase {
     }
 
     func testFailures() throws {
-        XCTAssertThrowsError(try connection.administrativeQuery("INSERT INTO users (username) VALUES ('Exampleuser')").blockingAwait(timeout: .seconds(10)))
+        XCTAssertThrowsError(try connection.administrativeQuery("INSRT INTOO users (username) VALUES ('Exampleuser')").blockingAwait(timeout: .seconds(10)))
         XCTAssertThrowsError(try connection.all(User.self, in: "SELECT * FORM users").blockingAwait(timeout: .seconds(10)))
     }
 
