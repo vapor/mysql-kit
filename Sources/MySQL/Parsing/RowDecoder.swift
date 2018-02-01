@@ -175,7 +175,7 @@ fileprivate struct RowContainer<Key : CodingKey>: KeyedDecodingContainerProtocol
             return []
         }
         
-        return keyed.fieldNames.flatMap { name in
+        return keyed.fieldNames.compactMap { name in
             return Key(stringValue: name)
         }
     }

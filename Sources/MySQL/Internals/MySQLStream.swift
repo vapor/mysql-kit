@@ -1,4 +1,5 @@
 import Async
+
 import Bits
 
 final class MySQLStateMachine {
@@ -22,15 +23,15 @@ final class MySQLStateMachine {
     private let serializer: MySQLPacketSerializer
     private var tasks: [AnyTask]
     
-    init<S>(
-        source: SocketSource<S>,
-        sink: SocketSink<S>,
+    init<O: OutputStream, I: InputStream>(
+        source: O,
+        sink: I,
         user: String,
         password: String?,
         database: String,
         ssl: MySQLSSLConfig?,
         worker: Worker
-    ) {
+    ) where O.Output == ByteBuffer, I.Input == ByteBuffer {
         self.parser = MySQLPacketParser().stream(on: worker)
         self.ssl = ssl
         self.sequenceId = 0

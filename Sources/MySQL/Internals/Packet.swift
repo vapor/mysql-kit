@@ -74,7 +74,7 @@ internal final class Packet: ExpressibleByArrayLiteral {
     deinit {
         if case .mutable(let buffer) = _buffer {
             // Deallocates the MySQL buffer
-            buffer.baseAddress?.deallocate(capacity: buffer.count)
+            buffer.baseAddress?.deallocate()
         }
     }
     
