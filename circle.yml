@@ -15,6 +15,7 @@ jobs:
 
   linux:
     docker:
+      - image: norionomura/swift:swift-4.1-branch
       - image: mysql:5.7
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
@@ -22,7 +23,6 @@ jobs:
           # MYSQL_ROOT_HOST: %
           MYSQL_USER: root
           # MYSQL_PASSWORD: vapor
-      - image: norionomura/swift:swift-4.1-branch
     steps:
       - run: apt-get update
       - run: apt-get install -yq libssl-dev
