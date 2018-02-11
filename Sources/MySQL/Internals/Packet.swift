@@ -96,7 +96,7 @@ internal final class Packet: ExpressibleByArrayLiteral {
        
         memcpy(pointer.advanced(by: 3), &sequenceId, 1)
         
-        memcpy(pointer.advanced(by: 1), elements, elements.count)
+        memcpy(pointer.advanced(by: 4), elements, elements.count)
         
         self.init(payload: MutableByteBuffer(start: pointer, count: 4 &+ elements.count), containsPacketSize: true)
     }
@@ -114,7 +114,7 @@ internal final class Packet: ExpressibleByArrayLiteral {
         
         memcpy(pointer.advanced(by: 3), &sequenceId, 1)
         
-        memcpy(pointer.advanced(by: 1), data, data.count)
+        memcpy(pointer.advanced(by: 4), data, data.count)
         
         self.init(payload: MutableByteBuffer(start: pointer, count: 4 &+ data.count), containsPacketSize: true)
     }
@@ -134,7 +134,7 @@ internal final class Packet: ExpressibleByArrayLiteral {
         memcpy(pointer.advanced(by: 3), &sequenceId, 1)
         
         data.withByteBuffer { buffer in
-            _ = memcpy(pointer.advanced(by: 1), buffer.baseAddress!, data.count)
+            _ = memcpy(pointer.advanced(by: 4), buffer.baseAddress!, data.count)
         }
         
         self.init(payload: MutableByteBuffer(start: pointer, count: 4 &+ data.count), containsPacketSize: true)
