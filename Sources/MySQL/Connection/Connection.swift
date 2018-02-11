@@ -16,7 +16,7 @@ public struct MySQLSSLConfig {
     }
 }
 
-/// A connectio to a MySQL database servers
+/// A connection to a MySQL database servers
 public struct MySQLConnection {
     let stateMachine: MySQLStateMachine
     

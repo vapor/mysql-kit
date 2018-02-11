@@ -129,9 +129,9 @@ internal struct MySQLPacketParser: ByteParser {
     fileprivate func parseHeader(from buffer: ByteBuffer) -> Int? {
         guard buffer.count >= 3 else { return nil }
         
-        let byte0: UInt32 = numericCast(buffer[0])
-        let byte1: UInt32 = numericCast(buffer[1])
-        let byte2: UInt32 = numericCast(buffer[2])
+        let byte0: UInt32 = (numericCast(buffer[0]) as UInt32).littleEndian
+        let byte1: UInt32 = (numericCast(buffer[1]) as UInt32).littleEndian << 8
+        let byte2: UInt32 = (numericCast(buffer[2]) as UInt32).littleEndian << 16
         
         return numericCast(byte0 | byte1 | byte2) as Int
     }

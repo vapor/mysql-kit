@@ -14,6 +14,7 @@ final class MySQLStateMachine {
     var affectedRows: UInt64?
     
     var handshake: Handshake?
+    /// We currently don't use sequenceId
     var sequenceId: UInt8
     private let ssl: MySQLSSLConfig?
     let connected = Promise<Void>()

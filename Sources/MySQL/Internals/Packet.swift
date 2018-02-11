@@ -15,6 +15,10 @@ internal final class Packet: ExpressibleByArrayLiteral {
     
     /// The sequence ID is incremented per message
     /// This client doesn't use this
+    /// The max packet size is 2^24-1 bytes, so the packet fragmenting is hardly used.
+    /// There are cases like bigdata bulk loading, big blob fetch etc when the SERVER will use it,
+    /// therefore later we need to address this
+    
     var sequenceId: UInt8 {
         get {
             return containsPacketSize ? buffer[3] : buffer[0]
@@ -81,13 +85,14 @@ internal final class Packet: ExpressibleByArrayLiteral {
     convenience init(arrayLiteral elements: UInt8...) {
         let pointer = MutableBytesPointer.allocate(capacity: 4 &+ elements.count)
         
-        let packetSizeBytes = [
+        let packetSizeAndSequenceIdBytes = [
             UInt8((elements.count) & 0xff),
             UInt8((elements.count >> 8) & 0xff),
             UInt8((elements.count >> 16) & 0xff),
+            UInt8(0),
         ]
         
-        memcpy(pointer, packetSizeBytes, 3)
+        memcpy(pointer, packetSizeAndSequenceIdBytes, 4)
         
         memcpy(pointer.advanced(by: 4), elements, elements.count)
         
@@ -97,13 +102,14 @@ internal final class Packet: ExpressibleByArrayLiteral {
     convenience init(data: [UInt8]) {
         let pointer = MutableBytesPointer.allocate(capacity: 4 &+ data.count)
         
-        let packetSizeBytes = [
+        let packetSizeAndSequenceIdBytes = [
             UInt8((data.count) & 0xff),
             UInt8((data.count >> 8) & 0xff),
             UInt8((data.count >> 16) & 0xff),
+            UInt8(0),
             ]
         
-        memcpy(pointer, packetSizeBytes, 3)
+        memcpy(pointer, packetSizeAndSequenceIdBytes, 4)
         
         _ = memcpy(pointer.advanced(by: 4), data, data.count)
         
@@ -113,13 +119,14 @@ internal final class Packet: ExpressibleByArrayLiteral {
     convenience init(data: Data) {
         let pointer = MutableBytesPointer.allocate(capacity: 4 &+ data.count)
         
-        let packetSizeBytes = [
+        let packetSizeAndSequenceIdBytes = [
             UInt8((data.count) & 0xff),
             UInt8((data.count >> 8) & 0xff),
             UInt8((data.count >> 16) & 0xff),
+            UInt8(0),
         ]
         
-        memcpy(pointer, packetSizeBytes, 3)
+        memcpy(pointer, packetSizeAndSequenceIdBytes, 4)
         
         data.withByteBuffer { buffer in
             _ = memcpy(pointer.advanced(by: 4), buffer.baseAddress!, data.count)
