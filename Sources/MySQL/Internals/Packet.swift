@@ -90,7 +90,7 @@ internal final class Packet: ExpressibleByArrayLiteral {
             UInt8((elements.count >> 8) & 0xff),
             UInt8((elements.count >> 16) & 0xff),
         ]
-        let sequenceId = UInt8(0)
+        var sequenceId = UInt8(0)
 
         memcpy(pointer, packetSizeBytes, 3)
        
@@ -109,7 +109,7 @@ internal final class Packet: ExpressibleByArrayLiteral {
             UInt8((data.count >> 8) & 0xff),
             UInt8((data.count >> 16) & 0xff),
             ]
-        let sequenceId = UInt8(0)
+        var  sequenceId = UInt8(0)
         memcpy(pointer, packetSizeBytes, 3)
         
         memcpy(pointer.advanced(by: 3), &sequenceId, 1)
@@ -127,14 +127,14 @@ internal final class Packet: ExpressibleByArrayLiteral {
             UInt8((data.count >> 8) & 0xff),
             UInt8((data.count >> 16) & 0xff),
         ]
-        let sequenceId = UInt8(0)
+        var sequenceId = UInt8(0)
         
         memcpy(pointer, packetSizeBytes, 3)
         
         memcpy(pointer.advanced(by: 3), &sequenceId, 1)
         
         data.withByteBuffer { buffer in
-            memcpy(pointer.advanced(by: 1), buffer.baseAddress!, data.count)
+            _ = memcpy(pointer.advanced(by: 1), buffer.baseAddress!, data.count)
         }
         
         self.init(payload: MutableByteBuffer(start: pointer, count: 4 &+ data.count), containsPacketSize: true)
