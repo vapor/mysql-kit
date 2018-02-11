@@ -129,9 +129,9 @@ internal struct MySQLPacketParser: ByteParser {
     fileprivate func parseHeader(from buffer: ByteBuffer) -> Int? {
         guard buffer.count >= 3 else { return nil }
         
-        let byte0: UInt32 = (numericCast(buffer[0]) as UInt32).littleEndian
-        let byte1: UInt32 = (numericCast(buffer[1]) as UInt32).littleEndian << 8
-        let byte2: UInt32 = (numericCast(buffer[2]) as UInt32).littleEndian << 16
+        let byte0 = UInt32(numericCast(buffer[0]))
+        let byte1 = UInt32(numericCast(buffer[1])) << 8
+        let byte2 = UInt32(numericCast(buffer[2])) << 16
         
         return numericCast(byte0 | byte1 | byte2) as Int
     }
@@ -157,16 +157,16 @@ internal struct MySQLPacketParser: ByteParser {
         // Take the cached previous packet edge-case bytes into consideration
         switch headerBytes.count {
         case 1:
-            byte0 = (numericCast(headerBytes[0]) as UInt32).littleEndian
+            byte0 = numericCast(headerBytes[0])
             
-            byte1 = (numericCast(pointer[0]) as UInt32).littleEndian << 8
-            byte2 = (numericCast(pointer[1]) as UInt32).littleEndian << 16
+            byte1 = numericCast(pointer[0]) << 8
+            byte2 = numericCast(pointer[1]) << 16
             parsed = 2
         case 2:
-            byte0 = (numericCast(headerBytes[0]) as UInt32).littleEndian
-            byte1 = (numericCast(headerBytes[1]) as UInt32).littleEndian << 8
+            byte0 = numericCast(headerBytes[0])
+            byte1 = numericCast(headerBytes[1]) << 8
             
-            byte2 = (numericCast(pointer[0]) as UInt32).littleEndian << 16
+            byte2 = numericCast(pointer[0]) << 16
             parsed = 1
         default:
             fatalError("Invalid MySQL parsing scenario reached")

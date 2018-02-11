@@ -47,7 +47,7 @@ extension Packet {
         // Require decimal `10` to be the protocol version
         guard try parser.byte() == 10 else {
             // if the first byte is 0xff then we got an error packet
-            if(parser.payload[0] == 0xff){
+            if parser.payload[0] == 0xff {
                 throw MySQLError(packet: self)
             } else {
                 throw MySQLError(.invalidHandshake)
