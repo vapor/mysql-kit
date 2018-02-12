@@ -30,5 +30,3 @@ let package = Package(
         .testTarget(name: "MySQLTests", dependencies: ["MySQL"]),
     ]
 )
-
-

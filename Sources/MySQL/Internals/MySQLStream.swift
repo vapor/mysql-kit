@@ -16,7 +16,7 @@ final class MySQLStateMachine {
     var handshake: Handshake?
     var sequenceId: UInt8
     private let ssl: MySQLSSLConfig?
-    let connected = Promise<Void>()
+    let connected: Promise<Void>
     private let worker: Worker
     private let parser: TranslatingStreamWrapper<MySQLPacketParser>
     private let queue: QueueStream<Packet, Packet>
@@ -26,6 +26,7 @@ final class MySQLStateMachine {
     init<O: OutputStream, I: InputStream>(
         source: O,
         sink: I,
+        connected: Promise<Void>,
         user: String,
         password: String?,
         database: String,
@@ -36,6 +37,7 @@ final class MySQLStateMachine {
         self.ssl = ssl
         self.sequenceId = 0
         self.worker = worker
+        self.connected = connected
         self.serializer = MySQLPacketSerializer()
         self.queue = QueueStream<Packet, Packet>()
         self.user = user
