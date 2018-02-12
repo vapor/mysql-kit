@@ -24,8 +24,9 @@ jobs:
           MYSQL_USER: root
           # MYSQL_PASSWORD: vapor
     steps:
-      - run: apt-get install -yq libssl-dev
       - checkout
+      - run: apt-get update
+      - run: apt-get install -yq libssl-dev
       - run: swift build
       # - run: swift build -c release
       - run: swift test
