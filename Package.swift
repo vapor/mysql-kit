@@ -8,22 +8,22 @@ let package = Package(
     ],
     dependencies: [
         // Swift Promises, Futures, and Streams.
-        .package(url: "https://github.com/vapor/async.git", .branch("beta")),
+        .package(url: "https://github.com/vapor/async.git", .revision("1.0.0-beta.1")),
 
         // Core extensions, type-aliases, and functions that facilitate common tasks.
-        .package(url: "https://github.com/vapor/core.git", .branch("beta")),
+        .package(url: "https://github.com/vapor/core.git", .revision("3.0.0-beta.1")),
 
         // Cryptography modules
-        .package(url: "https://github.com/vapor/crypto.git", .branch("beta")),
+        .package(url: "https://github.com/vapor/crypto.git", .revision("3.0.0-beta.1")),
         
         // Networking
-        .package(url: "https://github.com/vapor/sockets.git", .branch("beta")),
+        .package(url: "https://github.com/vapor/sockets.git", .revision("3.0.0-beta.1")),
 
         // SSL support
-        .package(url: "https://github.com/vapor/tls.git", .branch("beta")),
+        .package(url: "https://github.com/vapor/tls.git", .revision("3.0.0-beta.1")),
 
         // Non-blocking networking for Swift (HTTP and WebSockets).
-        .package(url: "https://github.com/vapor/engine.git", .branch("beta")),
+        .package(url: "https://github.com/vapor/engine.git", .revision("3.0.0-beta.1")),
     ],
     targets: [
         .target(name: "MySQL", dependencies: ["CodableKit", "Crypto", "TCP", "TLS"]),
