@@ -15,6 +15,10 @@ internal final class Packet: ExpressibleByArrayLiteral {
     
     /// The sequence ID is incremented per message
     /// This client doesn't use this
+    /// The max packet size is 2^24-1 bytes, so the packet fragmenting is hardly used.
+    /// There are cases like bigdata bulk loading, big blob fetch etc when the SERVER will use it,
+    /// therefore later we need to address this
+    
     var sequenceId: UInt8 {
         get {
             return containsPacketSize ? buffer[3] : buffer[0]
@@ -86,8 +90,11 @@ internal final class Packet: ExpressibleByArrayLiteral {
             UInt8((elements.count >> 8) & 0xff),
             UInt8((elements.count >> 16) & 0xff),
         ]
-        
+        var sequenceId = UInt8(0)
+
         memcpy(pointer, packetSizeBytes, 3)
+       
+        memcpy(pointer.advanced(by: 3), &sequenceId, 1)
         
         memcpy(pointer.advanced(by: 4), elements, elements.count)
         
@@ -102,10 +109,12 @@ internal final class Packet: ExpressibleByArrayLiteral {
             UInt8((data.count >> 8) & 0xff),
             UInt8((data.count >> 16) & 0xff),
             ]
-        
+        var  sequenceId = UInt8(0)
         memcpy(pointer, packetSizeBytes, 3)
         
-        _ = memcpy(pointer.advanced(by: 4), data, data.count)
+        memcpy(pointer.advanced(by: 3), &sequenceId, 1)
+        
+        memcpy(pointer.advanced(by: 4), data, data.count)
         
         self.init(payload: MutableByteBuffer(start: pointer, count: 4 &+ data.count), containsPacketSize: true)
     }
@@ -118,8 +127,11 @@ internal final class Packet: ExpressibleByArrayLiteral {
             UInt8((data.count >> 8) & 0xff),
             UInt8((data.count >> 16) & 0xff),
         ]
+        var sequenceId = UInt8(0)
         
         memcpy(pointer, packetSizeBytes, 3)
+        
+        memcpy(pointer.advanced(by: 3), &sequenceId, 1)
         
         data.withByteBuffer { buffer in
             _ = memcpy(pointer.advanced(by: 4), buffer.baseAddress!, data.count)
