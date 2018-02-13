@@ -39,7 +39,7 @@ class MySQLTests: XCTestCase {
     }
 
     func testPreparedStatements() throws {
-        try testCreateUsersSchema()
+        try testPopulateUsersSchema()
 
         let query = "SELECT * FROM users WHERE `username` = ?"
 
@@ -54,18 +54,18 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(users.first?.username, "Joannis")
     }
     
-    func testPerformance() throws {
-        try testPopulateUsersSchema()
-        var futures = [Future<Void>]()
-        
-        for _ in 0..<100_000 {
-            let future = self.connection.administrativeQuery("INSERT INTO users (username, admin) VALUES ('Joannis', true)")
-            
-            futures.append(future)
-        }
-        
-        try futures.flatten().await(on: poolQueue)
-    }
+//    func testPerformance() throws {
+//        try testPopulateUsersSchema()
+//        var futures = [Future<Void>]()
+//
+//        for _ in 0..<100_000 {
+//            let future = self.connection.administrativeQuery("INSERT INTO users (username, admin) VALUES ('Joannis', true)")
+//
+//            futures.append(future)
+//        }
+//
+//        try futures.flatten().await(on: poolQueue)
+//    }
     
     func testPreparedStatements2() throws {
         try testPopulateUsersSchema()
