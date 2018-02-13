@@ -17,10 +17,10 @@ let package = Package(
         .package(url: "https://github.com/vapor/crypto.git", .revision("3.0.0-beta.1")),
         
         // Networking
-        .package(url: "https://github.com/vapor/sockets.git", .revision("3.0.0-beta.1")),
+        .package(url: "https://github.com/vapor/sockets.git", .revision("3.0.0-beta.2")),
 
         // SSL support
-        .package(url: "https://github.com/vapor/tls.git", .revision("3.0.0-beta.1")),
+        .package(url: "https://github.com/vapor/tls.git", .revision("3.0.0-beta.2")),
     ],
     targets: [
         .target(name: "MySQL", dependencies: ["CodableKit", "Crypto", "TCP", "TLS"]),
