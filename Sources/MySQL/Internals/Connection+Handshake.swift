@@ -18,10 +18,16 @@ extension MySQLConnection {
         return .flatMap {
             let socket = try TCPSocket(isNonBlocking: true)
             let client = try TCPClient(socket: socket)
+            let connected = Promise<Void>()
+            
+            let tcpSink = socket.sink(on: eventLoop) { _, error in
+                connected.fail(error)
+            }
             
             let state = MySQLStateMachine(
                 source: socket.source(on: eventLoop),
-                sink: socket.sink(on: eventLoop),
+                sink: tcpSink,
+                connected: connected,
                 user: user,
                 password: password,
                 database: database,
@@ -31,7 +37,7 @@ extension MySQLConnection {
             
             try client.connect(hostname: hostname, port: port)
             
-            return state.connected.future.transform(to: MySQLConnection(stateMachine: state))
+            return connected.future.transform(to: MySQLConnection(stateMachine: state))
         }
     }
 }
