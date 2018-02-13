@@ -21,9 +21,6 @@ let package = Package(
 
         // SSL support
         .package(url: "https://github.com/vapor/tls.git", .revision("3.0.0-beta.1")),
-
-        // Non-blocking networking for Swift (HTTP and WebSockets).
-        .package(url: "https://github.com/vapor/engine.git", .revision("3.0.0-beta.1")),
     ],
     targets: [
         .target(name: "MySQL", dependencies: ["CodableKit", "Crypto", "TCP", "TLS"]),
