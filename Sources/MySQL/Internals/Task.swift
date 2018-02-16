@@ -114,7 +114,6 @@ final class ParseResults: Task {
         } catch {
             // Failure might indicate no EOF is coming and a field is coming instead
             columnsCompleted = true
-            return try parseField(from: packet)
         }
         
         return false
