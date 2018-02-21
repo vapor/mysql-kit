@@ -13,6 +13,7 @@ class MySQLTests: XCTestCase {
     static let allTests = [
         ("testPreparedStatements", testPreparedStatements),
         ("testPreparedStatements2", testPreparedStatements2),
+        ("testPreparedStatementFail",testPreparedStatementFail),
         ("testCreateUsersSchema", testCreateUsersSchema),
         ("testPopulateUsersSchema", testPopulateUsersSchema),
         ("testForEach", testForEach),
@@ -26,9 +27,9 @@ class MySQLTests: XCTestCase {
     override func setUp() {
         connection = try! MySQLConnection.makeConnection(
             hostname: "localhost",
-            user: "root",
-            password: nil,
-            database: "vapor_test",
+            user: "n1te_user",
+            password: "n1te_user",
+            database: "n1te",
             on: poolQueue
         ).await(on: poolQueue)
         
@@ -52,6 +53,18 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(users.count, 1)
         XCTAssertEqual(users.first?.admin, false)
         XCTAssertEqual(users.first?.username, "Joannis")
+    }
+    
+    func testPreparedStatementFail() throws {
+        try testPopulateUsersSchema()
+        
+        let query = "SELECT * FROM users1 WHERE `username` = ?"
+        
+        XCTAssertThrowsError(try connection.withPreparation(statement: query) { statement in
+            return try statement.bind { binding in
+                try binding.bind("Joannis")
+                }.all(User.self)
+            }.await(on: poolQueue))
     }
     
 //    func testPerformance() throws {

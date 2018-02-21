@@ -91,9 +91,15 @@ extension MySQLConnection {
     public func withPreparation<T>(statement: String, run closure: @escaping ((PreparedStatement) throws -> Future<T>)) -> Future<T> {
         let promise = Promise<T>()
         
-        let task = PrepareQuery(query: statement, context: self.stateMachine) { statement in
+        let task = PrepareQuery(query: statement, context: self.stateMachine) { statement, sqlError in
             do {
-                try closure(statement).chain(to: promise)
+                if let statement = statement {
+                    try closure(statement).chain(to: promise)
+                } else if let sqlError = sqlError {
+                    throw sqlError
+                } else {
+                    throw MySQLError(.invalidResponse)
+                }
             } catch {
                 promise.fail(error)
             }

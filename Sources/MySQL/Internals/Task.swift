@@ -17,6 +17,12 @@ struct StartHandshake: Task {
     var packets: [Packet] { return [] }
     
     func update(with packet: Packet) throws -> Bool {
+        // Incoming packet can be an error packet so fail fast
+        // Do not silence the error!
+        guard packet.payload.first != 0xff else {
+            throw MySQLError(packet:packet)
+        }
+        
         let handshake = try context.doHandshake(from: packet)
         
         context.execute(SendHandshake(handshake: handshake, context: context))
@@ -36,6 +42,13 @@ struct SendHandshake: Task {
     var packets: [Packet] { return [handshake] }
     
     func update(with packet: Packet) throws -> Bool {
+        
+        // Incoming packet can be an error packet so fail fast
+        // Do not silence the error!
+        guard packet.payload.first != 0xff else {
+            throw MySQLError(packet:packet)
+        }
+        
         guard let packet = try context.finishAuthentication(for: packet) else {
             context.connected.complete()
             return true
@@ -58,6 +71,12 @@ struct SendAuthentication: Task {
     var packets: [Packet] { return [] }
     
     func update(with packet: Packet) throws -> Bool {
+        // Incoming packet can be an error packet so fail fast
+        // Do not silence the error!
+        guard packet.payload.first != 0xff else {
+            throw MySQLError(packet:packet)
+        }
+    
         _ = try packet.parseBinaryOK()
         
         return true
@@ -85,6 +104,12 @@ final class ParseResults: Task {
     }
     
     func update(with packet: Packet) throws -> Bool {
+        // Incoming packet can be an error packet so fail fast
+        // Do not silence the error!
+        guard packet.payload.first != 0xff else {
+            throw MySQLError(packet:packet)
+        }
+        
         guard let columnCount = columnCount else {
             return try updateColumnCount(with: packet)
         }
@@ -181,6 +206,8 @@ final class ParseResults: Task {
     }
 }
 
+/// COM_QUERY Command
+/// https://mariadb.com/kb/en/library/com_query/
 struct TextQuery: Task {
     let query: String
     let parse: ParseResults
@@ -197,6 +224,12 @@ struct TextQuery: Task {
     }
     
     func update(with packet: Packet) throws -> Bool {
+        // Incoming packet can be an error packet so fail fast
+        // Do not silence the error!
+        guard packet.payload.first != 0xff else {
+            throw MySQLError(packet:packet)
+        }
+        
         return try parse.update(with: packet)
     }
     
@@ -206,8 +239,11 @@ struct TextQuery: Task {
     }
 }
 
+
+/// COM_STMT_PREPARE command
+/// https://mariadb.com/kb/en/library/com_stmt_prepare/
 final class PrepareQuery: Task {
-    typealias Callback = (PreparedStatement) -> ()
+    typealias Callback = (PreparedStatement?, MySQLError?) -> ()
     
     let query: String
     let context: MySQLStateMachine
@@ -235,6 +271,16 @@ final class PrepareQuery: Task {
     }
     
     func update(with packet: Packet) throws -> Bool {
+        // Incoming packet can be an error packet so fail fast
+        // Do not silence the error!
+        guard packet.payload.first != 0xff else {
+            // We cannot just throw an MySQLError here, because the supplied closure must fail,
+            // otherways we are endup with hanging Future.
+            // So we are bubble up the error to the supplied closure and end the Task
+            callback(nil, MySQLError(packet: packet))
+            return true
+        }
+        
         if
             let id = id,
             let totalParameters = totalParameters,
@@ -254,7 +300,8 @@ final class PrepareQuery: Task {
             
             if self.parameters.count == totalParameters, self.columns.count == totalColumns {
                 let statement = PreparedStatement(statementID: id, columns: self.columns, stateMachine: context, parameters: self.parameters)
-                callback(statement)
+                //call the callback with preparedStatement
+                callback(statement, nil)
                 
                 return true
             }
@@ -273,14 +320,15 @@ final class PrepareQuery: Task {
     
     func interrupted(by error: Error) {}
 }
-
+/// COM_QUIT Command
+/// https://mariadb.com/kb/en/library/com_quit/
 struct Close: Task {
     var packets: [Packet] {
         return [
             [0x01]
         ]
     }
-    
+    // No response from the server!
     func update(with packet: Packet) throws -> Bool {
         return true
     }
@@ -288,6 +336,9 @@ struct Close: Task {
     func interrupted(by error: Error) { }
 }
 
+
+/// COM_STMT_CLOSE command
+/// https://mariadb.com/kb/en/library/3-binary-protocol-prepared-statements-com_stmt_close/
 struct ClosePreparation: Task {
     var id: UInt32
     
@@ -305,6 +356,8 @@ struct ClosePreparation: Task {
         return [packet]
     }
     
+    /// Response:
+    /// No response from server.
     func update(with packet: Packet) throws -> Bool {
         return true
     }
@@ -312,6 +365,9 @@ struct ClosePreparation: Task {
     func interrupted(by error: Error) { }
 }
 
+
+/// COM_STMT_RESET Command
+/// https://mariadb.com/kb/en/library/com_stmt_reset/
 struct ResetPreparation: Task {
     var id: UInt32
     
@@ -329,13 +385,25 @@ struct ResetPreparation: Task {
         return [packet]
     }
     
+    /// Response:
+    /// ERR_Packet or OK_Packet
+    
     func update(with packet: Packet) throws -> Bool {
+        /// Incoming packet can be an error packet so fail fast
+        /// incoming ERR packet means the prepared statement no longer valid.
+        /// Do not silence the error!
+        /// FIXME: invalidate statement id if error.
+        guard packet.payload.first != 0xff else {
+            throw MySQLError(packet:packet)
+        }
         return true
     }
     
     func interrupted(by error: Error) { }
 }
 
+/// COM_STMT_FETCH Command
+/// https://mariadb.com/kb/en/library/com_stmt_fetch/
 struct GetMore: Task {
     var id: UInt32
     var amount: UInt32
@@ -356,19 +424,26 @@ struct GetMore: Task {
         return [packet]
     }
     
-    // FIXME: Implement
     func update(with packet: Packet) throws -> Bool {
-        fatalError("MySQL's protocol is bad and they should feel bad")
+        // Incoming packet can be an error packet so fail fast
+        // Do not silence the error!
+        guard packet.payload.first != 0xff else {
+            throw MySQLError(packet:packet)
+        }
+        // FIXME: Implement binary resultset row parsing and pass it up!
+        // The protocol is good, only need to implement it properly
+        // https://mariadb.com/kb/en/library/packet_bindata/
         return true
     }
     
     func interrupted(by error: Error) {
         output.error(error)
         output.close()
-        fatalError("WHY DO YOU DO THIS MYSQL")
     }
 }
 
+/// COM_STMT_EXECUTE Command
+/// https://mariadb.com/kb/en/library/com_stmt_execute/
 struct ExecutePreparation: Task {
     func interrupted(by error: Error) {
         parse.stream.error(error)
@@ -380,7 +455,17 @@ struct ExecutePreparation: Task {
     
     var packets: [Packet] { return [packet] }
     
+    // COM_STMT_EXECUTE response:
+    // The server can answer with 3 different responses:
+    // 0xff: ERR_Packet if any errors occur.
+    // 0x00: OK_packet when query execution works without resultset.
+    // Binary resultset
     func update(with packet: Packet) throws -> Bool {
+        // Incoming packet can be an error packet so fail fast
+        // Do not silence the error
+        guard packet.payload.first != 0xff else {
+            throw MySQLError(packet:packet)
+        }
         return try parse.update(with: packet)
     }
 }
