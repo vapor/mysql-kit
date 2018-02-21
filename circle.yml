@@ -35,5 +35,5 @@ workflows:
   version: 2
   tests:
     jobs:
-      - macos
+     # - macos
       - linux
