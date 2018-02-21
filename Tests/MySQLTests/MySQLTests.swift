@@ -27,9 +27,9 @@ class MySQLTests: XCTestCase {
     override func setUp() {
         connection = try! MySQLConnection.makeConnection(
             hostname: "localhost",
-            user: "n1te_user",
-            password: "n1te_user",
-            database: "n1te",
+            user: "root",
+            password: nil,
+            database: "vapor_test",
             on: poolQueue
         ).await(on: poolQueue)
         
