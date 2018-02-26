@@ -67,7 +67,7 @@ public final class PreparationBinding {
     /// Binds `NULL` to the next parameter
     public func bindNull() throws {
         guard boundStatement.boundParameters < boundStatement.statement.parameters.count else {
-            throw MySQLError(.tooManyParametersBound)
+            throw MySQLError(.tooManyParametersBound, source: .capture())
         }
         
         let bitmapStart = 10
@@ -83,7 +83,7 @@ public final class PreparationBinding {
     
     func bind(_ type: Field.FieldType, unsigned: Bool, data: [UInt8]) throws {
         guard boundStatement.boundParameters < boundStatement.statement.parameters.count else {
-            throw MySQLError(.tooManyParametersBound)
+            throw MySQLError(.tooManyParametersBound, source: .capture())
         }
         
         boundStatement.header.append(type.rawValue)

@@ -194,7 +194,7 @@ extension Packet {
         let length = try parser.parseUInt32()
         
         guard let fieldType = Field.FieldType(rawValue: try parser.byte()) else {
-            throw MySQLError(.invalidPacket)
+            throw MySQLError(.invalidPacket, source: .capture())
         }
         
         let flags = Field.Flags(rawValue: try parser.parseUInt16())

@@ -46,7 +46,7 @@ extension Packet {
         
         // Require decimal `10` to be the protocol version
         guard try parser.byte() == 10 else {
-            throw MySQLError(.invalidHandshake)
+            throw MySQLError(.invalidHandshake, source: .capture())
         }
         
         // UTF-8
@@ -58,11 +58,11 @@ extension Packet {
         }
         
         guard try parser.byte() == 0 else {
-            throw MySQLError(.invalidHandshake)
+            throw MySQLError(.invalidHandshake, source: .capture())
         }
         
         guard let serverVersion = String(bytes: serverVersionBuffer, encoding: .utf8) else {
-            throw MySQLError(.invalidHandshake)
+            throw MySQLError(.invalidHandshake, source: .capture())
         }
         
         // ID of the MySQL internal thread handling this connection
@@ -73,7 +73,7 @@ extension Packet {
         
         // null terminator of the random seed
         guard try parser.byte() == 0 else {
-            throw MySQLError(.invalidHandshake)
+            throw MySQLError(.invalidHandshake, source: .capture())
         }
         
         // capabilities + default collation
@@ -97,7 +97,7 @@ extension Packet {
             randomSeed.append(contentsOf: try parser.buffer(length: 12))
             
             guard try parser.byte() == 0 else {
-                throw MySQLError(.invalidHandshake)
+                throw MySQLError(.invalidHandshake, source: .capture())
             }
             
             if parser.position < payload.count &- 1 {

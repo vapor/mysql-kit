@@ -1,6 +1,6 @@
 import Debugging
 
-public struct MySQLError : Swift.Error, Debuggable, Traceable, Helpable {
+public struct MySQLError : Swift.Error, Debuggable {
     public var possibleCauses: [String] {
         switch problem {
         case .invalidCredentials:
@@ -75,32 +75,21 @@ public struct MySQLError : Swift.Error, Debuggable, Traceable, Helpable {
     }
     
     /// Creates a new problem
-    init(_ problem: Problem,
-         file: String = #file,
-         function: String = #function,
-         line: UInt = #line,
-         column: UInt = #column
+    init(
+        _ problem: Problem,
+        source: SourceLocation
     ) {
         self.stackTrace = MySQLError.makeStackTrace()
-        self.file = file
-        self.function = function
-        self.line = line
-        self.column = column
+        self.sourceLocation = source
         self.problem = problem
     }
     
     init(
         packet: Packet,
-        file: String = #file,
-        function: String = #function,
-        line: UInt = #line,
-        column: UInt = #column
+        source: SourceLocation
     ) {
         self.stackTrace = MySQLError.makeStackTrace()
-        self.file = file
-        self.function = function
-        self.line = line
-        self.column = column
+        self.sourceLocation = source
         
         var parser = Parser(packet: packet, position: 1)
         
@@ -133,30 +122,15 @@ public struct MySQLError : Swift.Error, Debuggable, Traceable, Helpable {
     init(
         identifier: String,
         reason: String,
-        file: String = #file,
-        function: String = #function,
-        line: UInt = #line,
-        column: UInt = #column
+        sourceLocation: SourceLocation
     ) {
         self.problem = .other(identifier: identifier, reason: reason)
         self.stackTrace = MySQLError.makeStackTrace()
-        self.file = file
-        self.function = function
-        self.line = line
-        self.column = column
+        self.sourceLocation = sourceLocation
     }
     
-    /// The file this occurred in
-    public let file: String
-    
-    /// The function this occurred from
-    public let function: String
-    
-    /// The line this occurred at
-    public let line: UInt
-    
-    /// The column this occurred at
-    public let column: UInt
+    /// The location in Swift code this error originated from
+    public let sourceLocation: SourceLocation?
     
     /// Which problem
     internal let problem: Problem

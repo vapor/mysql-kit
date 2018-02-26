@@ -19,7 +19,7 @@ extension Packet {
         } else if byte == 0xfe {
             return (try parser.parseLenEnc(), try parser.parseLenEnc())
         } else if byte == 0xff {
-            throw MySQLError(packet: self)
+            throw MySQLError(packet: self, source: .capture())
         }
         
         return nil

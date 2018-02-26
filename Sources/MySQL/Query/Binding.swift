@@ -229,7 +229,7 @@ extension PreparationBinding {
     
     private func assertBindableParameter() throws -> Field.FieldType {
         guard boundStatement.statement.parameters.count > boundStatement.boundParameters else {
-            throw MySQLError(.tooManyParametersBound)
+            throw MySQLError(.tooManyParametersBound, source: .capture())
         }
         
         return boundStatement.statement.parameters[boundStatement.boundParameters].fieldType
@@ -354,7 +354,8 @@ extension PreparationBinding {
                 year > Int16.min
             else {
                 throw MySQLError(
-                    .invalidBinding(for: type)
+                    .invalidBinding(for: type),
+                    source: .capture()
                 )
             }
             
@@ -374,7 +375,8 @@ extension PreparationBinding {
             try bind(type, unsigned: false, data: data)
         default:
             throw MySQLError(
-                .invalidBinding(for: type)
+                .invalidBinding(for: type),
+                source: .capture()
             )
         }
     }
@@ -451,7 +453,8 @@ enum PseudoType {
             .invalidTypeBound(
                 got: self,
                 expected: expectation
-            )
+            ),
+            source: .capture()
         )
     }
 }

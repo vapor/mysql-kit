@@ -212,10 +212,10 @@ fileprivate struct ColumnContainer: SingleValueDecodingContainerHelper {
     func singleValue() throws -> Column {
         switch decoder.either {
         case .value(let column): return column
-        case .unkeyed(_): throw MySQLError(.decodingError)
+        case .unkeyed(_): throw MySQLError(.decodingError, source: .capture())
         case .keyed(let row):
             guard row.columns.count == 1 else {
-                throw MySQLError(.decodingError)
+                throw MySQLError(.decodingError, source: .capture())
             }
             
             return row.columns[0]

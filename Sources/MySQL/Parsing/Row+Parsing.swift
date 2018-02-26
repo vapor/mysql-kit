@@ -17,7 +17,7 @@ extension Packet {
         // Binary packets have a bit more data to carry `null`s  and a header
         if binary {
             guard try parser.byte() == 0 else {
-                throw MySQLError(.invalidPacket)
+                throw MySQLError(.invalidPacket, source: .capture())
             }
 
             let nullBytes = (columns.count + 9) / 8
@@ -77,7 +77,7 @@ extension Parser {
             return .null
         } else {
             switch field.fieldType {
-            case .decimal: throw MySQLError(.unsupported)
+            case .decimal: throw MySQLError(.unsupported, source: .capture())
             case .tiny:
                 let byte = try self.byte()
                 
@@ -112,7 +112,7 @@ extension Parser {
                 return .double(Double(bitPattern: num))
             case .null:
                 return .null
-            case .timestamp: throw MySQLError(.unsupported)
+            case .timestamp: throw MySQLError(.unsupported, source: .capture())
             case .longlong:
                 let num = try self.parseUInt64()
                 
@@ -121,9 +121,9 @@ extension Parser {
                 } else {
                     return .int64(numericCast(num))
                 }
-            case .int24: throw MySQLError(.unsupported)
-            case .date: throw MySQLError(.unsupported)
-            case .time: throw MySQLError(.unsupported)
+            case .int24: throw MySQLError(.unsupported, source: .capture())
+            case .date: throw MySQLError(.unsupported, source: .capture())
+            case .time: throw MySQLError(.unsupported, source: .capture())
             case .datetime:
                 let format = try byte()
                 
@@ -153,19 +153,19 @@ extension Parser {
                         nanosecond: numericCast(microseconds * 1000)
                     )
                 ) else {
-                    throw MySQLError(.invalidPacket)
+                    throw MySQLError(.invalidPacket, source: .capture())
                 }
                 
                 return .datetime(date)
-            case .year: throw MySQLError(.unsupported)
-            case .newdate: throw MySQLError(.unsupported)
+            case .year: throw MySQLError(.unsupported, source: .capture())
+            case .newdate: throw MySQLError(.unsupported, source: .capture())
             case .varchar:
                 return .varChar(try self.parseLenEncString())
-            case .bit: throw MySQLError(.unsupported)
-            case .json: throw MySQLError(.unsupported)
-            case .newdecimal: throw MySQLError(.unsupported)
-            case .enum: throw MySQLError(.unsupported)
-            case .set: throw MySQLError(.unsupported)
+            case .bit: throw MySQLError(.unsupported, source: .capture())
+            case .json: throw MySQLError(.unsupported, source: .capture())
+            case .newdecimal: throw MySQLError(.unsupported, source: .capture())
+            case .enum: throw MySQLError(.unsupported, source: .capture())
+            case .set: throw MySQLError(.unsupported, source: .capture())
             case .tinyBlob:
                 return .tinyBlob(try self.parseLenEncData())
             case .mediumBlob:
@@ -178,7 +178,7 @@ extension Parser {
                 return .varString(try self.parseLenEncString())
             case .string:
                 return .string(try self.parseLenEncString())
-            case .geometry: throw MySQLError(.unsupported)
+            case .geometry: throw MySQLError(.unsupported, source: .capture())
             }
         }
     }
@@ -201,7 +201,7 @@ extension Row {
         case .blob:
             append(.blob(value), forField: field)
         default:
-            throw MySQLError(.unsupported)
+            throw MySQLError(.unsupported, source: .capture())
         }
     }
     
@@ -250,13 +250,13 @@ extension Row {
                 
                 if field.flags.contains(.unsigned) {
                     guard int >= 0, int <= numericCast(UInt16.max) else {
-                        throw MySQLError(.parsingError)
+                        throw MySQLError(.parsingError, source: .capture())
                     }
                     
                     append(.uint16(numericCast(int)), forField: field)
                 } else {
                     guard int >= Int16.min, int <= numericCast(Int16.max) else {
-                        throw MySQLError(.parsingError)
+                        throw MySQLError(.parsingError, source: .capture())
                     }
                     
                     append(.int16(numericCast(int)), forField: field)
@@ -269,13 +269,13 @@ extension Row {
                 
                 if field.flags.contains(.unsigned) {
                     guard int >= 0, int <= numericCast(UInt8.max) else {
-                        throw MySQLError(.parsingError)
+                        throw MySQLError(.parsingError, source: .capture())
                     }
                     
                     append(.uint8(numericCast(int)), forField: field)
                 } else {
                     guard int >= Int8.min, int <= numericCast(Int8.max) else {
-                        throw MySQLError(.parsingError)
+                        throw MySQLError(.parsingError, source: .capture())
                     }
                     
                     append(.int8(numericCast(int)), forField: field)
@@ -295,12 +295,12 @@ extension Row {
             }
         case .datetime:
             guard let date = mysqlFormatter.date(from: makeString()) else {
-                throw MySQLError(.parsingError)
+                throw MySQLError(.parsingError, source: .capture())
             }
             
             append(.datetime(date), forField: field)
         default:
-            throw MySQLError(.unsupported)
+            throw MySQLError(.unsupported, source: .capture())
         }
     }
 }

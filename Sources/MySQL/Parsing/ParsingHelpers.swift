@@ -23,7 +23,7 @@ struct Parser {
     /// Requires `n` amount of bytes or throws an error
     mutating func require(_ n: Int) throws {
         guard position &+ n <= packet.payload.count else {
-            throw MySQLError(.invalidPacket)
+            throw MySQLError(.invalidPacket, source: .capture())
         }
     }
     
@@ -75,7 +75,7 @@ struct Parser {
     /// Parses the length encoded integer
     mutating func parseLenEnc() throws -> UInt64 {
         guard position < self.payload.count else {
-            throw MySQLError(.invalidResponse)
+            throw MySQLError(.invalidResponse, source: .capture())
         }
         
         switch self.payload[position] {
@@ -92,7 +92,7 @@ struct Parser {
             
             return try parseUInt64()
         case 0xff:
-            throw MySQLError(packet: packet)
+            throw MySQLError(packet: packet, source: .capture())
         default:
             defer { position = position &+ 1 }
             return numericCast(self.payload[position])
@@ -119,7 +119,7 @@ struct Parser {
         let length = Int(try parseLenEnc())
         
         guard position &+ length <= self.payload.count else {
-            throw MySQLError(.invalidResponse)
+            throw MySQLError(.invalidResponse, source: .capture())
         }
         
         defer { position = position &+ length }

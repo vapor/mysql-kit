@@ -128,7 +128,7 @@ extension MySQLStateMachine {
             packet.sequenceId = self.sequenceId
             return packet
         } else {
-            throw MySQLError(.invalidHandshake)
+            throw MySQLError(.invalidHandshake, source: .capture())
         }
     }
     
@@ -151,7 +151,7 @@ extension MySQLStateMachine {
         switch packet.payload.first {
         case 0xfe:
             if packet.payload.count == 0 {
-                throw MySQLError(.invalidHandshake)
+                throw MySQLError(.invalidHandshake, source: .capture())
             } else {
                 var offset = 1
                 
@@ -164,13 +164,13 @@ extension MySQLStateMachine {
                     let password = self.password,
                     let mechanism = String(bytes: packet.payload[1..<offset], encoding: .utf8)
                     else {
-                        throw MySQLError(.invalidHandshake)
+                        throw MySQLError(.invalidHandshake, source: .capture())
                 }
                 
                 switch mechanism {
                 case "mysql_native_password":
                     guard offset &+ 2 < packet.payload.count else {
-                        throw MySQLError(.invalidHandshake)
+                        throw MySQLError(.invalidHandshake, source: .capture())
                     }
                     
                     let hash = sha1Encrypted(from: password, seed: Array(packet.payload[(offset &+ 1)...]))
@@ -183,11 +183,11 @@ extension MySQLStateMachine {
                     packet.sequenceId = self.sequenceId
                     return packet
                 default:
-                    throw MySQLError(.invalidHandshake)
+                    throw MySQLError(.invalidHandshake, source: .capture())
                 }
             }
         case 0xff:
-            throw MySQLError(packet: packet)
+            throw MySQLError(packet: packet, source: .capture())
         default:
             // auth is finished, have the parser stream to the packet stream now
             return nil

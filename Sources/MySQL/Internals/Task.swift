@@ -20,7 +20,7 @@ struct StartHandshake: Task {
         // Incoming packet can be an error packet so fail fast
         // Do not silence the error!
         guard packet.payload.first != 0xff else {
-            throw MySQLError(packet:packet)
+            throw MySQLError(packet:packet, source: .capture())
         }
         
         let handshake = try context.doHandshake(from: packet)
@@ -46,7 +46,7 @@ struct SendHandshake: Task {
         // Incoming packet can be an error packet so fail fast
         // Do not silence the error!
         guard packet.payload.first != 0xff else {
-            throw MySQLError(packet:packet)
+            throw MySQLError(packet:packet, source: .capture())
         }
         
         guard let packet = try context.finishAuthentication(for: packet) else {
@@ -74,7 +74,7 @@ struct SendAuthentication: Task {
         // Incoming packet can be an error packet so fail fast
         // Do not silence the error!
         guard packet.payload.first != 0xff else {
-            throw MySQLError(packet:packet)
+            throw MySQLError(packet:packet, source: .capture())
         }
     
         _ = try packet.parseBinaryOK()
@@ -107,7 +107,7 @@ final class ParseResults: Task {
         // Incoming packet can be an error packet so fail fast
         // Do not silence the error!
         guard packet.payload.first != 0xff else {
-            throw MySQLError(packet:packet)
+            throw MySQLError(packet:packet, source: .capture())
         }
         
         guard let columnCount = columnCount else {
@@ -180,7 +180,7 @@ final class ParseResults: Task {
         let length = try parser.parseLenEnc()
         
         guard length < Int.max else {
-            throw MySQLError(.unexpectedResponse)
+            throw MySQLError(.unexpectedResponse, source: .capture())
         }
         
         self.columnCount = numericCast(length)
@@ -227,7 +227,7 @@ struct TextQuery: Task {
         // Incoming packet can be an error packet so fail fast
         // Do not silence the error!
         guard packet.payload.first != 0xff else {
-            throw MySQLError(packet:packet)
+            throw MySQLError(packet: packet, source: .capture())
         }
         
         return try parse.update(with: packet)
@@ -277,7 +277,7 @@ final class PrepareQuery: Task {
             // We cannot just throw an MySQLError here, because the supplied closure must fail,
             // otherways we are endup with hanging Future.
             // So we are bubble up the error to the supplied closure and end the Task
-            callback(nil, MySQLError(packet: packet))
+            callback(nil, MySQLError(packet: packet, source: .capture()))
             return true
         }
         
@@ -394,7 +394,7 @@ struct ResetPreparation: Task {
         /// Do not silence the error!
         /// FIXME: invalidate statement id if error.
         guard packet.payload.first != 0xff else {
-            throw MySQLError(packet:packet)
+            throw MySQLError(packet: packet, source: .capture())
         }
         return true
     }
@@ -428,7 +428,7 @@ struct GetMore: Task {
         // Incoming packet can be an error packet so fail fast
         // Do not silence the error!
         guard packet.payload.first != 0xff else {
-            throw MySQLError(packet:packet)
+            throw MySQLError(packet: packet, source: .capture())
         }
         // FIXME: Implement binary resultset row parsing and pass it up!
         // The protocol is good, only need to implement it properly
@@ -464,7 +464,7 @@ struct ExecutePreparation: Task {
         // Incoming packet can be an error packet so fail fast
         // Do not silence the error
         guard packet.payload.first != 0xff else {
-            throw MySQLError(packet:packet)
+            throw MySQLError(packet: packet, source: .capture())
         }
         return try parse.update(with: packet)
     }

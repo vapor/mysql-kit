@@ -98,7 +98,7 @@ extension MySQLConnection {
                 } else if let sqlError = sqlError {
                     throw sqlError
                 } else {
-                    throw MySQLError(.invalidResponse)
+                    throw MySQLError(.invalidResponse, source: .capture())
                 }
             } catch {
                 promise.fail(error)

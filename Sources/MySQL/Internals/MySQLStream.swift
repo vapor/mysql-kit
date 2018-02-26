@@ -98,7 +98,7 @@ struct EOF {
         var parser = Parser(packet: packet)
         
         guard try parser.byte() == 0xfe, packet.payload.count == 5 else {
-            throw MySQLError(.invalidPacket)
+            throw MySQLError(.invalidPacket, source: .capture())
         }
         
         self.flags = try parser.parseUInt16()

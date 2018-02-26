@@ -52,7 +52,7 @@ public final class BoundStatement {
     ///     4    scrollable cursor
     func execute(into stream: AnyInputStream<Row>) throws {
         guard boundParameters == statement.parameters.count else {
-            throw MySQLError(.notEnoughParametersBound)
+            throw MySQLError(.notEnoughParametersBound, source: .capture())
         }
         
         let pushStream = PushStream<Row>()
