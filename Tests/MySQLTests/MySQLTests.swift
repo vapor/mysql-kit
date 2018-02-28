@@ -1,311 +1,318 @@
-import XCTest
+import Async
+import Dispatch
 @testable import MySQL
-import JSON
-import Core
+import TCP
+import XCTest
 
+let poolQueue: DefaultEventLoop = try! DefaultEventLoop(label: "multi")
+
+/// Requires a user with the username `vapor` and password `vapor` with permissions on the `vapor_test` database on localhost
 class MySQLTests: XCTestCase {
+    var connection: MySQLConnection!
+
     static let allTests = [
-        ("testSelectVersion", testSelectVersion),
-        ("testTables", testTables),
-        ("testParameterization", testParameterization),
-        ("testDates", testDates),
-        ("testTimestamps", testTimestamps),
-        ("testSpam", testSpam),
-        ("testError", testError),
-        ("testTransaction", testTransaction),
-        ("testTransactionFailed", testTransactionFailed),
-        ("testBlob", testBlob),
-        ("testLongtext", testLongtext),
+        ("testPreparedStatements", testPreparedStatements),
+        ("testPreparedStatements2", testPreparedStatements2),
+        ("testPreparedStatementFail",testPreparedStatementFail),
+        ("testCreateUsersSchema", testCreateUsersSchema),
+        ("testPopulateUsersSchema", testPopulateUsersSchema),
+        ("testForEach", testForEach),
+        ("testAll", testAll),
+        ("testStream", testStream),
+        ("testComplexModel", testComplexModel),
+        ("testFailures", testFailures),
+        ("testSingleValueDecoding", testSingleValueDecoding),
+        ("testBool", testBool),
+        ("testNullFieldDecode", testNullFieldDecode),
     ]
-
-    var mysql: MySQL.Database!
-
+    
     override func setUp() {
-        mysql = MySQL.Database.makeTest()
+        connection = try! MySQLConnection.makeConnection(
+            hostname: "localhost",
+            user: "root",
+            password: nil,
+            database: "vapor_test",
+            on: poolQueue
+        ).await(on: poolQueue)
+        
+        _ = try? connection.dropTables(named: "users").await(on: poolQueue)
+        _ = try? connection.dropTables(named: "complex").await(on: poolQueue)
+        _ = try? connection.dropTables(named: "test").await(on: poolQueue)
+        _ = try? connection.dropTables(named: "articles").await(on: poolQueue)
     }
 
-    func testSelectVersion() throws {
-        let results = try mysql
-            .makeConnection()
-            .execute("SELECT @@version, @@version, 1337, 3.14, 'what up', NULL")
+    func testPreparedStatements() throws {
+        try testPopulateUsersSchema()
 
-        guard let version = results[0, "@@version"]?.string else {
-            XCTFail("Version not in results")
+        let query = "SELECT * FROM users WHERE `username` = ?"
+
+        let users = try connection.withPreparation(statement: query) { statement in
+            return try statement.bind { binding in
+                try binding.bind("Joannis")
+            }.all(User.self)
+        }.await(on: poolQueue)
+
+        XCTAssertEqual(users.count, 1)
+        XCTAssertEqual(users.first?.admin, false)
+        XCTAssertEqual(users.first?.username, "Joannis")
+    }
+    
+    func testPreparedStatementFail() throws {
+        try testPopulateUsersSchema()
+        
+        let query = "SELECT * FROM users1 WHERE `username` = ?"
+        
+        XCTAssertThrowsError(try connection.withPreparation(statement: query) { statement in
+            return try statement.bind { binding in
+                try binding.bind("Joannis")
+                }.all(User.self)
+            }.await(on: poolQueue))
+    }
+    
+//    func testPerformance() throws {
+//        try testPopulateUsersSchema()
+//        var futures = [Future<Void>]()
+//
+//        for _ in 0..<100_000 {
+//            let future = self.connection.administrativeQuery("INSERT INTO users (username, admin) VALUES ('Joannis', true)")
+//
+//            futures.append(future)
+//        }
+//
+//        try futures.flatten().await(on: poolQueue)
+//    }
+    
+    func testPreparedStatements2() throws {
+        try testPopulateUsersSchema()
+        
+        let query = "SELECT * FROM users WHERE `id` = ?"
+        
+        let users = try connection.withPreparation(statement: query) { statement in
+            return try statement.bind { binding in
+                try binding.bind(4) // Tanner
+            }.all(User.self)
+        }.await(on: poolQueue)
+        
+        XCTAssertEqual(users.count, 1)
+        XCTAssertEqual(users.first?.admin, true)
+        XCTAssertEqual(users.first?.username, "Tanner")
+    }
+    
+    func testCreateUsersSchema() throws {
+        let table = Table(named: "users")
+     
+        table.schema.append(Table.Column(named: "id", type: .int32(length: nil), autoIncrement: true, primary: true, unique: true))
+     
+        table.schema.append(Table.Column(named: "username", type: .varChar(length: 32, binary: false), autoIncrement: false, primary: false, unique: false))
+        
+        table.schema.append(Table.Column(named: "admin", type: .uint8(length: 1)))
+     
+        try connection.createTable(table).await(on: poolQueue)
+    }
+    
+    func testPopulateUsersSchema() throws {
+        try testCreateUsersSchema()
+     
+        try connection.administrativeQuery("INSERT INTO users (username, admin) VALUES ('Joannis', false)").await(on: poolQueue)
+        try connection.administrativeQuery("INSERT INTO users (username, admin) VALUES ('Jonas', false)").await(on: poolQueue)
+        try connection.administrativeQuery("INSERT INTO users (username, admin) VALUES ('Logan', true)").await(on: poolQueue)
+        try connection.administrativeQuery("INSERT INTO users (username, admin) VALUES ('Tanner', true)").await(on: poolQueue)
+    }
+    
+    func testForEach() throws {
+        try testPopulateUsersSchema()
+
+        var iterator = ["Joannis", "Jonas", "Logan", "Tanner"].makeIterator()
+        var count = 0
+
+        try connection.forEach(User.self, in: "SELECT * FROM users") { user in
+            XCTAssertEqual(user.username, iterator.next())
+            count += 1
+        }.await(on: poolQueue)
+
+        XCTAssertEqual(count, 4)
+    }
+
+    func testAll() throws {
+        try testPopulateUsersSchema()
+
+        var iterator = ["Joannis", "Jonas", "Logan", "Tanner"].makeIterator()
+
+        let users = try connection.all(User.self, in: "SELECT * FROM users").await(on: poolQueue)
+        for user in users {
+            XCTAssertEqual(user.username, iterator.next())
+        }
+
+        XCTAssertEqual(users.count, 4)
+    }
+
+    func testStream() throws {
+        try testPopulateUsersSchema()
+
+        var iterator = ["Joannis", "Jonas", "Logan", "Tanner"].makeIterator()
+        var count = 0
+        let promise = Promise<Int>()
+
+        connection.forEach(User.self, in: "SELECT * FROM users") { user in
+            XCTAssertEqual(user.username, iterator.next())
+            count += 1
+
+            if count == 4 {
+                promise.complete(4)
+            }
+        }.catch { XCTFail("\($0)") }
+
+        XCTAssertEqual(4, try promise.future.await(on: poolQueue))
+    }
+
+    func testComplexModel() throws {
+        let table = Table(named: "complex")
+
+        table.schema.append(Table.Column(named: "id", type: .uint8(length: nil), autoIncrement: true, primary: true, unique: true))
+
+        table.schema.append(Table.Column(named: "number0", type: .float()))
+        table.schema.append(Table.Column(named: "number1", type: .double()))
+        table.schema.append(Table.Column(named: "i16", type: .int16()))
+        table.schema.append(Table.Column(named: "ui16", type: .uint16()))
+        table.schema.append(Table.Column(named: "i32", type: .int32()))
+        table.schema.append(Table.Column(named: "ui32", type: .uint32()))
+        table.schema.append(Table.Column(named: "i64", type: .int64()))
+        table.schema.append(Table.Column(named: "ui64", type: .uint64()))
+
+        do {
+            try connection.createTable(table).await(on: poolQueue)
+
+            try connection.administrativeQuery("INSERT INTO complex (number0, number1, i16, ui16, i32, ui32, i64, ui64) VALUES (3.14, 6.28, -5, 5, -10000, 10000, 5000, 0)").await(on: poolQueue)
+
+            try connection.administrativeQuery("INSERT INTO complex (number0, number1, i16, ui16, i32, ui32, i64, ui64) VALUES (3.14, 6.28, -5, 5, -10000, 10000, 5000, 0)").await(on: poolQueue)
+        } catch {
+            debugPrint(error)
+            XCTFail()
+            throw error
+        }
+
+        let all = try connection.all(Complex.self, in: "SELECT * FROM complex").await(on: poolQueue)
+
+        XCTAssertEqual(all.count, 2)
+
+        guard let first = all.first else {
+            XCTFail()
             return
         }
 
-        XCTAssert(version.characters.first == "5")
+        XCTAssertEqual(first.number0, 3.14)
+        XCTAssertEqual(first.number1, 6.28)
+        XCTAssertEqual(first.i16, -5)
+        XCTAssertEqual(first.ui16, 5)
+        XCTAssertEqual(first.i32, -10_000)
+        XCTAssertEqual(first.ui32, 10_000)
+        XCTAssertEqual(first.i64, 5_000)
+        XCTAssertEqual(first.ui64, 0)
+
+        try connection.dropTable(named: "complex").await(on: poolQueue)
     }
 
-    func testTables() throws {
-        let conn = try mysql.makeConnection()
+    func testSingleValueDecoding() throws {
+        try testPopulateUsersSchema()
 
-        // insert data
-        try conn.execute("DROP TABLE IF EXISTS foo")
-        try conn.execute("CREATE TABLE foo (bar INT(4), baz VARCHAR(16))")
-        try conn.execute("INSERT INTO foo VALUES (42, 'Life')")
-        try conn.execute("INSERT INTO foo VALUES (1337, 'Elite')")
-        try conn.execute("INSERT INTO foo VALUES (9, NULL)")
-
-        // verify data
-        if let result = try conn.execute("SELECT * FROM foo WHERE bar = 42")[0]?.object {
-            XCTAssertEqual(result["bar"]?.int, 42)
-            XCTAssertEqual(result["baz"]?.string, "Life")
-        } else {
-            XCTFail("Could not get bar result")
-        }
-        if let result = try conn.execute("SELECT * FROM foo where baz = 'elite'")[0]?.object {
-            XCTAssertEqual(result["bar"]?.int, 1337)
-            XCTAssertEqual(result["baz"]?.string, "Elite")
-        } else {
-            XCTFail("Could not get baz result")
-        }
-        if let result = try conn.execute("SELECT * FROM foo where bar = 9")[0]?.object {
-            XCTAssertEqual(result["bar"]?.int, 9)
-            XCTAssertEqual(result["baz"]?.string, nil)
-        } else {
-            XCTFail("Could not get null result")
-        }
+        let tables = try connection.all(String.self, in: "SHOW TABLES").await(on: poolQueue)
+        XCTAssert(tables.contains("users"))
     }
 
-    func testParameterization() throws {
-        let conn = try mysql.makeConnection()
-
-        try conn.execute("DROP TABLE IF EXISTS parameterization")
-        try conn.execute("CREATE TABLE parameterization (d DOUBLE, i INT, s VARCHAR(16), u INT UNSIGNED)")
-
-        try conn.execute("INSERT INTO parameterization VALUES (3.14, NULL, 'pi', NULL)")
-        try conn.execute("INSERT INTO parameterization VALUES (NULL, NULL, 'life', 42)")
-        try conn.execute("INSERT INTO parameterization VALUES (NULL, -1, 'test', NULL)")
-        try conn.execute("INSERT INTO parameterization VALUES (NULL, -1, 'test', NULL)")
-
-        if let result = try conn.execute("SELECT * FROM parameterization WHERE d = ?", ["3.14"])[0]?.object {
-            XCTAssertEqual(result["d"]?.double, 3.14)
-            XCTAssertEqual(result["i"]?.int, nil)
-            XCTAssertEqual(result["s"]?.string, "pi")
-            XCTAssertEqual(result["u"]?.int, nil)
-        } else {
-            XCTFail("Could not get pi result")
-        }
-
-        if let result = try conn.execute("SELECT * FROM parameterization WHERE u = ?", [42])[0]?.object {
-            XCTAssertEqual(result["d"]?.double, nil)
-            XCTAssertEqual(result["i"]?.int, nil)
-            XCTAssertEqual(result["s"]?.string, "life")
-            XCTAssertEqual(result["u"]?.int, 42)
-        } else {
-            XCTFail("Could not get life result")
-        }
-
-        if let result = try conn.execute("SELECT * FROM parameterization WHERE i = ?", [-1])[0]?.object {
-            XCTAssertEqual(result["d"]?.double, nil)
-            XCTAssertEqual(result["i"]?.int, -1)
-            XCTAssertEqual(result["s"]?.string, "test")
-            XCTAssertEqual(result["u"]?.int, nil)
-        } else {
-            XCTFail("Could not get test by int result")
-        }
-
-        if let result = try conn.execute("SELECT * FROM parameterization WHERE s = ?", ["test"])[0]?.object {
-            XCTAssertEqual(result["d"]?.double, nil)
-            XCTAssertEqual(result["i"]?.int, -1)
-            XCTAssertEqual(result["s"]?.string, "test")
-            XCTAssertEqual(result["u"]?.int, nil)
-        } else {
-            XCTFail("Could not get test by string result")
-        }
+    func testFailures() throws {
+        XCTAssertThrowsError(try connection.administrativeQuery("INSRT INTOO users (username) VALUES ('Exampleuser')").await(on: poolQueue))
+        XCTAssertThrowsError(try connection.all(User.self, in: "SELECT * FORM users").await(on: poolQueue))
     }
 
-    func testDates() throws {
-        let conn = try mysql.makeConnection()
-        let inputDate = Date()
+    func testText() throws {
+        let table = Table(named: "articles")
 
-        try conn.execute("DROP TABLE IF EXISTS times")
-        try conn.execute("CREATE TABLE times (date DATETIME)")
-        try conn.execute("INSERT INTO times VALUES (?)", [Node.date(inputDate)])
-        let results = try conn.execute("SELECT * from times")
+        table.schema.append(Table.Column(named: "id", type: .uint8(length: nil), autoIncrement: true, primary: true, unique: true))
 
-        if let node = results[0, "date"], case let .date(retrievedDate) = node.wrapped {
-            // make ints to more accurately compare
-            let r = Int(retrievedDate.timeIntervalSince1970)
-            let i = Int(inputDate.timeIntervalSince1970)
-            XCTAssertEqual(r, i, "Mismatched dates. Found: \(retrievedDate) Expected: \(inputDate)")
-        } else {
-            XCTFail("Unable to retrieve date")
-        }
+        table.schema.append(Table.Column(named: "text", type: .text()))
+
+        try connection.createTable(table).await(on: poolQueue)
+
+        try connection.administrativeQuery("INSERT INTO articles (text) VALUES ('hello, world')").await(on: poolQueue)
+
+        let articles = try connection.all(Article.self, in: "SELECT * FROM articles").await(on: poolQueue)
+        XCTAssertEqual(articles.count, 1)
+        XCTAssertEqual(articles.first?.text, "hello, world")
     }
 
-    func testTimestamps() throws {
-        let conn = try mysql.makeConnection()
+    func testDeleteRead() throws {
+        try testPopulateUsersSchema()
 
-        try conn.execute("DROP TABLE IF EXISTS times")
-        try conn.execute("CREATE TABLE times (i INT, d DATE, t TIME, ts TIMESTAMP)")
-
-
-        try conn.execute("INSERT INTO times VALUES (?, ?, ?, ?)", [
-            1.0,
-            "2050-05-12",
-            "13:42",
-            "2005-05-05 05:05:05"
-        ])
-
-
-        if let result = try conn.execute("SELECT i, ts FROM times")[0]?.object {
-            // 113142373505 = Thu, 05 May 2005 05:05:05 GMT
-            XCTAssertEqual(result["ts"]?.double, 1115269505)
-        } else {
-            XCTFail("No results")
-        }
-    }
-
-    func testSpam() throws {
-        let conn = try mysql.makeConnection()
-
-        try conn.execute("DROP TABLE IF EXISTS spam")
-        try conn.execute("CREATE TABLE spam (s VARCHAR(64), time TIME)")
-
-        for _ in 0..<10_000 {
-            try conn.execute("INSERT INTO spam VALUES (?, ?)", ["hello", "13:42"])
-        }
-
-        let conn2 = try mysql.makeConnection()
-        try conn2.execute("SELECT * FROM spam")
-    }
-
-    func testError() throws {
-        let conn = try mysql.makeConnection()
-
-        do {
-            try conn.execute("error")
-            XCTFail("Should have errored.")
-        } catch let error as MySQLError where error.code == .parseError {
-            // good
-            print(error.fullIdentifier)
-        } catch {
-            XCTFail("Wrong error: \(error)")
-        }
-    }
-    
-    func testTransaction() throws {
-        let conn = try mysql.makeConnection()
-
-        try conn.execute("DROP TABLE IF EXISTS transaction")
-        try conn.execute("CREATE TABLE transaction (name VARCHAR(64))")
-        try conn.execute("INSERT INTO transaction VALUES (?)", [
-            "james"
-        ])
-        
-        try conn.transaction {
-            _ = try conn.execute("UPDATE transaction SET name = 'James' where name = 'james'")
-        }
-        
-        if let name = try conn.execute("SELECT * FROM transaction")["0", "name"]?.string {
-            XCTAssertEqual(name, "James")
-        } else {
-            XCTFail("There should be one entry.")
-        }
-    }
-    
-    func testTransactionFailed() throws {
-        let c = try mysql.makeConnection()
-        try c.execute("DROP TABLE IF EXISTS transaction")
-        try c.execute("CREATE TABLE transaction (name VARCHAR(64))")
-        try c.execute("INSERT INTO transaction VALUES (?)", [
-            "tommy"
-        ])
-        
-        do {
-            try c.transaction {
-                // will succeed, but will be rolled back
-                try c.execute("UPDATE transaction SET name = 'Timmy'")
-                
-                // malformed query, will throw
-                try c.execute("💉")
-            }
-            
-            XCTFail("Transaction should have rethrown error.")
-            
-        } catch {
-            if let tommy = try c.execute("SELECT * FROM transaction")[0] {
-                XCTAssertEqual(tommy["name"]?.string, "tommy", "Should have ROLLBACK")
-            } else {
-                XCTFail("There should be one entry.")
+        let users = connection.administrativeQuery("DELETE FROM users WHERE username LIKE 'Jo%'").flatMap(to: Int.self) { _ in
+            return self.connection.all(User.self, in: "SELECT * FROM users").map(to: Int.self) { users in
+                return users.count
             }
         }
+
+        XCTAssertEqual(try users.await(on: poolQueue), 2)
     }
 
-    func testBlob() throws {
-        let conn = try mysql.makeConnection()
-        try conn.execute("DROP TABLE IF EXISTS blobs")
-        try conn.execute("CREATE TABLE blobs (raw BLOB)")
-        // collection of bytes that would break UTF8
-        let inputBytes = Node.bytes([0xc3, 0x28, 0xa0, 0xa1, 0xe2, 0x28, 0xa1, 0xe2, 0x82, 0x28, 0xf0, 0x28, 0x8c, 0xbc])
-        try conn.execute("INSERT INTO blobs VALUES (?)", [inputBytes])
-        let retrieved = try conn.execute("SELECT * FROM blobs")[0, "raw"]?.bytes ?? []
-        let expectation = inputBytes.bytes ?? []
-        XCTAssert(!retrieved.isEmpty)
-        XCTAssert(!expectation.isEmpty)
-        XCTAssertEqual(retrieved, expectation)
-    }
-
-    func testTimeout() throws {
-        let conn = try mysql.makeConnection()
-        XCTAssert(!conn.isClosed)
-
-        try conn.execute("SET session wait_timeout=1;")
-        XCTAssert(!conn.isClosed)
-
-        sleep(2)
-
-        do {
-            try conn.execute("SELECT @@version")
-        } catch let error as MySQLError
-            where
-                error.code == .serverLost ||
-                error.code == .serverGone ||
-                error.code == .serverLostExtended
-        {
-            XCTAssert(conn.isClosed)
-            // correct error
-        } catch {
-            XCTFail("Timeout test failed.")
+    func testBool() throws {
+        try connection.administrativeQuery("DROP TABLE IF EXISTS booltest").await(on: poolQueue)
+        try connection.administrativeQuery("CREATE TABLE booltest (bool INT)").await(on: poolQueue)
+        struct BoolModel: Codable {
+            var bool: Bool
         }
+        _ = try connection.withPreparation(statement: "INSERT INTO booltest (bool) VALUES (?)") { bind -> Future<[BoolModel]> in
+            return try bind.bind { binding in
+                try binding.withEncoder { encoder in
+                    try BoolModel(bool: true).encode(to: encoder)
+                }
+            }.all(BoolModel.self)
+        }.await(on: poolQueue)
+        _ = try connection.withPreparation(statement: "INSERT INTO booltest (bool) VALUES (?)") { bind -> Future<[BoolModel]> in
+            return try bind.bind { binding in
+                try binding.withEncoder { encoder in
+                    try BoolModel(bool: false).encode(to: encoder)
+                }
+            }.all(BoolModel.self)
+        }.await(on: poolQueue)
+        let models = try connection.all(BoolModel.self, in: "SELECT * FROM booltest").await(on: poolQueue)
+        XCTAssertEqual(models.first?.bool, true)
+        XCTAssertEqual(models.last?.bool, false)
     }
 
-    func testLongtext() throws {
-        let conn = try mysql.makeConnection()
-        try conn.execute("DROP TABLE IF EXISTS items")
-        try conn.execute("CREATE TABLE `items` ( " +
-            "`id` int(10) unsigned NOT NULL AUTO_INCREMENT, " +
-            "`title` varchar(255) NOT NULL DEFAULT '', " +
-            "`imageUrl` varchar(255) NOT NULL DEFAULT '', " +
-            "`html` longtext NOT NULL, " +
-            "`isPrivate` tinyint(1) unsigned NOT NULL, " +
-            "`isBusiness` tinyint(1) unsigned NOT NULL, " +
-            "PRIMARY KEY (`id`)) " +
-            "ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8;")
-
-        try conn.execute("INSERT INTO `items` (`id`, `title`, `imageUrl`, `html`, `isPrivate`, `isBusiness`) " +
-            "VALUES (1, 'test1', '12A34264-E5F6-48D4-AB27-422C4FD03277_10.jpeg', '<p>html</p>', 1, 1)")
-
-        let retrieved = try conn.execute("SELECT * from items")
-        XCTAssertEqual(retrieved.array?.count ?? 0, 1)
-        XCTAssertEqual(retrieved[0, "id"], 1)
-        XCTAssertEqual(retrieved[0, "title"], "test1")
-        XCTAssertEqual(retrieved[0, "html"]?.bytes?.makeString(), "<p>html</p>")
-    }
-
-    func testPerformance() throws {
-        let conn = try mysql.makeConnection()
-        try conn.execute("DROP TABLE IF EXISTS things")
-        try conn.execute("CREATE TABLE things (stuff VARCHAR(255))")
-        let string = String(repeating: "a", count: 255)
-        for _ in 0..<65_536 {
-            try conn.execute("INSERT INTO things VALUES (?)", [string])
+    func testNullFieldDecode() throws {
+        struct Todo: Codable {
+            var text: String?
         }
-        
-        measure {
-            _ = try! conn.execute("SELECT * FROM things")
-        }
+        try connection.administrativeQuery("DROP TABLE IF EXISTS nulltest").await(on: poolQueue)
+        try connection.administrativeQuery("CREATE TABLE nulltest (text VARCHAR(255))").await(on: poolQueue)
+        try connection.administrativeQuery("INSERT INTO nulltest (text) VALUES (NULL)").await(on: poolQueue)
+        let models = try! connection.all(Todo.self, in: "SELECT * FROM nulltest").await(on: poolQueue)
+        XCTAssertEqual(models.first?.text, nil)
     }
+}
+
+struct User: Decodable {
+    var id: Int
+    var username: String
+    var admin: Bool
+}
+
+struct Article: Decodable {
+    var id: Int
+    var text: String
+}
+
+struct Complex: Decodable {
+    var id: Int
+    var number0: Float
+    var number1: Double
+    var i16: Int16
+    var ui16: UInt16
+    var i32: Int32
+    var ui32: UInt32
+    var i64: Int64
+    var ui64: UInt64
+}
+
+struct Test: Decodable {
+    var id: Int
+    var num: Int
 }

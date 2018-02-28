@@ -1,18 +1,29 @@
+// swift-tools-version:4.0
 import PackageDescription
 
 let package = Package(
     name: "MySQL",
+    products: [
+        .library(name: "MySQL", targets: ["MySQL"]),
+    ],
     dependencies: [
-        // Module map for `libmysql`
-        .Package(url: "https://github.com/vapor/cmysql.git", majorVersion: 2),
+        // Swift Promises, Futures, and Streams.
+        .package(url: "https://github.com/vapor/async.git", from: "1.0.0-rc"),
 
-        // Data structure for converting between multiple representations
-        .Package(url: "https://github.com/vapor/node.git", majorVersion: 2),
+        // Core extensions, type-aliases, and functions that facilitate common tasks.
+        .package(url: "https://github.com/vapor/core.git", from: "3.0.0-rc"),
 
-        // Core extensions, type-aliases, and functions that facilitate common tasks
-        .Package(url: "https://github.com/vapor/core.git", majorVersion: 2),
+        // Cryptography modules
+        .package(url: "https://github.com/vapor/crypto.git", from: "3.0.0-rc"),
 
-        // JSON parsing and serialization for storing arrays and objects in MySQL
-        .Package(url: "https://github.com/vapor/json.git", majorVersion: 2),
+        // Networking
+        .package(url: "https://github.com/vapor/sockets.git", from: "3.0.0-rc"),
+
+        // SSL support
+        .package(url: "https://github.com/vapor/tls.git", from: "3.0.0-rc"),
+    ],
+    targets: [
+        .target(name: "MySQL", dependencies: ["CodableKit", "Crypto", "TCP", "TLS"]),
+        .testTarget(name: "MySQLTests", dependencies: ["MySQL"]),
     ]
 )
