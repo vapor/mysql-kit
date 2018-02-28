@@ -1,9 +1,9 @@
 <p align="center">
-    <img src="https://cloud.githubusercontent.com/assets/1342803/24704008/10d9e7de-1a06-11e7-855b-af4a079ba6b5.png" width="320" alt="MySQL">
+    <img src="https://user-images.githubusercontent.com/1342803/36769061-0a96b82c-1c10-11e8-8c66-4b7a337bbb43.png" height="64" alt="MySQL">
     <br>
     <br>
-    <a href="https://docs.vapor.codes/2.0/mysql/package/">
-        <img src="http://img.shields.io/badge/read_the-docs-92A8D1.svg" alt="Documentation">
+    <a href="https://docs.vapor.codes/3.0/">
+        <img src="http://img.shields.io/badge/read_the-docs-2196f3.svg" alt="Documentation">
     </a>
     <a href="http://vapor.team">
         <img src="http://vapor.team/badge.svg" alt="Slack Team">
@@ -15,6 +15,6 @@
         <img src="https://circleci.com/gh/vapor/mysql.svg?style=shield" alt="Continuous Integration">
     </a>
     <a href="https://swift.org">
-        <img src="http://img.shields.io/badge/swift-3.1-brightgreen.svg" alt="Swift 3.1">
+        <img src="http://img.shields.io/badge/swift-4.1-brightgreen.svg" alt="Swift 4.1">
     </a>
 </p>
