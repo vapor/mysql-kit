@@ -253,26 +253,26 @@ class MySQLTests: XCTestCase {
     }
 
     func testBool() throws {
-        try! connection.administrativeQuery("DROP TABLE IF EXISTS booltest").await(on: poolQueue)
-        try! connection.administrativeQuery("CREATE TABLE booltest (bool INT)").await(on: poolQueue)
+        try connection.administrativeQuery("DROP TABLE IF EXISTS booltest").await(on: poolQueue)
+        try connection.administrativeQuery("CREATE TABLE booltest (bool INT)").await(on: poolQueue)
         struct BoolModel: Codable {
             var bool: Bool
         }
-        _ = try! connection.withPreparation(statement: "INSERT INTO booltest (bool) VALUES (?)") { bind -> Future<[BoolModel]> in
+        _ = try connection.withPreparation(statement: "INSERT INTO booltest (bool) VALUES (?)") { bind -> Future<[BoolModel]> in
             return try bind.bind { binding in
                 try binding.withEncoder { encoder in
                     try BoolModel(bool: true).encode(to: encoder)
                 }
             }.all(BoolModel.self)
         }.await(on: poolQueue)
-        _ = try! connection.withPreparation(statement: "INSERT INTO booltest (bool) VALUES (?)") { bind -> Future<[BoolModel]> in
+        _ = try connection.withPreparation(statement: "INSERT INTO booltest (bool) VALUES (?)") { bind -> Future<[BoolModel]> in
             return try bind.bind { binding in
                 try binding.withEncoder { encoder in
                     try BoolModel(bool: false).encode(to: encoder)
                 }
             }.all(BoolModel.self)
         }.await(on: poolQueue)
-        let models = try! connection.all(BoolModel.self, in: "SELECT * FROM booltest").await(on: poolQueue)
+        let models = try connection.all(BoolModel.self, in: "SELECT * FROM booltest").await(on: poolQueue)
         XCTAssertEqual(models.first?.bool, true)
         XCTAssertEqual(models.last?.bool, false)
     }
@@ -281,9 +281,9 @@ class MySQLTests: XCTestCase {
         struct Todo: Codable {
             var text: String?
         }
-        try! connection.administrativeQuery("DROP TABLE IF EXISTS nulltest").await(on: poolQueue)
-        try! connection.administrativeQuery("CREATE TABLE nulltest (text VARCHAR(255))").await(on: poolQueue)
-        try! connection.administrativeQuery("INSERT INTO nulltest (text) VALUES (NULL)").await(on: poolQueue)
+        try connection.administrativeQuery("DROP TABLE IF EXISTS nulltest").await(on: poolQueue)
+        try connection.administrativeQuery("CREATE TABLE nulltest (text VARCHAR(255))").await(on: poolQueue)
+        try connection.administrativeQuery("INSERT INTO nulltest (text) VALUES (NULL)").await(on: poolQueue)
         let models = try! connection.all(Todo.self, in: "SELECT * FROM nulltest").await(on: poolQueue)
         XCTAssertEqual(models.first?.text, nil)
     }
