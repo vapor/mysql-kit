@@ -66,7 +66,7 @@ final class RowDecoder : DecoderHelper {
     func decode(_ type: Column) throws -> String {
         if case .varString(let string) = type {
             return string
-        }else if case .string(let string) = type {
+        } else if case .string(let string) = type {
             return string
         } else if case .blob(let data) = type {
             guard let string = String(data: data, encoding: .utf8) else {
