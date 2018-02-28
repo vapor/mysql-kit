@@ -100,23 +100,30 @@ struct Parser {
     }
     
     /// Parses length encoded Data
-    mutating func parseLenEncData() throws -> Data {
-        let length = try skipLenEnc()
+    mutating func parseLenEncData() throws -> Data? {
+        guard let length = try skipLenEnc() else {
+            return nil
+        }
         
         return Data(self.payload[position &- length..<position])
     }
     
     /// Parses length encoded Data
-    mutating func parseLenEncBytes() throws -> ByteBuffer {
-        let length = try skipLenEnc()
+    mutating func parseLenEncBytes() throws -> ByteBuffer? {
+        guard let length = try skipLenEnc() else {
+            return nil
+        }
         
         return ByteBuffer(start: self.payload.baseAddress?.advanced(by: position &- length), count: length)
     }
     
     /// Skips length encoded data/strings
     @discardableResult
-    mutating func skipLenEnc() throws -> Int {
+    mutating func skipLenEnc() throws -> Int? {
         let length = Int(try parseLenEnc())
+        if length == 251 {
+            return nil
+        }
         
         guard position &+ length <= self.payload.count else {
             throw MySQLError(.invalidResponse, source: .capture())
@@ -128,8 +135,10 @@ struct Parser {
     }
     
     /// Parses a length encoded string
-    mutating func parseLenEncString() throws -> String {
-        let data = try parseLenEncData()
+    mutating func parseLenEncString() throws -> String? {
+        guard let data = try parseLenEncData() else {
+            return nil
+        }
         return String(data: data, encoding: .utf8) ?? ""
     }
 }
