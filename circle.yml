@@ -7,6 +7,7 @@ jobs:
     steps:
       - run: brew install mysql
       - run: brew services start mysql
+      - run: sleep 3 && mysqladmin -uroot create test
       - checkout
       - run: swift build
       - run: echo "CREATE DATABASE vapor_test" | mysql -uroot
@@ -37,3 +38,4 @@ workflows:
     jobs:
      # - macos
       - linux
+
