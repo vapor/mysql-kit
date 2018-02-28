@@ -112,7 +112,6 @@ extension Parser {
                 return .double(Double(bitPattern: num))
             case .null:
                 return .null
-            case .timestamp: throw MySQLError(.unsupported, source: .capture())
             case .longlong:
                 let num = try self.parseUInt64()
                 
@@ -124,7 +123,7 @@ extension Parser {
             case .int24: throw MySQLError(.unsupported, source: .capture())
             case .date: throw MySQLError(.unsupported, source: .capture())
             case .time: throw MySQLError(.unsupported, source: .capture())
-            case .datetime:
+            case .datetime, .timestamp:
                 let format = try byte()
                 
                 let year = try parseUInt16()
@@ -161,7 +160,13 @@ extension Parser {
             case .newdate: throw MySQLError(.unsupported, source: .capture())
             case .varchar:
                 return .varChar(try self.parseLenEncString())
-            case .bit: throw MySQLError(.unsupported, source: .capture())
+            case .bit:
+                let length = try byte()
+                if length > 8 {
+                    throw MySQLError(.unsupported, source: .capture())
+                }
+                let value = try byte()
+                return .uint8(value)
             case .json: throw MySQLError(.unsupported, source: .capture())
             case .newdecimal: throw MySQLError(.unsupported, source: .capture())
             case .enum: throw MySQLError(.unsupported, source: .capture())
