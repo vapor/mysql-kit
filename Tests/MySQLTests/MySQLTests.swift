@@ -23,6 +23,7 @@ class MySQLTests: XCTestCase {
         ("testFailures", testFailures),
         ("testSingleValueDecoding", testSingleValueDecoding),
         ("testBool", testBool),
+        ("testNullFieldDecode", testNullFieldDecode),
     ]
     
     override func setUp() {
@@ -274,6 +275,17 @@ class MySQLTests: XCTestCase {
         let models = try! connection.all(BoolModel.self, in: "SELECT * FROM booltest").await(on: poolQueue)
         XCTAssertEqual(models.first?.bool, true)
         XCTAssertEqual(models.last?.bool, false)
+    }
+
+    func testNullFieldDecode() throws {
+        struct Todo: Codable {
+            var text: String?
+        }
+        try! connection.administrativeQuery("DROP TABLE IF EXISTS nulltest").await(on: poolQueue)
+        try! connection.administrativeQuery("CREATE TABLE nulltest (text VARCHAR(255))").await(on: poolQueue)
+        try! connection.administrativeQuery("INSERT INTO nulltest (text) VALUES (NULL)").await(on: poolQueue)
+        let models = try! connection.all(Todo.self, in: "SELECT * FROM nulltest").await(on: poolQueue)
+        XCTAssertEqual(models.first?.text, nil)
     }
 }
 

@@ -159,7 +159,11 @@ extension Parser {
             case .year: throw MySQLError(.unsupported, source: .capture())
             case .newdate: throw MySQLError(.unsupported, source: .capture())
             case .varchar:
-                return .varChar(try self.parseLenEncString())
+                if let string = try self.parseLenEncString() {
+                    return .varChar(string)
+                } else {
+                    return .null
+                }
             case .bit:
                 let length = try byte()
                 if length > 8 {
@@ -172,17 +176,41 @@ extension Parser {
             case .enum: throw MySQLError(.unsupported, source: .capture())
             case .set: throw MySQLError(.unsupported, source: .capture())
             case .tinyBlob:
-                return .tinyBlob(try self.parseLenEncData())
+                if let data = try parseLenEncData() {
+                    return .tinyBlob(data)
+                } else {
+                    return .null
+                }
             case .mediumBlob:
-                return .mediumBlob(try self.parseLenEncData())
+                if let data = try parseLenEncData() {
+                    return .mediumBlob(data)
+                } else {
+                    return .null
+                }
             case .longBlob:
-                return .longBlob(try self.parseLenEncData())
+                if let data = try parseLenEncData() {
+                    return .longBlob(data)
+                } else {
+                    return .null
+                }
             case .blob:
-                return .blob(try self.parseLenEncData())
+                if let data = try parseLenEncData() {
+                    return .blob(data)
+                } else {
+                    return .null
+                }
             case .varString:
-                return .varString(try self.parseLenEncString())
+                if let string = try self.parseLenEncString() {
+                    return .varString(string)
+                } else {
+                    return .null
+                }
             case .string:
-                return .string(try self.parseLenEncString())
+                if let string = try self.parseLenEncString() {
+                    return .string(string)
+                } else {
+                    return .null
+                }
             case .geometry: throw MySQLError(.unsupported, source: .capture())
             }
         }
@@ -199,7 +227,11 @@ extension Row {
     }
     
     /// Decodes the value's Data as a binary type from the provided field
-    mutating func append(_ value: Data, forField field: Field) throws {
+    mutating func append(_ value: Data?, forField field: Field) throws {
+        guard let value = value else {
+            return append(.null, forField: field)
+        }
+
         switch field.fieldType {
         case .null:
             append(.null, forField: field)
@@ -211,7 +243,11 @@ extension Row {
     }
     
     /// Decodes the value's Data as a text expressed type from the provided field
-    mutating func append(_ value: ByteBuffer, forField field: Field) throws {
+    mutating func append(_ value: ByteBuffer?, forField field: Field) throws {
+        guard let value = value else {
+            return append(.null, forField: field)
+        }
+
         func makeString() -> String {
             return String(data: Data(value), encoding: .utf8) ?? ""
         }

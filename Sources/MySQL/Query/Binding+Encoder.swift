@@ -67,9 +67,6 @@ fileprivate struct SingleContainer: SingleValueEncodingContainer {
 fileprivate struct RowEncodingContainer<K: CodingKey>: KeyedEncodingContainerProtocol
 {
     typealias Key = K
-    
-    var count: Int
-    
     var encoder: MySQLBindingEncoder
     var codingPath: [CodingKey] {
         get { return encoder.codingPath }
@@ -77,7 +74,6 @@ fileprivate struct RowEncodingContainer<K: CodingKey>: KeyedEncodingContainerPro
     
     public init(encoder: MySQLBindingEncoder) {
         self.encoder = encoder
-        self.count = 0
     }
     
     func encode(_ value: Bool, forKey key: K) throws {
@@ -103,6 +99,14 @@ fileprivate struct RowEncodingContainer<K: CodingKey>: KeyedEncodingContainerPro
             try value.encode(to: encoder)
         }
     }
+
+    func encodeIfPresent<T>(_ value: T?, forKey key: K) throws where T : Encodable {
+        if let value = value {
+            try encode(value, forKey: key)
+        } else {
+            try encoder.context.bindNull()
+        }
+    }
     
     func encodeNil(forKey key: K) throws {
         try encoder.context.bindNull()
@@ -110,7 +114,7 @@ fileprivate struct RowEncodingContainer<K: CodingKey>: KeyedEncodingContainerPro
     
     func nestedContainer<NestedKey: CodingKey>(
         keyedBy keyType: NestedKey.Type, forKey key: K
-        ) -> KeyedEncodingContainer<NestedKey> {
+    ) -> KeyedEncodingContainer<NestedKey> {
         return KeyedEncodingContainer(UnsupportedEncodingContainer(encoder: encoder))
     }
     

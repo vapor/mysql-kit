@@ -185,7 +185,9 @@ extension Packet {
         try parser.skipLenEnc() // let schema = try parser.parseLenEncString()
         try parser.skipLenEnc() // let tableAlias = try parser.parseLenEncString()
         try parser.skipLenEnc() // let table = try parser.parseLenEncString()
-        let name = try parser.parseLenEncString()
+        guard let name = try parser.parseLenEncString() else {
+            throw MySQLError(identifier: "fieldName", reason: "'null' field name.", sourceLocation: .capture())
+        }
         try parser.skipLenEnc() // let columnAlias = try parser.parseLenEncString()
         _ = try parser.parseLenEnc() // let originalName = try parser.parseLenEncString()
         
