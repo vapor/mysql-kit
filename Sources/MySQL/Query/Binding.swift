@@ -33,12 +33,11 @@ extension PreparationBinding {
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(_ bool: Bool) throws {
         let type = try assertBindableParameter()
-        
         if try PseudoType.int.supports(expecting: type) == .text {
             try self.bind(
-                .tiny,
+                .string,
                 unsigned: true,
-                data: Array((bool ? 1 : 0).description.utf8)
+                data: (bool ? 1 : 0).description.makeData()
             )
             
             return
@@ -47,7 +46,7 @@ extension PreparationBinding {
         try self.bind(
             type,
             unsigned: false,
-            data: [numericCast(bool ? 1 : 0)]
+            data: [bool ? 1 : 0]
         )
     }
     
@@ -58,7 +57,6 @@ extension PreparationBinding {
     /// - throws: If the next unbound parameter is of a different type or if there are no more unbound parameters
     public func bind(_ int: Int8) throws {
         let type = try assertBindableParameter()
-        
         if try PseudoType.int.supports(expecting: type) == .text {
             try self.bind(
                 .string,
