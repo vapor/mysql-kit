@@ -23,6 +23,7 @@ class MySQLTests: XCTestCase {
         ("testFailures", testFailures),
         ("testSingleValueDecoding", testSingleValueDecoding),
         ("testBool", testBool),
+        ("testNullFieldDecode", testNullFieldDecode),
     ]
     
     override func setUp() {
