@@ -53,8 +53,7 @@ fileprivate struct SingleContainer: SingleValueEncodingContainer {
     }
     
     mutating func encode(_ value: Bool) throws {
-        fatalError()
-        //        try encoder.context.bind(true)
+        try encoder.context.bind(value)
     }
     
     var codingPath = [CodingKey]()
@@ -82,7 +81,7 @@ fileprivate struct RowEncodingContainer<K: CodingKey>: KeyedEncodingContainerPro
     }
     
     func encode(_ value: Bool, forKey key: K) throws {
-        try encoder.context.bind(true)
+        try encoder.context.bind(value)
     }
     
     func encode(_ value: Int, forKey key: K) throws {

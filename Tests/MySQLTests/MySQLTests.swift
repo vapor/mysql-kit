@@ -249,6 +249,31 @@ class MySQLTests: XCTestCase {
 
         XCTAssertEqual(try users.await(on: poolQueue), 2)
     }
+
+    func testBool() throws {
+        try! connection.administrativeQuery("DROP TABLE IF EXISTS booltest").await(on: poolQueue)
+        try! connection.administrativeQuery("CREATE TABLE booltest (bool INT)").await(on: poolQueue)
+        struct BoolModel: Codable {
+            var bool: Bool
+        }
+        _ = try! connection.withPreparation(statement: "INSERT INTO booltest (bool) VALUES (?)") { bind -> Future<[BoolModel]> in
+            return try bind.bind { binding in
+                try binding.withEncoder { encoder in
+                    try BoolModel(bool: true).encode(to: encoder)
+                }
+            }.all(BoolModel.self)
+        }.await(on: poolQueue)
+        _ = try! connection.withPreparation(statement: "INSERT INTO booltest (bool) VALUES (?)") { bind -> Future<[BoolModel]> in
+            return try bind.bind { binding in
+                try binding.withEncoder { encoder in
+                    try BoolModel(bool: false).encode(to: encoder)
+                }
+            }.all(BoolModel.self)
+        }.await(on: poolQueue)
+        let models = try! connection.all(BoolModel.self, in: "SELECT * FROM booltest").await(on: poolQueue)
+        XCTAssertEqual(models.first?.bool, true)
+        XCTAssertEqual(models.last?.bool, false)
+    }
 }
 
 struct User: Decodable {

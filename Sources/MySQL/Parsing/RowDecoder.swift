@@ -5,6 +5,18 @@ func makeRowDecoder(row: Row, lossyIntegers: Bool, lossyStrings: Bool) throws ->
     return try RowDecoder(keyed: row, lossyIntegers: lossyIntegers, lossyStrings: lossyStrings)
 }
 
+extension FixedWidthInteger {
+    var boolValue: Bool? {
+        if self == 1 {
+            return true
+        } else if self == 0 {
+            return false
+        } else {
+            return nil
+        }
+    }
+}
+
 /// Decodes into an entity Rows into entities, and columns into variables
 final class RowDecoder : DecoderHelper {
     /// Sets up a decoder for a row/struct/class
@@ -81,13 +93,22 @@ final class RowDecoder : DecoderHelper {
     
     /// Decodes a column to a Bool, int8/uint8 is used here
     func decode(_ type: Column) throws -> Bool {
-        if case .int8(let num) = type {
-            return num == 1
-        } else if case .uint8(let num) = type {
-            return num == 1
-        } else {
+        let bool: Bool?
+        switch type {
+        case .int8(let num): bool = num.boolValue
+        case .uint8(let num): bool = num.boolValue
+        case .int16(let num): bool = num.boolValue
+        case .uint16(let num): bool = num.boolValue
+        case .int32(let num): bool = num.boolValue
+        case .uint32(let num): bool = num.boolValue
+        case .int64(let num): bool = num.boolValue
+        case .uint64(let num): bool = num.boolValue
+        default: throw CodableDecodingError.incorrectValue
+        }
+        guard let b = bool else {
             throw CodableDecodingError.incorrectValue
         }
+        return b
     }
     
     func decode<D>(_ type: D.Type, from value: Column) throws -> D where D : Decodable {
