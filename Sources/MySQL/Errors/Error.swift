@@ -42,7 +42,7 @@ public struct MySQLError : Swift.Error, Debuggable {
         case .invalidHandshake:
             return "The server's handshake was invalid"
         case .invalidResponse:
-            return "The packet could not be parsed into valid a response"
+            return "The packet could not be parsed into a valid response"
         case .unsupported:
             return "This feature is not (yet) supported"
         case .parsingError:
