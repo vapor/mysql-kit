@@ -35,29 +35,27 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             let length = try buffer.requireInteger(endianness: .little, as: Int32.self, source: .capture())
             assert(length > 0)
             let handshake = try MySQLHandshakeV10(bytes: &buffer)
-            print(handshake)
             packet = .handshakev10(handshake)
             session.state = .handshakeComplete(handshake.capabilities)
         case .handshakeComplete(let capabilities):
+            buffer.set(integer: Byte(0), at: buffer.readerIndex + 3)
             let length = try buffer.requireInteger(endianness: .little, as: Int32.self, source: .capture())
             assert(length > 0)
             guard let next: Byte = buffer.peekInteger() else {
                 throw MySQLError(identifier: "peekHeader", reason: "Could not peek at header type.", source: .capture())
             }
-            if next == 0x00 && length > 7 {
+            if next == 0x00 && length >= 7 {
                 // parse OK packet
                 let ok = try MySQLOKPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
                 print(ok)
                 packet = .ok(ok)
             } else if next == 0xFE && length < 9 {
                 // parse EOF packet
+                fatalError()
             } else {
                 // parse ?? packet
                 fatalError()
             }
-            print(capabilities)
-            print(buffer.debugDescription)
-            fatalError()
         }
 
         ctx.fireChannelRead(wrapInboundOut(packet))

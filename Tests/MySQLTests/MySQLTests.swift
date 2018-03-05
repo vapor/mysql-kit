@@ -5,6 +5,7 @@ import XCTest
 class MySQLTests: XCTestCase {
     func testVersion() throws {
         let client = try MySQLConnection.makeTest()
+        print("client: \(client)!")
         // let results = try client.simpleQuery("SELECT @@version as version;").wait()
         // try XCTAssert(results[0]["version"]?.decode(String.self).contains("10.") == true)
     }
@@ -21,7 +22,7 @@ extension MySQLConnection {
         let client = try MySQLConnection.connect(on: group) { error in
             XCTFail("\(error)")
         }.wait()
-        _ = try client.authenticate(username: "root", database: "test").wait()
+        _ = try client.authenticate(username: "foo", database: "test", password: "bar").wait()
         return client
     }
 }

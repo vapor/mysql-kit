@@ -59,7 +59,7 @@ class MySQLPacketTests: XCTestCase {
             maxPacketSize: 1_073_741_824,
             characterSet: 0x0a,
             username: "root",
-            authResponse: "",
+            authResponse: .init(),
             database: "",
             authPluginName: "mysql_native_password"
         )
@@ -77,7 +77,7 @@ class MySQLPacketTests: XCTestCase {
             maxPacketSize: 1_073_741_824,
             characterSet: 0x0a,
             username: "pam",
-            authResponse: "",
+            authResponse: .init(),
             database: "test",
             authPluginName: "mysql_native_password"
         )

@@ -11,7 +11,7 @@ struct MySQLOKPacket {
     var affectedRows: UInt64
 
     /// int<lenenc>    last_insert_id    last insert-id
-    var lastInsertID: UInt64
+    var lastInsertID: UInt64?
 
     /// int<2>    status_flags    Status Flags
     var statusFlags: MySQLStatusFlags
@@ -48,13 +48,17 @@ struct MySQLOKPacket {
         }
 
         if capabilities.get(CLIENT_SESSION_TRACK) {
-            info = try bytes.requireLengthEncodedString(source: .capture())
-            if statusFlags.get(SERVER_SESSION_STATE_CHANGED) {
-                sessionStateChanges = try bytes.requireLengthEncodedString(source: .capture())
+            if bytes.readerIndex - startIndex >= length {
+                // entire packet has been read already
+                info = ""
+            } else {
+                info = try bytes.requireLengthEncodedString(source: .capture())
+                if statusFlags.get(SERVER_SESSION_STATE_CHANGED) {
+                    sessionStateChanges = try bytes.requireLengthEncodedString(source: .capture())
+                }
             }
         } else {
             /// FIXME: need to know packet length here?
-            print(bytes.readerIndex - startIndex)
             info = try bytes.requireString(length: length - (bytes.readerIndex - startIndex), source: .capture())
         }
     }

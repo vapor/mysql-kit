@@ -30,14 +30,12 @@ final class MySQLPacketEncoder: MessageToByteEncoder {
             handshakeResponse.serialize(into: &out)
         default: fatalError()
         }
-        let bytesWritten = out.writerIndex - writeOffset
+        let bytesWritten = out.writerIndex - writeOffset - 4
         out.set(integer: Byte(bytesWritten & 0xFF), at: writeOffset)
         out.set(integer: Byte(bytesWritten >> 8 & 0xFF), at: writeOffset + 1)
         out.set(integer: Byte(bytesWritten >> 16 & 0xFF), at: writeOffset + 2)
         // sequence ID
         out.set(integer: Byte(1), at: writeOffset + 3)
-
-        ctx.write(wrapOutboundOut(out), promise: nil)
     }
 }
 

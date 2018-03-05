@@ -64,6 +64,10 @@ extension ByteBuffer {
             return nil
         }
 
+        if size == 0 {
+            return ""
+        }
+
         return readString(length: Int(size))
     }
 

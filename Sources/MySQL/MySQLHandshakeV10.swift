@@ -1,4 +1,5 @@
 import Bits
+import Foundation
 
 /// Protocol::Handshake
 ///
@@ -17,7 +18,7 @@ struct MySQLHandshakeV10 {
     var connectionID: UInt32
 
     /// auth_plugin_data_part_1 (string.fix_len) -- [len=8] first 8 bytes of the auth-plugin data
-    var authPluginData: String
+    var authPluginData: Data
 
     /// The server's capabilities.
     var capabilities: MySQLCapabilities
@@ -41,7 +42,7 @@ struct MySQLHandshakeV10 {
         
         self.serverVersion = try bytes.requireNullTerminatedString(source: .capture())
         self.connectionID = try bytes.requireInteger(endianness: .little, source: .capture())
-        let authPluginDataPart1 = try bytes.requireString(length: 8, source: .capture())
+        let authPluginDataPart1 = try bytes.requireBytes(length: 8, source: .capture())
         let filler_1 = try bytes.requireInteger(as: Byte.self, source: .capture())
         // filler_1 (1) -- 0x00
         assert(filler_1 == 0x00)
@@ -72,11 +73,11 @@ struct MySQLHandshakeV10 {
 
             if capabilities.get(CLIENT_SECURE_CONNECTION), authPluginDataLength > 0 {
                 let len = max(13, authPluginDataLength - 8)
-                let authPluginDataPart2 = try bytes.requireString(length: numericCast(len), source: .capture())
+                let authPluginDataPart2 = try bytes.requireBytes(length: numericCast(len), source: .capture())
 
-                self.authPluginData = authPluginDataPart1 + authPluginDataPart2
+                self.authPluginData = Data(authPluginDataPart1 + authPluginDataPart2)
             } else {
-                self.authPluginData = authPluginDataPart1
+                self.authPluginData = Data(authPluginDataPart1)
             }
 
             if capabilities.get(CLIENT_PLUGIN_AUTH) {
@@ -84,7 +85,7 @@ struct MySQLHandshakeV10 {
             }
         } else {
             self.capabilities = .init(lower: capabilityFlag1)
-            self.authPluginData = authPluginDataPart1
+            self.authPluginData = Data(authPluginDataPart1)
         }
     }
 }

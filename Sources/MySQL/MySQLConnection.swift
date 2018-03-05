@@ -2,6 +2,7 @@ import Async
 import Crypto
 import DatabaseKit
 import NIO
+import Foundation
 
 /// A MySQL frontend client.
 public final class MySQLConnection: BasicWorker, DatabaseConnection {
@@ -26,13 +27,7 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
     func send(_ messages: [MySQLPacket], onResponse: @escaping (MySQLPacket) throws -> ()) -> Future<Void> {
         var error: Error?
         return queue.enqueue(messages) { message in
-            print(message)
             switch message {
-//            case .readyForQuery:
-//                if let e = error { throw e }
-//                return true
-//            case .error(let e): error = e
-//            case .notice(let n): print(n)
             default: try onResponse(message)
             }
             return false // request until ready for query
@@ -51,13 +46,38 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
 
     /// Authenticates the `PostgreSQLClient` using a username with no password.
     public func authenticate(username: String, database: String, password: String? = nil) -> Future<Void> {
+        var handshake: MySQLHandshakeV10?
         return queue.enqueue([]) { message in
             switch message {
-            case .handshakev10(let handshake):
+            case .handshakev10(let _handshake):
+                handshake = _handshake
                 return true
             default: throw MySQLError(identifier: "handshake", reason: "Unsupported message encountered during handshake: \(message).", source: .capture())
             }
         }.flatMap(to: Void.self) {
+            guard let handshake = handshake else {
+                throw MySQLError(identifier: "handshake", reason: "Handshake required for auth response.", source: .capture())
+            }
+            let authPlugin = handshake.authPluginName ?? "none"
+            let authResponse: Data
+            switch authPlugin {
+            case "mysql_native_password":
+                guard let password = password else {
+                    throw MySQLError(identifier: "password", reason: "Password required for auth plugin.", source: .capture())
+                }
+                guard handshake.authPluginData.count >= 20 else {
+                    throw MySQLError(identifier: "salt", reason: "Server-supplied salt too short.", source: .capture())
+                }
+                let salt = Data(handshake.authPluginData[..<20])
+                let passwordHash = SHA1.hash(password)
+                let passwordDoubleHash = SHA1.hash(passwordHash)
+                var hash = SHA1.hash(salt + passwordDoubleHash)
+                for i in 0..<20 {
+                    hash[i] = hash[i] ^ passwordHash[i]
+                }
+                authResponse = hash
+            default: throw MySQLError(identifier: "authPlugin", reason: "Unsupported auth plugin: \(authPlugin)", source: .capture())
+            }
             let response = MySQLHandshakeResponse41(
                 capabilities: [
                     CLIENT_PROTOCOL_41,
@@ -66,16 +86,18 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
                     CLIENT_CONNECT_WITH_DB,
                     CLIENT_DEPRECATE_EOF
                 ],
-                maxPacketSize: 1_073_741_824,
-                characterSet: 0x08,
+                maxPacketSize: 1_024,
+                characterSet: 0x21,
                 username: username,
-                authResponse: "",
+                authResponse: authResponse,
                 database: database,
-                authPluginName: "mysql_native_password"
+                authPluginName: authPlugin
             )
             return self.queue.enqueue([.handshakeResponse41(response)]) { message in
-                print("after res: \(message)")
-                return false
+                switch message {
+                case .ok(_): return true
+                default: throw MySQLError(identifier: "handshake", reason: "Unsupported message encountered during handshake: \(message).", source: .capture())
+                }
             }
         }
     }
