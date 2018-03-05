@@ -21,7 +21,7 @@ public struct MySQLHandshakeV10 {
     public var authPluginData: String
 
     /// The server's capabilities.
-    public var capabilityFlags: MySQLCapabilityFlags
+    public var capabilities: MySQLCapabilities
 
     /// character_set (1) -- default server character-set, only the lower 8-bits Protocol::CharacterSet (optional)
     public var characterSet: Byte?
@@ -52,25 +52,25 @@ public struct MySQLHandshakeV10 {
             self.statusFlags = bytes.assertReadInteger(endianness: .little)
 
             // capability_flags_2 (2) -- upper 2 bytes of the Protocol::CapabilityFlags
-            self.capabilityFlags = MySQLCapabilityFlags(
+            self.capabilities = MySQLCapabilities(
                 upper: bytes.assertReadInteger(endianness: .little),
                 lower: capabilityFlag1
             )
 
-            let authPluginDataLength: Byte?
-            if capabilityFlags.CLIENT_PLUGIN_AUTH {
+            let authPluginDataLength: Byte
+            print("plugin auth: \(capabilities.CLIENT_PLUGIN_AUTH)")
+            if capabilities.CLIENT_PLUGIN_AUTH {
                 authPluginDataLength = bytes.assertReadInteger(endianness: .little)
             } else {
-                let authPluginDataLengthFiller = bytes.assertReadInteger(endianness: .little, as: Byte.self)
-                assert(authPluginDataLengthFiller == 0x00, "invalid auth plugin data filler: \(authPluginDataLengthFiller)")
-                authPluginDataLength = nil
+                authPluginDataLength = bytes.assertReadInteger(endianness: .little)
+                assert(authPluginDataLength == 0x00, "invalid auth plugin data filler: \(authPluginDataLength)")
             }
 
             /// string[10]     reserved (all [00])
             let reserved = bytes.assertReadBytes(length: 10)
             assert(reserved == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-            if capabilityFlags.CLIENT_SECURE_CONNECTION, let authPluginDataLength = authPluginDataLength, authPluginDataLength > 0 {
+            if capabilities.CLIENT_SECURE_CONNECTION, authPluginDataLength > 0 {
                 let len = max(13, authPluginDataLength - 8)
                 let authPluginDataPart2 = bytes.assertReadString(length: numericCast(len))
 
@@ -79,14 +79,12 @@ public struct MySQLHandshakeV10 {
                 self.authPluginData = authPluginDataPart1
             }
 
-            if capabilityFlags.CLIENT_PLUGIN_AUTH {
+            if capabilities.CLIENT_PLUGIN_AUTH {
                 self.authPluginName = bytes.assertReadNullTerminatedString()
             }
         } else {
-            self.capabilityFlags = .init(lower: capabilityFlag1)
+            self.capabilities = .init(lower: capabilityFlag1)
             self.authPluginData = authPluginDataPart1
         }
-
-        assert(bytes.readableBytes == 0, "excess data remaining")
     }
 }
