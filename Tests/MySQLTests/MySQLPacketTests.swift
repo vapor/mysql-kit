@@ -7,14 +7,14 @@ import XCTest
 class MySQLPacketTests: XCTestCase {
     func testHandshakeV10_wireshark() throws {
         var bytes = handshakeV10_wireshark.prepareMySQLPacket()
-        let handshakeV10 = try MySQLHandshakeV10(bytes: &bytes, source: .capture())
+        let handshakeV10 = MySQLHandshakeV10(bytes: &bytes, source: .capture())
         XCTAssertEqual(handshakeV10.protocolVersion, 10)
         XCTAssertEqual(handshakeV10.serverVersion, "5.7.18")
         XCTAssertEqual(handshakeV10.connectionID, 5)
         XCTAssertEqual(handshakeV10.authPluginData.count, 21)
-        XCTAssertEqual(handshakeV10.capabilities.CLIENT_PLUGIN_AUTH, true)
-        XCTAssertEqual(handshakeV10.capabilities.CLIENT_SECURE_CONNECTION, true)
-        XCTAssertEqual(handshakeV10.capabilities.CLIENT_PROTOCOL_41, true)
+        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PLUGIN_AUTH), true)
+        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_SECURE_CONNECTION), true)
+        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PROTOCOL_41), true)
         XCTAssertEqual(handshakeV10.characterSet, 33)
         XCTAssertEqual(handshakeV10.statusFlags, 2)
         XCTAssertEqual(handshakeV10.authPluginName, "mysql_native_password")
@@ -23,14 +23,14 @@ class MySQLPacketTests: XCTestCase {
     /// https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
     func testHandshakeV10_example1() throws {
         var bytes = handshakeV10_example1.prepareMySQLPacket()
-        let handshakeV10 = try MySQLHandshakeV10(bytes: &bytes, source: .capture())
+        let handshakeV10 = MySQLHandshakeV10(bytes: &bytes, source: .capture())
         XCTAssertEqual(handshakeV10.protocolVersion, 10)
         XCTAssertEqual(handshakeV10.serverVersion, "5.5.2-m2")
         XCTAssertEqual(handshakeV10.connectionID, 11)
         XCTAssertEqual(handshakeV10.authPluginData.count, 8)
-        XCTAssertEqual(handshakeV10.capabilities.CLIENT_PLUGIN_AUTH, false)
-        XCTAssertEqual(handshakeV10.capabilities.CLIENT_SECURE_CONNECTION, true)
-        XCTAssertEqual(handshakeV10.capabilities.CLIENT_PROTOCOL_41, true)
+        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PLUGIN_AUTH), false)
+        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_SECURE_CONNECTION), true)
+        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PROTOCOL_41), true)
         XCTAssertEqual(handshakeV10.characterSet, 8)
         XCTAssertEqual(handshakeV10.statusFlags, 2)
         XCTAssertEqual(handshakeV10.authPluginName, nil)
@@ -39,17 +39,50 @@ class MySQLPacketTests: XCTestCase {
     /// https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
     func testHandshakeV10_example2() throws {
         var bytes = handshakeV10_example2.prepareMySQLPacket()
-        let handshakeV10 = try MySQLHandshakeV10(bytes: &bytes, source: .capture())
+        let handshakeV10 = MySQLHandshakeV10(bytes: &bytes, source: .capture())
         XCTAssertEqual(handshakeV10.protocolVersion, 10)
         XCTAssertEqual(handshakeV10.serverVersion, "5.6.4-m7-log")
         XCTAssertEqual(handshakeV10.connectionID, 2646)
         XCTAssertEqual(handshakeV10.authPluginData.count, 21)
-        XCTAssertEqual(handshakeV10.capabilities.CLIENT_PLUGIN_AUTH, true)
-        XCTAssertEqual(handshakeV10.capabilities.CLIENT_SECURE_CONNECTION, true)
-        XCTAssertEqual(handshakeV10.capabilities.CLIENT_PROTOCOL_41, true)
+        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PLUGIN_AUTH), true)
+        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_SECURE_CONNECTION), true)
+        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PROTOCOL_41), true)
         XCTAssertEqual(handshakeV10.characterSet, 8)
         XCTAssertEqual(handshakeV10.statusFlags, 2)
         XCTAssertEqual(handshakeV10.authPluginName, "mysql_native_password")
+    }
+
+    func testHandshakeResponse41_wireshark() throws {
+        var buffer = ByteBufferAllocator().buffer(capacity: 256)
+        let response = MySQLHandshakeResponse41(
+            capabilities: [CLIENT_PROTOCOL_41],
+            maxPacketSize: 1_073_741_824,
+            characterSet: 0x0a,
+            username: "root",
+            authResponse: "",
+            database: "",
+            authPluginName: "mysql_native_password"
+        )
+    }
+
+    func testHandshakeResponse41_example1() throws {
+        var buffer = ByteBufferAllocator().buffer(capacity: 256)
+        let response = MySQLHandshakeResponse41(
+            capabilities: [
+                CLIENT_PROTOCOL_41,
+                CLIENT_PLUGIN_AUTH,
+                CLIENT_SECURE_CONNECTION,
+                CLIENT_CONNECT_WITH_DB
+            ],
+            maxPacketSize: 1_073_741_824,
+            characterSet: 0x0a,
+            username: "pam",
+            authResponse: "",
+            database: "test",
+            authPluginName: "mysql_native_password"
+        )
+        response.serialize(into: &buffer)
+        print(buffer.debugDescription)
     }
 
     static let allTests = [

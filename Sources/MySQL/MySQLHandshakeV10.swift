@@ -33,7 +33,7 @@ public struct MySQLHandshakeV10 {
     public var authPluginName: String?
 
     /// Parses a `MySQLHandshakeV10` from the `ByteBuffer`.
-    public init(bytes: inout ByteBuffer, source: SourceLocation) throws {
+    public init(bytes: inout ByteBuffer, source: SourceLocation) {
         let protocolVersion = bytes.assertReadInteger(endianness: .little, as: Byte.self)
         self.protocolVersion = protocolVersion
         assert(protocolVersion == 0x0a, "mysql wire protocol v10 required")
@@ -58,8 +58,7 @@ public struct MySQLHandshakeV10 {
             )
 
             let authPluginDataLength: Byte
-            print("plugin auth: \(capabilities.CLIENT_PLUGIN_AUTH)")
-            if capabilities.CLIENT_PLUGIN_AUTH {
+            if capabilities.get(CLIENT_PLUGIN_AUTH) {
                 authPluginDataLength = bytes.assertReadInteger(endianness: .little)
             } else {
                 authPluginDataLength = bytes.assertReadInteger(endianness: .little)
@@ -70,7 +69,7 @@ public struct MySQLHandshakeV10 {
             let reserved = bytes.assertReadBytes(length: 10)
             assert(reserved == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-            if capabilities.CLIENT_SECURE_CONNECTION, authPluginDataLength > 0 {
+            if capabilities.get(CLIENT_SECURE_CONNECTION), authPluginDataLength > 0 {
                 let len = max(13, authPluginDataLength - 8)
                 let authPluginDataPart2 = bytes.assertReadString(length: numericCast(len))
 
@@ -79,7 +78,7 @@ public struct MySQLHandshakeV10 {
                 self.authPluginData = authPluginDataPart1
             }
 
-            if capabilities.CLIENT_PLUGIN_AUTH {
+            if capabilities.get(CLIENT_PLUGIN_AUTH) {
                 self.authPluginName = bytes.assertReadNullTerminatedString()
             }
         } else {

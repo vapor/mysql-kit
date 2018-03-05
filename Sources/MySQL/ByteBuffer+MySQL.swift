@@ -1,3 +1,7 @@
+import Bits
+
+/// MARK: Assert
+
 extension ByteBuffer {
     public mutating func assertReadInteger<T>(endianness: Endianness = .big, as: T.Type = T.self) -> T where T: FixedWidthInteger {
         precondition(readableBytes >= MemoryLayout<T>.size, "not enough readable bytes remaining")
@@ -23,5 +27,14 @@ extension ByteBuffer {
         precondition(readableBytes >= length, "not enough readable bytes remaining")
         defer { moveReaderIndex(forwardBy: length) }
         return getBytes(at: readerIndex, length: length)! /* must work, enough readable bytes */
+    }
+}
+
+/// MARK: Null-terminated string
+
+extension ByteBuffer {
+    public mutating func write(nullTerminated string: String) {
+        self.write(string: string)
+        self.write(integer: Byte(0))
     }
 }
