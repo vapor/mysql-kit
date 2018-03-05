@@ -1,13 +1,13 @@
 import Bits
 import Foundation
 import Crypto
-import MySQL
+@testable import MySQL
 import XCTest
 
 class MySQLPacketTests: XCTestCase {
     func testHandshakeV10_wireshark() throws {
         var bytes = handshakeV10_wireshark.prepareMySQLPacket()
-        let handshakeV10 = MySQLHandshakeV10(bytes: &bytes, source: .capture())
+        let handshakeV10 = try MySQLHandshakeV10(bytes: &bytes)
         XCTAssertEqual(handshakeV10.protocolVersion, 10)
         XCTAssertEqual(handshakeV10.serverVersion, "5.7.18")
         XCTAssertEqual(handshakeV10.connectionID, 5)
@@ -23,7 +23,7 @@ class MySQLPacketTests: XCTestCase {
     /// https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
     func testHandshakeV10_example1() throws {
         var bytes = handshakeV10_example1.prepareMySQLPacket()
-        let handshakeV10 = MySQLHandshakeV10(bytes: &bytes, source: .capture())
+        let handshakeV10 = try MySQLHandshakeV10(bytes: &bytes)
         XCTAssertEqual(handshakeV10.protocolVersion, 10)
         XCTAssertEqual(handshakeV10.serverVersion, "5.5.2-m2")
         XCTAssertEqual(handshakeV10.connectionID, 11)
@@ -39,7 +39,7 @@ class MySQLPacketTests: XCTestCase {
     /// https://dev.mysql.com/doc/internals/en/connection-phase-packets.html#packet-Protocol::Handshake
     func testHandshakeV10_example2() throws {
         var bytes = handshakeV10_example2.prepareMySQLPacket()
-        let handshakeV10 = MySQLHandshakeV10(bytes: &bytes, source: .capture())
+        let handshakeV10 = try MySQLHandshakeV10(bytes: &bytes)
         XCTAssertEqual(handshakeV10.protocolVersion, 10)
         XCTAssertEqual(handshakeV10.serverVersion, "5.6.4-m7-log")
         XCTAssertEqual(handshakeV10.connectionID, 2646)

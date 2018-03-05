@@ -54,7 +54,6 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
         return queue.enqueue([]) { message in
             switch message {
             case .handshakev10(let handshake):
-                print("got handshake: \(handshake)")
                 return true
             default: throw MySQLError(identifier: "handshake", reason: "Unsupported message encountered during handshake: \(message).", source: .capture())
             }
@@ -64,10 +63,11 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
                     CLIENT_PROTOCOL_41,
                     CLIENT_PLUGIN_AUTH,
                     CLIENT_SECURE_CONNECTION,
-                    CLIENT_CONNECT_WITH_DB
+                    CLIENT_CONNECT_WITH_DB,
+                    CLIENT_DEPRECATE_EOF
                 ],
                 maxPacketSize: 1_073_741_824,
-                characterSet: 0x0a,
+                characterSet: 0x08,
                 username: username,
                 authResponse: "",
                 database: database,

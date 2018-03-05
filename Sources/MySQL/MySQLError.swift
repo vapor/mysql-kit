@@ -6,7 +6,7 @@ public struct MySQLError: Debuggable {
     public static let readableName = "MySQL Error"
     public let identifier: String
     public var reason: String
-    public var sourceLocation: SourceLocation
+    public var sourceLocation: SourceLocation?
     public var stackTrace: [String]
     public var possibleCauses: [String]
     public var suggestedFixes: [String]

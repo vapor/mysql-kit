@@ -1,32 +1,49 @@
 import Bits
+import Debugging
 
 /// MARK: Assert
 
 extension ByteBuffer {
-    public mutating func assertReadInteger<T>(endianness: Endianness = .big, as: T.Type = T.self) -> T where T: FixedWidthInteger {
-        precondition(readableBytes >= MemoryLayout<T>.size, "not enough readable bytes remaining")
-        defer { moveReaderIndex(forwardBy: MemoryLayout<T>.size) }
-        return getInteger(at: readerIndex, endianness: endianness)!
+    public mutating func requireInteger<T>(endianness: Endianness = .big, as type: T.Type = T.self, source: @autoclosure () -> (SourceLocation)) throws -> T where T: FixedWidthInteger {
+        guard let int = readInteger(endianness: endianness, as: T.self) else {
+            throw MySQLError(identifier: "integer", reason: "Could not parse \(T.self).", source: source())
+        }
+        return int
     }
 
-    public mutating func assertReadNullTerminatedString() -> String {
-        let string = readNullTerminatedString()
-        assert(string != nil, "nil null terminated string")
-        return string!
+    public mutating func requireNullTerminatedString(source: @autoclosure () -> (SourceLocation)) throws -> String {
+        guard let string = readNullTerminatedString() else {
+            throw MySQLError(identifier: "nullTerminatedString", reason: "Could not parse null terminated string.", source: source())
+        }
+        return string
     }
 
-    public mutating func assertReadString(length: Int) -> String {
-        precondition(length >= 0, "length must not be negative")
-        precondition(readableBytes >= length, "not enough readable bytes remaining")
-        defer { moveReaderIndex(forwardBy: length) }
-        return getString(at: readerIndex, length: length)! /* must work, enough readable bytes */
+    public mutating func requireString(length: Int, source: @autoclosure () -> (SourceLocation)) throws -> String {
+        guard let string = readString(length: length) else {
+            throw MySQLError(identifier: "string", reason: "Could not parse \(length) character string.", source: source())
+        }
+        return string
     }
 
-    public mutating func assertReadBytes(length: Int) -> [UInt8] {
-        precondition(length >= 0, "length must not be negative")
-        precondition(readableBytes >= length, "not enough readable bytes remaining")
-        defer { moveReaderIndex(forwardBy: length) }
-        return getBytes(at: readerIndex, length: length)! /* must work, enough readable bytes */
+    public mutating func requireBytes(length: Int, source: @autoclosure () -> (SourceLocation)) throws -> [UInt8] {
+        guard let bytes = readBytes(length: length) else {
+            throw MySQLError(identifier: "bytes", reason: "Could not parse \(length) bytes.", source: source())
+        }
+        return bytes
+    }
+
+    public mutating func requireLengthEncodedInteger(source: @autoclosure () -> (SourceLocation)) throws -> UInt64 {
+        guard let int = readLengthEncodedInteger() else {
+            throw MySQLError(identifier: "lengthEncodedInt", reason: "Could not parse length encoded integer.", source: source())
+        }
+        return int
+    }
+
+    public mutating func requireLengthEncodedString(source: @autoclosure () -> (SourceLocation)) throws -> String {
+        guard let string = readLengthEncodedString() else {
+            throw MySQLError(identifier: "lengthEncodedString", reason: "Could not parse length encoded string.", source: source())
+        }
+        return string
     }
 }
 
@@ -36,5 +53,42 @@ extension ByteBuffer {
     public mutating func write(nullTerminated string: String) {
         self.write(string: string)
         self.write(integer: Byte(0))
+    }
+}
+
+/// MARK: Length Encoded Int
+
+extension ByteBuffer {
+    public mutating func readLengthEncodedString() -> String? {
+        guard let size = readLengthEncodedInteger() else {
+            return nil
+        }
+
+        return readString(length: Int(size))
+    }
+
+    public mutating func readLengthEncodedInteger() -> UInt64? {
+        guard let first: Byte = peekInteger() else {
+            return nil
+        }
+
+        switch first {
+        case 0xFC:
+            guard let uint16 = readInteger(endianness: .little, as: UInt16.self) else {
+                return nil
+            }
+            return numericCast(uint16) + 0xFC
+        case 0xFD: fatalError("3-byte int support")
+        case 0xFE:
+            guard let uint64 = readInteger(endianness: .little, as: UInt64.self) else {
+                return nil
+            }
+            return uint64 + 0xFE
+        default:
+            guard let byte = readInteger(endianness: .little, as: UInt8.self) else {
+                return nil
+            }
+            return numericCast(byte)
+        }
     }
 }

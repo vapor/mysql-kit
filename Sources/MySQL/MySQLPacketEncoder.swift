@@ -6,6 +6,14 @@ final class MySQLPacketEncoder: MessageToByteEncoder {
     /// See `MessageToByteEncoder.OutboundIn`
     typealias OutboundIn = MySQLPacket
 
+    /// Information about this connection.
+    var session: MySQLConnectionSession
+
+    /// Creates a new `MySQLPacketDecoder`
+    init(session: MySQLConnectionSession) {
+        self.session = session
+    }
+
     /// Called once there is data to encode. The used `ByteBuffer` is allocated by `allocateOutBuffer`.
     ///
     /// - parameters:

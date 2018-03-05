@@ -9,12 +9,12 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
     /// The cumulationBuffer which will be used to buffer any data.
     var cumulationBuffer: ByteBuffer?
 
-    /// This packet decoder's state.
-    var state: MySQLPacketDecoderState
+    /// Information about this connection.
+    var session: MySQLConnectionSession
 
     /// Creates a new `MySQLPacketDecoder`
-    init() {
-        self.state = .awaitingHandshake
+    init(session: MySQLConnectionSession) {
+        self.session = session
     }
 
     /// Decode from a `ByteBuffer`. This method will be called till either the input
@@ -30,16 +30,32 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
 
         let packet: MySQLPacket
 
-        switch state {
+        switch session.state {
         case .awaitingHandshake:
-            let length = buffer.assertReadInteger(endianness: .little, as: Int32.self)
+            let length = try buffer.requireInteger(endianness: .little, as: Int32.self, source: .capture())
             assert(length > 0)
-            let handshake = MySQLHandshakeV10(bytes: &buffer, source: .capture())
+            let handshake = try MySQLHandshakeV10(bytes: &buffer)
+            print(handshake)
             packet = .handshakev10(handshake)
-            self.state = .normal
-        case .normal:
-            let length = buffer.assertReadInteger(endianness: .little, as: Int32.self)
+            session.state = .handshakeComplete(handshake.capabilities)
+        case .handshakeComplete(let capabilities):
+            let length = try buffer.requireInteger(endianness: .little, as: Int32.self, source: .capture())
             assert(length > 0)
+            guard let next: Byte = buffer.peekInteger() else {
+                throw MySQLError(identifier: "peekHeader", reason: "Could not peek at header type.", source: .capture())
+            }
+            if next == 0x00 && length > 7 {
+                // parse OK packet
+                let ok = try MySQLOKPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
+                print(ok)
+                packet = .ok(ok)
+            } else if next == 0xFE && length < 9 {
+                // parse EOF packet
+            } else {
+                // parse ?? packet
+                fatalError()
+            }
+            print(capabilities)
             print(buffer.debugDescription)
             fatalError()
         }
@@ -63,9 +79,4 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
     func decoderAdded(ctx: ChannelHandlerContext) {
         VERBOSE("MySQLPacketDecoder.decoderAdded(ctx: \(ctx))")
     }
-}
-
-enum MySQLPacketDecoderState {
-    case awaitingHandshake
-    case normal
 }

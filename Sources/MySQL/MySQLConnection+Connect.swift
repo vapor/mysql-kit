@@ -24,7 +24,8 @@ extension MySQLConnection {
 
 extension ChannelPipeline {
     func addMySQLClientHandlers(first: Bool = false) -> EventLoopFuture<Void> {
-        return addHandlers(MySQLPacketEncoder(), MySQLPacketDecoder(), first: first)
+        let session = MySQLConnectionSession()
+        return addHandlers(MySQLPacketEncoder(session: session), MySQLPacketDecoder(session: session), first: first)
     }
 
     /// Adds the provided channel handlers to the pipeline in the order given, taking account
