@@ -199,6 +199,8 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             if !capabilities.get(CLIENT_DEPRECATE_EOF) {
                 return try decodeOK(ctx: ctx, buffer: &buffer, capabilities: capabilities)
             }
+        case .rows(let execute):
+            fatalError("ROWS")
         }
         return .continue
     }

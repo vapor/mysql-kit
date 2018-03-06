@@ -13,9 +13,60 @@ import Bits
 ///
 /// https://dev.mysql.com/doc/internals/en/com-stmt-execute.html#packet-COM_STMT_EXECUTE
 struct MySQLComStmtExecute {
-    /// 1              [17] COM_STMT_EXECUTE
+    /// stmt-id
     var statementID: UInt32
 
-    /// 1              flags
+    /// flags
     var flags: Byte
+
+    /// The values to bind
+    var values: [MySQLBinaryValue]
+
+    /// Serializes the `MySQLComStmtExecute` into a buffer.
+    func serialize(into buffer: inout ByteBuffer) {
+        /// [17] COM_STMT_EXECUTE
+        buffer.write(integer: Byte(0x17))
+        buffer.write(integer: statementID, endianness: .little)
+        buffer.write(integer: flags, endianness: .little)
+        /// iteration-count
+        /// The iteration-count is always 1.
+        buffer.write(integer: Int32(0x01), endianness: .little)
+        if values.count > 0 {
+            /// NULL-bitmap, length: (num-params+7)/8
+            var nullBitmap = Bytes(repeating: 0, count: (values.count + 7) / 8)
+
+            for (i, value) in values.enumerated() {
+                if value.data == nil {
+                    let byteOffset = i / 8
+                    let bitOffset = i % 8
+
+                    let bitEncoded: UInt8 = 0b00000001 << (7 - numericCast(bitOffset))
+                    nullBitmap[byteOffset] |= bitEncoded
+                }
+            }
+            print("NULLBITMAP: \(nullBitmap)")
+            buffer.write(bytes: nullBitmap)
+
+            /// new-params-bound-flag
+            buffer.write(integer: Byte(0x01))
+
+            /// set value types
+            for value in values {
+                buffer.write(integer: value.type.raw, endianness: .little)
+                /// a flag byte which has the highest bit set if the type is unsigned [80]
+                if value.isUnsigned {
+                    buffer.write(integer: Byte(0x80))
+                } else {
+                    buffer.write(integer: Byte(0x00))
+                }
+            }
+
+            /// set values
+            for value in values {
+                if let data = value.data {
+                    buffer.write(bytes: data)
+                }
+            }
+        }
+    }
 }

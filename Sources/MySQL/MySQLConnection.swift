@@ -98,19 +98,19 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
             default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).", source: .capture())
             }
         }.flatMap(to: Void.self) {
-            return self.queue.enqueue([.comStmtPrepare(comPrepare)]) { message in
+            let ok = ok!
+            print(ok)
+            let comExecute = MySQLComStmtExecute(
+                statementID: ok.statementID,
+                flags: 0x00, // which flags?
+                values: [
+                    MySQLBinaryValue(type: .MYSQL_TYPE_VARCHAR, isUnsigned: false, data: Data([0x03, 0x66, 0x6f, 0x6f])),
+                    MySQLBinaryValue(type: .MYSQL_TYPE_VARCHAR, isUnsigned: false, data: Data([0x03, 0x66, 0x6e, 0x6f])),
+                ]
+            )
+            return self.queue.enqueue([.comStmtExecute(comExecute)]) { message in
+                print("AFTER EXECUTE: \(message)")
                 switch message {
-                case .comStmtPrepareOK(let _ok):
-                    ok = _ok
-                    return false
-                case .columnDefinition41(let col):
-                    let ok = ok!
-                    columns.append(col)
-                    if columns.count == ok.numColumns + ok.numParams {
-                        return true
-                    } else {
-                        return false
-                    }
                 case .ok, .eof:
                     // ignore ok and eof
                     return false

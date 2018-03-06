@@ -8,4 +8,5 @@ enum MySQLPacket {
     case eof(MySQLEOFPacket)
     case comStmtPrepare(MySQLComStmtPrepare)
     case comStmtPrepareOK(MySQLComStmtPrepareOK)
+    case comStmtExecute(MySQLComStmtExecute)
 }
