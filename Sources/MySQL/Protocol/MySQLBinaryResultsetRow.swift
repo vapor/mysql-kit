@@ -17,13 +17,18 @@ struct MySQLBinaryResultsetRow {
         let nullBitmap = try bytes.requireBytes(length: (columns.count + 7 + 2) / 8, source: .capture())
         var values: [MySQLBinaryData] = []
 
-        for column in columns {
-            if false {
-                // null case
+        for (i, column) in columns.enumerated() {
+            let byteOffset = i / 8
+            let bitOffset = i % 8
+            let bitEncoded: UInt8 = 0b00000001 << (7 - numericCast(bitOffset))
+
+            let storage: MySQLBinaryDataStorage?
+            if nullBitmap[byteOffset] & bitEncoded > 0 {
+                storage = nil
             } else {
-                let storage: MySQLBinaryDataStorage
                 switch column.columnType {
-                case .MYSQL_TYPE_VARCHAR,
+                case .MYSQL_TYPE_STRING,
+                     .MYSQL_TYPE_VARCHAR,
                      .MYSQL_TYPE_VAR_STRING,
                      .MYSQL_TYPE_ENUM,
                      .MYSQL_TYPE_SET,
@@ -61,12 +66,11 @@ struct MySQLBinaryResultsetRow {
                     } else {
                         storage = try .integer1(bytes.requireInteger(endianness: .little, source: .capture()))
                     }
-                default: fatalError("Unsupported type: \(column)")
+                default: throw MySQLError(identifier: "binaryColumn", reason: "Unsupported type: \(column)", source: .capture())
                 }
-                let binary = MySQLBinaryData(type: column.columnType, isUnsigned: column.flags.get(.COLUMN_UNSIGNED), storage: storage)
-                print(binary)
-                values.append(binary)
             }
+            let binary = MySQLBinaryData(type: column.columnType, isUnsigned: column.flags.get(.COLUMN_UNSIGNED), storage: storage)
+            values.append(binary)
         }
 
         self.values = values

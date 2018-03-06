@@ -5,11 +5,22 @@ import Foundation
 /// MARK: Assert
 
 extension ByteBuffer {
-    public mutating func requireInteger<T>(endianness: Endianness = .big, as type: T.Type = T.self, source: @autoclosure () -> (SourceLocation)) throws -> T where T: FixedWidthInteger {
+    public mutating func requireInteger<T>(endianness: Endianness = .big, as type: T.Type = T.self, source: @autoclosure () -> (SourceLocation)) throws -> T
+        where T: FixedWidthInteger
+    {
         guard let int = readInteger(endianness: endianness, as: T.self) else {
             throw MySQLError(identifier: "integer", reason: "Could not parse \(T.self).", source: source())
         }
         return int
+    }
+
+    public mutating func requireFloatingPoint<T>(as type: T.Type = T.self, source: @autoclosure () -> (SourceLocation)) throws -> T
+        where T: BinaryFloatingPoint
+    {
+        guard let float = readFloatingPoint(as: T.self) else {
+            throw MySQLError(identifier: "floatingPoint", reason: "Could not parse \(T.self).", source: source())
+        }
+        return float
     }
 
     public mutating func requireNullTerminatedString(source: @autoclosure () -> (SourceLocation)) throws -> String {
@@ -152,6 +163,79 @@ extension ByteBuffer {
             /// If the value is ≥ (224) and < (264) it is stored as fe + 8-byte integer.
             write(integer: int)
         default: fatalError() // will never hit
+        }
+    }
+}
+
+/// MARK: Floating point
+
+extension ByteBuffer {
+
+    /// Read an integer off this `ByteBuffer`, move the reader index forward by the floating point's byte size and return the result.
+    ///
+    /// - parameters:
+    ///     - as: the desired `BinaryFloatingPoint` type (optional parameter)
+    /// - returns: An integer value deserialized from this `ByteBuffer` or `nil` if there aren't enough bytes readable.
+    public mutating func readFloatingPoint<T>(as: T.Type = T.self) -> T?
+        where T: BinaryFloatingPoint
+    {
+        guard self.readableBytes >= MemoryLayout<T>.size else {
+            return nil
+        }
+
+        let value: T = self.getFloatingPoint(at: self.readerIndex)! /* must work as we have enough bytes */
+        self.moveReaderIndex(forwardBy: MemoryLayout<T>.size)
+        return value
+    }
+
+    /// Get the floating point at `index` from this `ByteBuffer`. Does not move the reader index.
+    ///
+    /// - parameters:
+    ///     - index: The starting index of the bytes for the floating point into the `ByteBuffer`.
+    ///     - as: the desired `BinaryFloatingPoint` type (optional parameter)
+    /// - returns: An integer value deserialized from this `ByteBuffer` or `nil` if the bytes of interest aren't contained in the `ByteBuffer`.
+    public func getFloatingPoint<T>(at index: Int, as: T.Type = T.self) -> T?
+        where T: BinaryFloatingPoint
+    {
+        precondition(index >= 0, "index must not be negative")
+        return self.withVeryUnsafeBytes { ptr in
+            guard index <= ptr.count - MemoryLayout<T>.size else {
+                return nil
+            }
+            var value: T = 0
+            withUnsafeMutableBytes(of: &value) { valuePtr in
+                valuePtr.copyMemory(from: UnsafeRawBufferPointer(start: ptr.baseAddress!.advanced(by: index),
+                                                                 count: MemoryLayout<T>.size))
+            }
+            return value
+        }
+    }
+
+    /// Write `integer` into this `ByteBuffer`, moving the writer index forward appropriately.
+    ///
+    /// - parameters:
+    ///     - integer: The integer to serialize.
+    ///     - endianness: The endianness to use, defaults to big endian.
+    /// - returns: The number of bytes written.
+    @discardableResult
+    public mutating func write<T>(floatingPoint: T) -> Int where T: BinaryFloatingPoint {
+        let bytesWritten = self.set(floatingPoint: floatingPoint, at: self.writerIndex)
+        self.moveWriterIndex(forwardBy: bytesWritten)
+        return Int(bytesWritten)
+    }
+
+    /// Write `integer` into this `ByteBuffer` starting at `index`. This does not alter the writer index.
+    ///
+    /// - parameters:
+    ///     - integer: The integer to serialize.
+    ///     - index: The index of the first byte to write.
+    ///     - endianness: The endianness to use, defaults to big endian.
+    /// - returns: The number of bytes written.
+    @discardableResult
+    public mutating func set<T>(floatingPoint: T, at index: Int) -> Int where T: BinaryFloatingPoint {
+        var value = floatingPoint
+        return Swift.withUnsafeBytes(of: &value) { ptr in
+            self.set(bytes: ptr, at: index)
         }
     }
 }

@@ -2,7 +2,7 @@
 public struct MySQLColumn: Hashable {
     /// See `Hashable.hashValue`
     public var hashValue: Int {
-        return description.hashValue
+        return name.hashValue
     }
 
     /// See `Equatable.==`
@@ -26,7 +26,7 @@ public struct MySQLColumn: Hashable {
 extension MySQLColumn: CustomStringConvertible {
     public var description: String {
         if let table = table {
-            return "\(table).\(name)"
+            return "\(table)(\(name))"
         } else {
             return "\(name)"
         }

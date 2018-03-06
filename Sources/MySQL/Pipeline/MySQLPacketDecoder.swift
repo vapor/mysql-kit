@@ -54,7 +54,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
     /// Decode's an OK, ERR, or EOF packet
     func decodeBasicPacket(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, capabilities: MySQLCapabilities) throws -> DecodingState {
         guard let length = try buffer.checkPacketLength(source: .capture()) else {
-            return .continue
+            return .needMoreData
         }
         guard let next: Byte = buffer.peekInteger() else {
             throw MySQLError(identifier: "peekHeader", reason: "Could not peek at header type.", source: .capture())
@@ -108,7 +108,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
 
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
-                return .continue
+                return .needMoreData
             }
             let columnCount = try buffer.requireLengthEncodedInteger(source: .capture())
             let count = Int(columnCount)
@@ -116,7 +116,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             session.connectionState = .text(.columns(columnCount: count, remaining: count))
         case .columns(let columnCount, var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
-                return .continue
+                return .needMoreData
             }
             let column = try MySQLColumnDefinition41(bytes: &buffer)
             session.incrementSequenceID()
@@ -131,7 +131,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             if columnCount == remaining {
                 // we are on a new set of results, check packet length again
                 guard let _ = try buffer.checkPacketLength(source: .capture()) else {
-                    return .continue
+                    return .needMoreData
                 }
             }
 
@@ -155,8 +155,17 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
     func decodeStatementProtocol(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, statementState: MySQLStatementProtocolState, capabilities: MySQLCapabilities) throws -> DecodingState {
         switch statementState {
         case .waitingPrepare:
+            // check for error packet
+            let peek = buffer.peekInteger(as: Byte.self, skipping: 4)
+            switch peek {
+            case 0xFF:
+                session.connectionState = .none
+                return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
+            default: break
+            }
+
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
-                return .continue
+                return .needMoreData
             }
             let ok = try MySQLComStmtPrepareOK(bytes: &buffer)
             session.incrementSequenceID()
@@ -170,7 +179,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
         case .params(let ok, var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
-                return .continue
+                return .needMoreData
             }
 
             let column = try MySQLColumnDefinition41(bytes: &buffer)
@@ -195,7 +204,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
         case .columns(var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
-                return .continue
+                return .needMoreData
             }
 
             let column = try MySQLColumnDefinition41(bytes: &buffer)
@@ -223,14 +232,14 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
             
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
-                return .continue
+                return .needMoreData
             }
             let columnCount = try buffer.requireLengthEncodedInteger(source: .capture())
             let count = Int(columnCount)
             session.connectionState = .statement(.rowColumns(columns: [], remaining: count))
         case .rowColumns(var columns, var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
-                return .continue
+                return .needMoreData
             }
             let column = try MySQLColumnDefinition41(bytes: &buffer)
             columns.append(column)
@@ -247,13 +256,14 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
                 session.connectionState = .none
             } else {
                 guard let _ = try buffer.checkPacketLength(source: .capture()) else {
-                    return .continue
+                    return .needMoreData
                 }
 
                 let row = try MySQLBinaryResultsetRow(bytes: &buffer, columns: columns)
                 ctx.fireChannelRead(wrapInboundOut(.binaryResultsetRow(row)))
             }
         }
+
         return .continue
     }
 }

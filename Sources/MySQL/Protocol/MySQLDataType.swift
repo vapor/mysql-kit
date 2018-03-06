@@ -94,6 +94,9 @@ public struct MySQLDataType: Equatable {
     /// Implemented by ProtocolBinary::MYSQL_TYPE_VAR_STRING
     public static let MYSQL_TYPE_VAR_STRING: MySQLDataType = 0xfd
 
+    /// Implemented by ProtocolBinary::MYSQL_TYPE_STRING
+    public static let MYSQL_TYPE_STRING: MySQLDataType = 0xfe
+
     public static let MYSQL_TYPE_GEOMETRY: MySQLDataType = 0xff
 }
 

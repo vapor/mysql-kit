@@ -197,7 +197,18 @@ public struct MySQLData {
                 }
 
                 return I(uint64)
-            case .string(let data): return String(data: data, encoding: .ascii).flatMap { I.init($0) }
+            case .string(let data):
+                switch binary.type {
+                case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING, .MYSQL_TYPE_STRING: return String(data: data, encoding: .ascii).flatMap { I.init($0) }
+                case .MYSQL_TYPE_BIT:
+                    if data.count == 1 {
+                        return I(data[0])
+                    } else {
+                        return nil
+                    }
+                default: return nil
+
+                }
             default: return nil // support more
             }
         }
@@ -215,13 +226,21 @@ extension MySQLData: CustomStringConvertible {
         switch storage {
         case .text(let data):
             if let data = data {
-                return String(data: data, encoding: .utf8) ?? "<non utf8 text>"
+                return String(data: data, encoding: .utf8).flatMap { "string(\"\($0)\")" } ?? "<non utf8 text>"
             } else {
                 return "<null>"
             }
         case .binary(let binary):
             if let data = binary.storage {
-                return "<binary> \(data)"
+                switch data {
+                case .string(let data):
+                    switch binary.type {
+                    case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING:
+                        return String(data: data, encoding: .utf8).flatMap { "string(\"\($0)\")" } ?? "<non-utf8 string (\(data.count))>"
+                    default: return "data(0x\(data.hexString))"
+                    }
+                default: return "\(data)"
+                }
             } else {
                 return "<null>"
             }
