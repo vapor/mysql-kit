@@ -53,6 +53,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
 
     /// Decode's an OK, ERR, or EOF packet
     func decodeOK(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, capabilities: MySQLCapabilities) throws -> DecodingState {
+        print("DECODE OK")
         guard let length = try buffer.checkPacketLength(source: .capture()) else {
             return .continue
         }
@@ -205,30 +206,31 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
             let columnCount = try buffer.requireLengthEncodedInteger(source: .capture())
             let count = Int(columnCount)
-            session.connectionState = .statement(.rowColumns(columnCount: count, remaining: count))
-        case .rowColumns(let columnCount, var remaining):
+            session.connectionState = .statement(.rowColumns(columns: [], remaining: count))
+        case .rowColumns(var columns, var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
                 return .continue
             }
             let column = try MySQLColumnDefinition41(bytes: &buffer)
+            columns.append(column)
             session.incrementSequenceID()
             ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
             remaining -= 1
             if remaining == 0 {
-                session.connectionState = .statement(.rows(columnCount: columnCount))
+                session.connectionState = .statement(.rows(columns: columns))
             } else {
-                session.connectionState = .statement(.rowColumns(columnCount: columnCount, remaining: remaining))
+                session.connectionState = .statement(.rowColumns(columns: columns, remaining: remaining))
             }
-        case .rows(let columnCount):
-            guard let _ = try buffer.checkPacketLength(source: .capture()) else {
-                return .continue
-            }
-
-            if buffer.peekInteger(as: Byte.self) == 0xFE {
+        case .rows(let columns):
+            if buffer.peekInteger(as: Byte.self, skipping: 4) == 0xFE {
                 session.connectionState = .none
                 print("ROWS DONE")
             } else {
-                let row = try MySQLBinaryResultsetRow(bytes: &buffer, columnCount: columnCount)
+                guard let _ = try buffer.checkPacketLength(source: .capture()) else {
+                    return .continue
+                }
+
+                let row = try MySQLBinaryResultsetRow(bytes: &buffer, columns: columns)
                 ctx.fireChannelRead(wrapInboundOut(.binaryResultsetRow(row)))
             }
         }

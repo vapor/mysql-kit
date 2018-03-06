@@ -1,5 +1,6 @@
 import Bits
 import Debugging
+import Foundation
 
 /// MARK: Assert
 
@@ -44,6 +45,13 @@ extension ByteBuffer {
             throw MySQLError(identifier: "lengthEncodedString", reason: "Could not parse length encoded string.", source: source())
         }
         return string
+    }
+
+    public mutating func requireLengthEncodedData(source: @autoclosure () -> (SourceLocation)) throws -> Data {
+        guard let data = readLengthEncodedData() else {
+            throw MySQLError(identifier: "lengthEncodedData", reason: "Could not parse length encoded data.", source: source())
+        }
+        return data
     }
 }
 
@@ -92,6 +100,18 @@ extension ByteBuffer {
         return readString(length: Int(size))
     }
 
+    public mutating func readLengthEncodedData() -> Data? {
+        guard let size = readLengthEncodedInteger() else {
+            return nil
+        }
+
+        if size == 0 {
+            return .init()
+        }
+
+        return readData(length: Int(size))
+    }
+
     public mutating func readLengthEncodedInteger() -> UInt64? {
         guard let first: Byte = peekInteger() else {
             return nil
@@ -114,6 +134,24 @@ extension ByteBuffer {
                 return nil
             }
             return numericCast(byte)
+        }
+    }
+
+    public mutating func write(lengthEncoded int: UInt64) {
+        switch int {
+        case 0..<251:
+            /// If the value is < 251, it is stored as a 1-byte integer.
+            write(integer: Byte(int))
+        case 251..<65_536:
+            /// If the value is ≥ 251 and < (216), it is stored as fc + 2-byte integer.
+            write(integer: UInt16(int))
+        case 65_536..<16_777_216:
+            /// If the value is ≥ (216) and < (224), it is stored as fd + 3-byte integer.
+            fatalError("3-byte integer not yet implemented")
+        case 16_777_216..<UInt64.max:
+            /// If the value is ≥ (224) and < (264) it is stored as fe + 8-byte integer.
+            write(integer: int)
+        default: fatalError() // will never hit
         }
     }
 }

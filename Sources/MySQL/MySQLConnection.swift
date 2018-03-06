@@ -75,7 +75,7 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
         }
     }
 
-    public func query(_ string: String, _ parameters: [String],  onRow: @escaping ([String: String?]) throws -> ()) -> Future<Void> {
+    public func query(_ string: String, _ parameters: [String],  onRow: @escaping ([String: MySQLBinaryValueData?]) throws -> ()) -> Future<Void> {
         let comPrepare = MySQLComStmtPrepare(query: string)
         var ok: MySQLComStmtPrepareOK?
         var columns: [MySQLColumnDefinition41] = []
@@ -105,18 +105,23 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
                 statementID: ok.statementID,
                 flags: 0x00, // which flags?
                 values: [
-                    MySQLBinaryValue(type: .MYSQL_TYPE_VARCHAR, isUnsigned: false, data: Data([0x03, 0x66, 0x6f, 0x6f])),
-                    MySQLBinaryValue(type: .MYSQL_TYPE_VARCHAR, isUnsigned: false, data: Data([0x03, 0x66, 0x6e, 0x6f])),
+                    MySQLBinaryValue(type: .MYSQL_TYPE_VARCHAR, isUnsigned: false, data: .string(Data("foo".utf8))),
+                    MySQLBinaryValue(type: .MYSQL_TYPE_VARCHAR, isUnsigned: false, data: .string(Data("bar".utf8))),
                 ]
             )
+            var columns: [MySQLColumnDefinition41] = []
             return self.queue.enqueue([.comStmtExecute(comExecute)]) { message in
                 print("AFTER EXECUTE: \(message)")
                 switch message {
-                case .binaryResultsetRow(let row):
-                    print("got row")
-                    return false
                 case .columnDefinition41(let col):
-                    print("got col")
+                    columns.append(col)
+                    return false
+                case .binaryResultsetRow(let row):
+                    var formatted: [String: MySQLBinaryValueData?] = [:]
+                    for (i, col) in columns.enumerated() {
+                        formatted[col.name] = row.values[i]
+                    }
+                    try onRow(formatted)
                     return false
                 case .ok, .eof:
                     // ignore ok and eof
