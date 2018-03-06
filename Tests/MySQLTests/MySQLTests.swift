@@ -7,15 +7,15 @@ class MySQLTests: XCTestCase {
         let client = try MySQLConnection.makeTest()
         print("client: \(client)!")
         let results = try client.simpleQuery("SELECT @@version;").wait()
-        XCTAssert(results[0]["@@version"]??.contains("5.7") == true)
+        print(results)
+        XCTAssert(results[0]["@@version"]?.string?.contains("5.7") == true)
     }
 
     func testQuery() throws {
         let client = try MySQLConnection.makeTest()
         print("client: \(client)!")
-        let results = try client.query("SELECT CONCAT(?, ?) as test;", ["hello", "world"]) { row in
-            print(row)
-        }.wait()
+        let results = try client.query("SELECT CONCAT(?, ?) as test;", ["hello", "world"]).wait()
+        print(results)
     }
 
     static let allTests = [

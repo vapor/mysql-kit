@@ -53,7 +53,6 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
 
     /// Decode's an OK, ERR, or EOF packet
     func decodeOK(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, capabilities: MySQLCapabilities) throws -> DecodingState {
-        print("DECODE OK")
         guard let length = try buffer.checkPacketLength(source: .capture()) else {
             return .continue
         }
@@ -224,7 +223,6 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         case .rows(let columns):
             if buffer.peekInteger(as: Byte.self, skipping: 4) == 0xFE {
                 session.connectionState = .none
-                print("ROWS DONE")
             } else {
                 guard let _ = try buffer.checkPacketLength(source: .capture()) else {
                     return .continue

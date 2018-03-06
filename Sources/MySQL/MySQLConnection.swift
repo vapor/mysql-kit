@@ -43,19 +43,21 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
         }
     }
 
-    public func simpleQuery(_ string: String) -> Future<[[String: String?]]> {
-        var rows: [[String: String?]] = []
+    /// MARK: Simple Query
+
+    public func simpleQuery(_ string: String) -> Future<[[MySQLColumn: MySQLData]]> {
+        var rows: [[MySQLColumn: MySQLData]] = []
         return simpleQuery(string) { row in
             rows.append(row)
-        }.map(to: [[String: String?]].self) {
+        }.map(to: [[MySQLColumn: MySQLData]].self) {
             return rows
         }
     }
 
-    public func simpleQuery(_ string: String, onRow: @escaping ([String: String?]) throws -> ()) -> Future<Void> {
+    public func simpleQuery(_ string: String, onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
         let comQuery = MySQLComQuery(query: string)
         var columns: [MySQLColumnDefinition41] = []
-        var currentRow: [String: String?] = [:]
+        var currentRow: [MySQLColumn: MySQLData] = [:]
         return queue.enqueue([.comQuery(comQuery)]) { message in
             switch message {
             case .columnDefinition41(let col):
@@ -63,7 +65,8 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
                 return false
             case .resultSetRow(let row):
                 let col = columns[currentRow.keys.count]
-                currentRow[col.name] = row.value
+                let value: MySQLBinaryValueData? = row.value.flatMap { .string($0) }
+                currentRow[col.makeMySQLColumn()] = MySQLData(type: .MYSQL_TYPE_VARCHAR, value: value)
                 if currentRow.keys.count >= columns.count {
                     try onRow(currentRow)
                     currentRow = [:]
@@ -75,12 +78,22 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
         }
     }
 
-    public func query(_ string: String, _ parameters: [String],  onRow: @escaping ([String: MySQLBinaryValueData?]) throws -> ()) -> Future<Void> {
+    /// MARK: Prepared Query
+
+    public func query(_ string: String, _ parameters: [String]) -> Future<[[MySQLColumn: MySQLData]]> {
+        var rows: [[MySQLColumn: MySQLData]] = []
+        return self.query(string, parameters) { row in
+            rows.append(row)
+        }.map(to: [[MySQLColumn: MySQLData]].self) {
+            return rows
+        }
+    }
+
+    public func query(_ string: String, _ parameters: [String],  onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
         let comPrepare = MySQLComStmtPrepare(query: string)
         var ok: MySQLComStmtPrepareOK?
         var columns: [MySQLColumnDefinition41] = []
         return queue.enqueue([.comStmtPrepare(comPrepare)]) { message in
-            print("AFTER PREPARE: \(message)")
             switch message {
             case .comStmtPrepareOK(let _ok):
                 ok = _ok
@@ -100,7 +113,6 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
             }
         }.flatMap(to: Void.self) {
             let ok = ok!
-            print(ok)
             let comExecute = MySQLComStmtExecute(
                 statementID: ok.statementID,
                 flags: 0x00, // which flags?
@@ -111,21 +123,20 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
             )
             var columns: [MySQLColumnDefinition41] = []
             return self.queue.enqueue([.comStmtExecute(comExecute)]) { message in
-                print("AFTER EXECUTE: \(message)")
                 switch message {
                 case .columnDefinition41(let col):
                     columns.append(col)
                     return false
                 case .binaryResultsetRow(let row):
-                    var formatted: [String: MySQLBinaryValueData?] = [:]
+                    var formatted: [MySQLColumn: MySQLData] = [:]
                     for (i, col) in columns.enumerated() {
-                        formatted[col.name] = row.values[i]
+                        let data = MySQLData(type: col.columnType, value: row.values[i])
+                        formatted[col.makeMySQLColumn()] = data
                     }
                     try onRow(formatted)
                     return false
                 case .ok, .eof:
-                    // ignore ok and eof
-                    print("GOT OK")
+                    // rows are done
                     return true
                 default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).", source: .capture())
                 }
@@ -197,3 +208,105 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
     }
 }
 
+/// Represents row data for a single MySQL column.
+public struct MySQLData {
+    /// This value's column type
+    public var type: MySQLColumnType
+
+    /// The value's optional data.
+    var value: MySQLBinaryValueData?
+
+    /// Returns `true` if this data is null.
+    public var isNull: Bool {
+        return value == nil
+    }
+
+    /// Access the value as data.
+    public var data: Data? {
+        guard let value = value else {
+            return nil
+        }
+        switch value {
+        case .string(let data): return data
+        default: return nil
+        }
+    }
+
+    /// Access the value as a string.
+    public var string: String? {
+        guard let value = value else {
+            return nil
+        }
+        switch value {
+        case .string(let data): return String(data: data, encoding: .utf8)
+        default: return nil // support more
+        }
+    }
+}
+
+extension MySQLData: CustomStringConvertible {
+    public var description: String {
+        if let value = value {
+            return "\(value)"
+        } else {
+            return "<null>"
+        }
+    }
+}
+
+/// Represents a MySQL column.
+public struct MySQLColumn: Hashable {
+    /// See `Hashable.hashValue`
+    public var hashValue: Int {
+        return description.hashValue
+    }
+
+    /// See `Equatable.==`
+    public static func ==(lhs: MySQLColumn, rhs: MySQLColumn) -> Bool {
+        if let ltable = lhs.table, let rtable = rhs.table {
+            // if both have tables, check
+            if ltable != rtable {
+                return false
+            }
+        }
+        return lhs.name == rhs.name
+    }
+
+    /// The table this column belongs to.
+    public var table: String?
+
+    /// The column's name.
+    public var name: String
+}
+
+extension MySQLColumn: CustomStringConvertible {
+    public var description: String {
+        if let table = table {
+            return "\(table).\(name)"
+        } else {
+            return "\(name)"
+        }
+    }
+}
+
+extension MySQLColumnDefinition41 {
+    /// Converts a `MySQLColumnDefinition41` to `MySQLColumn`
+    func makeMySQLColumn() -> MySQLColumn {
+        return .init(
+            table: table == "" ? nil : table,
+            name: name
+        )
+    }
+}
+
+extension Dictionary where Key == MySQLColumn {
+    public subscript(_ name: String) -> Value? {
+        let test = MySQLColumn(table: nil, name: name)
+        return self[test]
+    }
+
+    public subscript(table: String, name: String) -> Value? {
+        let test = MySQLColumn(table: table, name: name)
+        return self[test]
+    }
+}

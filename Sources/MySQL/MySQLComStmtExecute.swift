@@ -44,7 +44,6 @@ struct MySQLComStmtExecute {
                     nullBitmap[byteOffset] |= bitEncoded
                 }
             }
-            print("NULLBITMAP: \(nullBitmap)")
             buffer.write(bytes: nullBitmap)
 
             /// new-params-bound-flag

@@ -8,7 +8,7 @@ import Foundation
 /// - everything else is converted into a string and is sent as Protocol::LengthEncodedString.
 struct MySQLResultSetRow {
     /// The result set's data.
-    var value: String?
+    var value: Data?
 
     /// Parses a `MySQLResultSetRow` from the `ByteBuffer`.
     init(bytes: inout ByteBuffer) throws {
@@ -20,7 +20,7 @@ struct MySQLResultSetRow {
         case 0xFB:
             value = nil
         default:
-            value = try bytes.requireLengthEncodedString(source: .capture())
+            value = try bytes.requireLengthEncodedData(source: .capture())
         }
     }
 }

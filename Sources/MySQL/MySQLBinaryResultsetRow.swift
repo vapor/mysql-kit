@@ -15,8 +15,6 @@ struct MySQLBinaryResultsetRow {
         }
 
         let nullBitmap = try bytes.requireBytes(length: (columns.count + 7 + 2) / 8, source: .capture())
-        print("NULLBITMAP (recv) \(nullBitmap)")
-
         var values: [MySQLBinaryValueData?] = []
 
         for column in columns {
