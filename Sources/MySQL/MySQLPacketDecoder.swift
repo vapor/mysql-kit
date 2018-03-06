@@ -141,7 +141,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
     /// Statement Protocol (Prepared Query)
     func decodeStatementProtocol(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, statementState: MySQLStatementProtocolState, capabilities: MySQLCapabilities) throws -> DecodingState {
         switch statementState {
-        case .waiting:
+        case .waitingPrepare:
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
                 return .continue
             }
@@ -151,9 +151,9 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             if ok.numParams > 0 {
                 session.connectionState = .statement(.params(ok: ok, remaining: numericCast(ok.numParams)))
             } else if ok.numColumns > 0 {
-                session.connectionState = .statement(.columns(ok: ok, remaining: numericCast(ok.numColumns)))
+                session.connectionState = .statement(.columns(remaining: numericCast(ok.numColumns)))
             } else {
-                session.connectionState = .statement(.columnsDone(ok: ok))
+                session.connectionState = .statement(.columnsDone)
             }
         case .params(let ok, var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
@@ -172,15 +172,15 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
         case .paramsDone(let ok):
             if ok.numColumns > 0 {
-                session.connectionState = .statement(.columns(ok: ok, remaining: numericCast(ok.numColumns)))
+                session.connectionState = .statement(.columns(remaining: numericCast(ok.numColumns)))
             } else {
-                session.connectionState = .statement(.columnsDone(ok: ok))
+                session.connectionState = .statement(.columnsDone)
             }
 
             if !capabilities.get(CLIENT_DEPRECATE_EOF) {
                 return try decodeOK(ctx: ctx, buffer: &buffer, capabilities: capabilities)
             }
-        case .columns(let ok, var remaining):
+        case .columns(var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
                 return .continue
             }
@@ -191,16 +191,46 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
 
             remaining -= 1
             if remaining == 0 {
-                session.connectionState = .statement(.columnsDone(ok: ok))
+                session.connectionState = .statement(.columnsDone)
             } else {
-                session.connectionState = .statement(.columns(ok: ok, remaining: remaining))
+                session.connectionState = .statement(.columns(remaining: remaining))
             }
-        case .columnsDone(let ok):
+        case .columnsDone:
             if !capabilities.get(CLIENT_DEPRECATE_EOF) {
                 return try decodeOK(ctx: ctx, buffer: &buffer, capabilities: capabilities)
             }
-        case .rows(let execute):
-            fatalError("ROWS")
+        case .waitingExecute:
+            guard let _ = try buffer.checkPacketLength(source: .capture()) else {
+                return .continue
+            }
+            let columnCount = try buffer.requireLengthEncodedInteger(source: .capture())
+            let count = Int(columnCount)
+            session.connectionState = .statement(.rowColumns(columnCount: count, remaining: count))
+        case .rowColumns(let columnCount, var remaining):
+            guard let _ = try buffer.checkPacketLength(source: .capture()) else {
+                return .continue
+            }
+            let column = try MySQLColumnDefinition41(bytes: &buffer)
+            session.incrementSequenceID()
+            ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
+            remaining -= 1
+            if remaining == 0 {
+                session.connectionState = .statement(.rows(columnCount: columnCount))
+            } else {
+                session.connectionState = .statement(.rowColumns(columnCount: columnCount, remaining: remaining))
+            }
+        case .rows(let columnCount):
+            guard let _ = try buffer.checkPacketLength(source: .capture()) else {
+                return .continue
+            }
+
+            if buffer.peekInteger(as: Byte.self) == 0xFE {
+                session.connectionState = .none
+                print("ROWS DONE")
+            } else {
+                let row = try MySQLBinaryResultsetRow(bytes: &buffer, columnCount: columnCount)
+                ctx.fireChannelRead(wrapInboundOut(.binaryResultsetRow(row)))
+            }
         }
         return .continue
     }

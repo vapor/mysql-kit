@@ -70,12 +70,16 @@ enum MySQLTextProtocolState {
 /// https://dev.mysql.com/doc/internals/en/com-stmt-prepare-response.html
 enum MySQLStatementProtocolState {
     /// COM_STMT_PREPARE_OK on success, ERR_Packet otherwise
-    case waiting
+    case waitingPrepare
     /// If num_params > 0 more packets will follow:
     case params(ok: MySQLComStmtPrepareOK, remaining: Int)
     case paramsDone(ok: MySQLComStmtPrepareOK)
     /// If num_columns > 0 more packets will follow:
-    case columns(ok: MySQLComStmtPrepareOK, remaining: Int)
-    case columnsDone(ok: MySQLComStmtPrepareOK)
-    case rows(execute: MySQLComStmtExecute)
+    case columns(remaining: Int)
+    case columnsDone
+
+    case waitingExecute
+    case rowColumns(columnCount: Int, remaining: Int)
+    /// ProtocolBinary::ResultsetRow until eof
+    case rows(columnCount: Int)
 }

@@ -80,6 +80,7 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
         var ok: MySQLComStmtPrepareOK?
         var columns: [MySQLColumnDefinition41] = []
         return queue.enqueue([.comStmtPrepare(comPrepare)]) { message in
+            print("AFTER PREPARE: \(message)")
             switch message {
             case .comStmtPrepareOK(let _ok):
                 ok = _ok
@@ -111,9 +112,16 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
             return self.queue.enqueue([.comStmtExecute(comExecute)]) { message in
                 print("AFTER EXECUTE: \(message)")
                 switch message {
+                case .binaryResultsetRow(let row):
+                    print("got row")
+                    return false
+                case .columnDefinition41(let col):
+                    print("got col")
+                    return false
                 case .ok, .eof:
                     // ignore ok and eof
-                    return false
+                    print("GOT OK")
+                    return true
                 default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).", source: .capture())
                 }
             }
