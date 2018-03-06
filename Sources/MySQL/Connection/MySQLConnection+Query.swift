@@ -1,6 +1,13 @@
-import Foundation
-
 extension MySQLConnection {
+    /// Sends a parameterized (a.k.a, prepared or statement protocol query) to the server.
+    /// The connection must be authenticated usign `.authenticate(...)` first.
+    ///
+    /// See `.simpleQuery(...)` for the non-parameterized version.
+    ///
+    /// - parameters:
+    ///     - string: The query string to run. Any values should be represented by `?`.
+    ///     - parameters: An array of parameters to bind. The count _must_ equal the number of `?` in the query string.
+    /// - returns: A future containing the resulting rows.
     public func query(_ string: String, _ parameters: [MySQLDataConvertible]) -> Future<[[MySQLColumn: MySQLData]]> {
         var rows: [[MySQLColumn: MySQLData]] = []
         return self.query(string, parameters) { row in
@@ -10,6 +17,16 @@ extension MySQLConnection {
         }
     }
 
+    /// Sends a parameterized (a.k.a, prepared or statement protocol query) to the server.
+    /// The connection must be authenticated usign `.authenticate(...)` first.
+    ///
+    /// See `.simpleQuery(...)` for the non-parameterized version.
+    ///
+    /// - parameters:
+    ///     - string: The query string to run. Any values should be represented by `?`.
+    ///     - parameters: An array of parameters to bind. The count _must_ equal the number of `?` in the query string.
+    ///     - onRow: Handles each row as it is received from the server.
+    /// - returns: A future that will complete when the query is finished.
     public func query(_ string: String, _ parameters: [MySQLDataConvertible],  onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
         let comPrepare = MySQLComStmtPrepare(query: string)
         var ok: MySQLComStmtPrepareOK?
@@ -39,7 +56,7 @@ extension MySQLConnection {
                 flags: 0x00, // which flags?
                 values: parameters.map { param in
                     let data = try param.convertToMySQLData()
-                    return .init(type: data.type, isUnsigned: false, value: data.value)
+                    return .init(type: data.type, isUnsigned: false, storage: data.storage)
                 }
             )
             var columns: [MySQLColumnDefinition41] = []
@@ -51,7 +68,7 @@ extension MySQLConnection {
                 case .binaryResultsetRow(let row):
                     var formatted: [MySQLColumn: MySQLData] = [:]
                     for (i, col) in columns.enumerated() {
-                        let data = MySQLData(type: col.columnType, format: .binary, value: row.values[i])
+                        let data = MySQLData(type: col.columnType, format: .binary, storage: row.values[i])
                         formatted[col.makeMySQLColumn()] = data
                     }
                     try onRow(formatted)

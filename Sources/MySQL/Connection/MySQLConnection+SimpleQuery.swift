@@ -1,4 +1,12 @@
 extension MySQLConnection {
+    /// Sends a simple query (a.k.a, text protocol query) to the server.
+    /// The connection must be authenticated usign `.authenticate(...)` first.
+    ///
+    /// See `.query(...)` for parameterized queries.
+    ///
+    /// - parameters:
+    ///     - string: The query string to run. Any values should be interpolated into the string.
+    /// - returns: A future containing the resulting rows.
     public func simpleQuery(_ string: String) -> Future<[[MySQLColumn: MySQLData]]> {
         var rows: [[MySQLColumn: MySQLData]] = []
         return simpleQuery(string) { row in
@@ -8,6 +16,15 @@ extension MySQLConnection {
         }
     }
 
+    /// Sends a simple query (a.k.a, text protocol query) to the server.
+    /// The connection must be authenticated usign `.authenticate(...)` first.
+    ///
+    /// See `.query(...)` for parameterized queries.
+    ///
+    /// - parameters:
+    ///     - string: The query string to run. Any values should be interpolated into the string.
+    ///     - onRow: Handles each row as it is received from the server.
+    /// - returns: A future that will complete when the query is finished.
     public func simpleQuery(_ string: String, onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
         let comQuery = MySQLComQuery(query: string)
         var columns: [MySQLColumnDefinition41] = []
@@ -19,8 +36,8 @@ extension MySQLConnection {
                 return false
             case .resultSetRow(let row):
                 let col = columns[currentRow.keys.count]
-                let value: MySQLBinaryValueData? = row.value.flatMap { .string($0) }
-                currentRow[col.makeMySQLColumn()] = MySQLData(type: .MYSQL_TYPE_VARCHAR, format: .text, value: value)
+                let value: MySQLBinaryDataStorage? = row.value.flatMap { .string($0) }
+                currentRow[col.makeMySQLColumn()] = MySQLData(type: .MYSQL_TYPE_VARCHAR, format: .text, storage: value)
                 if currentRow.keys.count >= columns.count {
                     try onRow(currentRow)
                     currentRow = [:]

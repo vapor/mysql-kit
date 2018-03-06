@@ -26,8 +26,10 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
     /// Sends `MySQLPacket` to the server.
     func send(_ messages: [MySQLPacket], onResponse: @escaping (MySQLPacket) throws -> Bool) -> Future<Void> {
         return queue.enqueue(messages) { message in
-            /// TODO: error packets?
-            return try onResponse(message)
+            switch message {
+            case .err(let err): throw err.makeError(source: .capture())
+            default: return try onResponse(message)
+            }
         }
     }
 

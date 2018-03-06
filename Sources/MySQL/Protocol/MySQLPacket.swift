@@ -10,4 +10,5 @@ enum MySQLPacket {
     case comStmtPrepareOK(MySQLComStmtPrepareOK)
     case comStmtExecute(MySQLComStmtExecute)
     case binaryResultsetRow(MySQLBinaryResultsetRow)
+    case err(MySQLErrorPacket)
 }

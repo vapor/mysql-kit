@@ -15,9 +15,18 @@ class MySQLTests: XCTestCase {
         try XCTAssertEqual(results[0]["test"]?.decode(String.self), "helloworld")
     }
 
+    func testInsert() throws {
+        let client = try MySQLConnection.makeTest()
+        let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS foos;").wait()
+        XCTAssertEqual(dropResults.count, 0)
+        let createResults = try client.simpleQuery("CREATE TABLE foos (id INT, name VARCHAR(64));").wait()
+        XCTAssertEqual(createResults.count, 0)
+    }
+
     static let allTests = [
         ("testSimpleQuery", testSimpleQuery),
         ("testQuery", testQuery),
+        ("testInsert", testInsert),
     ]
 }
 

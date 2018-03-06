@@ -5,7 +5,7 @@ import Foundation
 /// in the resultset + 2 and the values for columns that are not NULL in the Binary Protocol Value format.
 struct MySQLBinaryResultsetRow {
     /// The values for this row.
-    var values: [MySQLBinaryValueData?]
+    var values: [MySQLBinaryDataStorage?]
 
     /// Parses a `MySQLBinaryResultsetRow` from the `ByteBuffer`.
     init(bytes: inout ByteBuffer, columns: [MySQLColumnDefinition41]) throws {
@@ -15,7 +15,7 @@ struct MySQLBinaryResultsetRow {
         }
 
         let nullBitmap = try bytes.requireBytes(length: (columns.count + 7 + 2) / 8, source: .capture())
-        var values: [MySQLBinaryValueData?] = []
+        var values: [MySQLBinaryDataStorage?] = []
 
         for column in columns {
             if false {

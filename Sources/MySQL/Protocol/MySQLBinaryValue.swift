@@ -5,21 +5,21 @@ import Foundation
 /// Represents a MySQL binary value.
 ///
 /// https://dev.mysql.com/doc/internals/en/binary-protocol-value.html
-struct MySQLBinaryValue {
+struct MySQLBinaryData {
     /// This value's column type
-    var type: MySQLColumnType
+    var type: MySQLDataType
 
     /// If `true`, this value is unsigned.
     var isUnsigned: Bool
 
     /// The value's optional data.
-    var value: MySQLBinaryValueData?
+    var storage: MySQLBinaryDataStorage?
 }
 
 /// 14.7.3 Binary Protocol Value
 ///
 /// https://dev.mysql.com/doc/internals/en/binary-protocol-value.html
-enum MySQLBinaryValueData {
+enum MySQLBinaryDataStorage {
     /// ProtocolBinary::MYSQL_TYPE_STRING, ProtocolBinary::MYSQL_TYPE_VARCHAR, ProtocolBinary::MYSQL_TYPE_VAR_STRING, ProtocolBinary::MYSQL_TYPE_ENUM, ProtocolBinary::MYSQL_TYPE_SET, ProtocolBinary::MYSQL_TYPE_LONG_BLOB, ProtocolBinary::MYSQL_TYPE_MEDIUM_BLOB, ProtocolBinary::MYSQL_TYPE_BLOB, ProtocolBinary::MYSQL_TYPE_TINY_BLOB, ProtocolBinary::MYSQL_TYPE_GEOMETRY, ProtocolBinary::MYSQL_TYPE_BIT, ProtocolBinary::MYSQL_TYPE_DECIMAL, ProtocolBinary::MYSQL_TYPE_NEWDECIMAL:
     /// value (lenenc_str) -- string
     case string(Data)

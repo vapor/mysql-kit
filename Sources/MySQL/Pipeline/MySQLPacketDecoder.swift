@@ -31,8 +31,8 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         case .waiting: return try decodeHandshake(ctx:ctx, buffer: &buffer)
         case .complete(let capabilities):
             switch session.connectionState {
-            case .none: return try decodeOK(ctx: ctx, buffer: &buffer, capabilities: capabilities)
-            case .text(let textState): return try decodeTextProtocol(ctx: ctx, buffer: &buffer, textState: textState)
+            case .none: return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
+            case .text(let textState): return try decodeTextProtocol(ctx: ctx, buffer: &buffer, textState: textState, capabilities: capabilities)
             case .statement(let statementState): return try decodeStatementProtocol(ctx: ctx, buffer: &buffer, statementState: statementState, capabilities: capabilities)
             }
         }
@@ -52,7 +52,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
     }
 
     /// Decode's an OK, ERR, or EOF packet
-    func decodeOK(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, capabilities: MySQLCapabilities) throws -> DecodingState {
+    func decodeBasicPacket(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, capabilities: MySQLCapabilities) throws -> DecodingState {
         guard let length = try buffer.checkPacketLength(source: .capture()) else {
             return .continue
         }
@@ -60,44 +60,60 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             throw MySQLError(identifier: "peekHeader", reason: "Could not peek at header type.", source: .capture())
         }
 
+        let packet: MySQLPacket
         if next == 0x00 && length >= 7 {
             // parse OK packet
-            let packet: MySQLPacket
             let ok = try MySQLOKPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
             packet = .ok(ok)
-            session.incrementSequenceID()
-            ctx.fireChannelRead(wrapInboundOut(packet))
         } else if next == 0xFE && length < 9 {
             if capabilities.get(CLIENT_DEPRECATE_EOF) {
                 // parse EOF packet
-                let packet: MySQLPacket
                 let eof = try MySQLOKPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
                 packet = .ok(eof)
-                session.incrementSequenceID()
-                ctx.fireChannelRead(wrapInboundOut(packet))
             } else {
                 // parse EOF packet
-                let packet: MySQLPacket
                 let eof = try MySQLEOFPacket(bytes: &buffer, capabilities: capabilities)
                 packet = .eof(eof)
-                session.incrementSequenceID()
-                ctx.fireChannelRead(wrapInboundOut(packet))
             }
+        } else if next == 0xFF {
+            // parse error message
+            let err = try MySQLErrorPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
+            packet = .err(err)
         } else {
-            throw MySQLError(identifier: "basal", reason: "Unexpected message format during basal state", source: .capture())
+            throw MySQLError(identifier: "basicPacket", reason: "Unrecognized basic packet.", source: .capture())
         }
+
+        session.incrementSequenceID()
+        ctx.fireChannelRead(wrapInboundOut(packet))
+
         return .continue
     }
 
     /// Text Protocol (Simple Query)
-    func decodeTextProtocol(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, textState: MySQLTextProtocolState) throws -> DecodingState {
+    func decodeTextProtocol(
+        ctx: ChannelHandlerContext,
+        buffer: inout ByteBuffer,
+        textState: MySQLTextProtocolState,
+        capabilities: MySQLCapabilities
+    ) throws -> DecodingState {
         switch textState {
         case .waiting:
+            // check for error or OK packet
+            let peek = buffer.peekInteger(as: Byte.self, skipping: 4)
+            switch peek {
+            case 0xFF, 0x00:
+                session.connectionState = .none
+                return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
+            default: break
+            }
+
+
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
                 return .continue
             }
             let columnCount = try buffer.requireLengthEncodedInteger(source: .capture())
             let count = Int(columnCount)
+            assert(count != 0, "should be parsed as an OK packet")
             session.connectionState = .text(.columns(columnCount: count, remaining: count))
         case .columns(let columnCount, var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
@@ -178,7 +194,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
 
             if !capabilities.get(CLIENT_DEPRECATE_EOF) {
-                return try decodeOK(ctx: ctx, buffer: &buffer, capabilities: capabilities)
+                return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
             }
         case .columns(var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
@@ -197,7 +213,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
         case .columnsDone:
             if !capabilities.get(CLIENT_DEPRECATE_EOF) {
-                return try decodeOK(ctx: ctx, buffer: &buffer, capabilities: capabilities)
+                return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
             }
         case .waitingExecute:
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {

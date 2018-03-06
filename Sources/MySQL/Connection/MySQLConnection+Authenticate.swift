@@ -2,7 +2,13 @@ import Crypto
 import Foundation
 
 extension MySQLConnection {
-    /// Authenticates the `PostgreSQLClient` using a username with no password.
+    /// Authenticates the `MySQLConnection`. This must be used before sending queries.
+    ///
+    /// - parameters:
+    ///     - username: Username to login with.
+    ///     - database: The database to select.
+    ///     - password: Password for the user specified by `username`.
+    /// - returns: A future that will complete when the authenticate is finished.
     public func authenticate(username: String, database: String, password: String? = nil) -> Future<Void> {
         var handshake: MySQLHandshakeV10?
         return send([]) { message in
