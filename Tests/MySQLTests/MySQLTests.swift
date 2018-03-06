@@ -30,6 +30,10 @@ class MySQLTests: XCTestCase {
         print(selectResults)
         try XCTAssertEqual(selectResults[0]["id"]?.decode(Int.self), -1)
         try XCTAssertEqual(selectResults[0]["name"]?.decode(String.self), "vapor")
+
+        // test double parameterized query
+        let selectResults2 = try client.query("SELECT * FROM foos WHERE name = ?;", ["vapor"]).wait()
+        XCTAssertEqual(selectResults2.count, 1)
     }
 
     func testKitchenSink() throws {
