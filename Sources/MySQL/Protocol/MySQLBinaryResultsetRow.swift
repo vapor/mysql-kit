@@ -14,16 +14,11 @@ struct MySQLBinaryResultsetRow {
             throw MySQLError(identifier: "resultHeader", reason: "Invalid result header", source: .capture())
         }
 
-        let nullBitmap = try bytes.requireBytes(length: (columns.count + 7 + 2) / 8, source: .capture())
+        let nullBitmap = try bytes.requireResultSetNullBitmap(count: columns.count, source: .capture())
         var values: [MySQLBinaryData] = []
-
         for (i, column) in columns.enumerated() {
-            let byteOffset = i / 8
-            let bitOffset = i % 8
-            let bitEncoded: UInt8 = 0b00000001 << (7 - numericCast(bitOffset))
-
             let storage: MySQLBinaryDataStorage?
-            if nullBitmap[byteOffset] & bitEncoded > 0 {
+            if nullBitmap.isNull(at: i) {
                 storage = nil
             } else {
                 switch column.columnType {

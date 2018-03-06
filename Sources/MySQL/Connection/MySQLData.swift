@@ -312,3 +312,27 @@ extension UInt16: MySQLDataConvertible { }
 extension UInt32: MySQLDataConvertible { }
 extension UInt64: MySQLDataConvertible { }
 extension UInt: MySQLDataConvertible { }
+
+extension OptionalType {
+    /// See `MySQLDataConvertible.convertToMySQLData(format:)`
+    public func convertToMySQLData(format: MySQLDataFormat) throws -> MySQLData {
+        if let wrapped = self.wrapped {
+            return try (wrapped as! MySQLDataConvertible).convertToMySQLData(format: format)
+        } else {
+            let binary = MySQLBinaryData(type: .MYSQL_TYPE_NULL, isUnsigned: false, storage: nil)
+            return MySQLData(storage: .binary(binary))
+        }
+    }
+
+    /// See `MySQLDataConvertible.convertFromMySQLData()`
+    public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Self {
+        if mysqlData.isNull {
+            return makeOptionalType(nil)
+        } else {
+            let wrapped = try (WrappedType.self as! MySQLDataConvertible.Type).convertFromMySQLData(mysqlData) as! WrappedType
+            return makeOptionalType(wrapped)
+        }
+    }
+}
+
+extension Optional: MySQLDataConvertible { }

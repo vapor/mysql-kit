@@ -66,10 +66,11 @@ class MySQLTests: XCTestCase {
             .init("xbit", "BIT", 1),
             .init("xtinyint", "TINYINT(1)", 5),
             .init("xsmallint", "SMALLINT(1)", 252),
+            .init("xvarcharnull", "VARCHAR(10)", String?.none),
             .init("xmediumint", "MEDIUMINT(1)", 1024),
             .init("xinteger", "INTEGER(1)", 1024293),
             .init("xbigint", "BIGINT(1)", 234234234),
-            .init("name", "VARCHAR(10)", "vapor"),
+            .init("name", "VARCHAR(10) NOT NULL", "vapor"),
         ]
 
         let client = try MySQLConnection.makeTest()

@@ -33,18 +33,14 @@ struct MySQLComStmtExecute {
         buffer.write(integer: Int32(0x01), endianness: .little)
         if values.count > 0 {
             /// NULL-bitmap, length: (num-params+7)/8
-            var nullBitmap = Bytes(repeating: 0, count: (values.count + 7) / 8)
+            var nullBitmap = MySQLNullBitmap.comExecuteBitmap(count: values.count)
 
             for (i, value) in values.enumerated() {
                 if value.storage == nil {
-                    let byteOffset = i / 8
-                    let bitOffset = i % 8
-
-                    let bitEncoded: UInt8 = 0b00000001 << (7 - numericCast(bitOffset))
-                    nullBitmap[byteOffset] |= bitEncoded
+                    nullBitmap.setNull(at: i)
                 }
             }
-            buffer.write(bytes: nullBitmap)
+            buffer.write(bytes: nullBitmap.bytes)
 
             /// new-params-bound-flag
             buffer.write(integer: Byte(0x01))
