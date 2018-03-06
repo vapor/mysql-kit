@@ -23,7 +23,7 @@ struct MySQLHandshakeResponse41 {
 
     /// character_set (1)
     /// connection's default character set as defined in Protocol::CharacterSet.
-    var characterSet: Byte
+    var characterSet: MySQLCharacterSet
 
     /// username (string.fix_len)
     /// name of the SQL account which client wants to log in this string should be interpreted using the character set indicated by character set field.
@@ -42,7 +42,7 @@ struct MySQLHandshakeResponse41 {
     var authPluginName: String
 
     /// Creates a new `MySQLHandshakeResponse41`
-    init(capabilities: MySQLCapabilities, maxPacketSize: UInt32, characterSet: Byte, username: String, authResponse: Data, database: String, authPluginName: String) {
+    init(capabilities: MySQLCapabilities, maxPacketSize: UInt32, characterSet: MySQLCharacterSet, username: String, authResponse: Data, database: String, authPluginName: String) {
         self.capabilities = capabilities
         self.maxPacketSize = maxPacketSize
         self.characterSet = characterSet
@@ -56,7 +56,7 @@ struct MySQLHandshakeResponse41 {
     func serialize(into buffer: inout ByteBuffer) {
         buffer.write(integer: capabilities.raw, endianness: .little)
         buffer.write(integer: maxPacketSize, endianness: .little)
-        buffer.write(integer: characterSet, endianness: .little)
+        buffer.write(integer: Byte(characterSet.raw & 0xFF), endianness: .little)
         /// string[23]     reserved (all [0])
         buffer.write(bytes: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
         buffer.write(nullTerminated: username)

@@ -24,7 +24,7 @@ struct MySQLHandshakeV10 {
     var capabilities: MySQLCapabilities
 
     /// character_set (1) -- default server character-set, only the lower 8-bits Protocol::CharacterSet (optional)
-    var characterSet: Byte?
+    var characterSet: MySQLCharacterSet?
 
     /// status_flags (2) -- Protocol::StatusFlags (optional)
     var statusFlags: UInt16?
@@ -50,7 +50,7 @@ struct MySQLHandshakeV10 {
         let capabilityFlag1 = try bytes.requireInteger(endianness: .little, as: UInt16.self, source: .capture())
 
         if bytes.readableBytes > 0 {
-            self.characterSet = try bytes.requireInteger(endianness: .little, source: .capture())
+            self.characterSet = try .init(byte: bytes.requireInteger(endianness: .little, source: .capture()))
             self.statusFlags = try bytes.requireInteger(endianness: .little, source: .capture())
 
             // capability_flags_2 (2) -- upper 2 bytes of the Protocol::CapabilityFlags

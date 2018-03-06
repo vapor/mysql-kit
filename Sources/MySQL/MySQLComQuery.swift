@@ -9,13 +9,13 @@ import Bits
 /// https://dev.mysql.com/doc/internals/en/com-query.html
 struct MySQLComQuery {
     /// query (string.EOF) -- query_text
-    var string: String
+    var query: String
 
     /// Serializes the `MySQLComQuery` into a buffer.
     func serialize(into buffer: inout ByteBuffer) {
         /// command_id (1) -- 0x03 COM_QUERY
         buffer.write(integer: Byte(0x03))
         /// eof-terminated
-        buffer.write(string: string)
+        buffer.write(string: query)
     }
 }

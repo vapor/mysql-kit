@@ -6,4 +6,6 @@ enum MySQLPacket {
     case columnDefinition41(MySQLColumnDefinition41)
     case resultSetRow(MySQLResultSetRow)
     case eof(MySQLEOFPacket)
+    case comStmtPrepare(MySQLComStmtPrepare)
+    case comStmtPrepareOK(MySQLComStmtPrepareOK)
 }

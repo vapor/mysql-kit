@@ -5,6 +5,7 @@ final class MySQLConnectionSession {
     /// The state of this connection.
     var handshakeState: MySQLHandshakeState
 
+    /// The state of queries and other functionality on this connection.
     var connectionState: MySQLConnectionState
 
     /// The next available sequence ID.
@@ -49,7 +50,9 @@ enum MySQLConnectionState {
     /// The connection should parse OK and ERR packets only.
     case none
     /// Performing a Text Protocol query.
-    case textProtocol(MySQLTextProtocolState)
+    case text(MySQLTextProtocolState)
+    /// Performing a Statement Protocol query.
+    case statement(MySQLStatementProtocolState)
 }
 
 /// Connection states during a simple query aka Text Protocol.
@@ -61,4 +64,17 @@ enum MySQLTextProtocolState {
     case columns(columnCount: Int, remaining: Int)
     /// parsing One or more ProtocolText::ResultsetRow packets, each containing column_count values
     case rows(columnCount: Int, remaining: Int)
+}
+
+/// Connection states during a prepared query aka Statement Protocol.
+/// https://dev.mysql.com/doc/internals/en/com-stmt-prepare-response.html
+enum MySQLStatementProtocolState {
+    /// COM_STMT_PREPARE_OK on success, ERR_Packet otherwise
+    case waiting
+    /// If num_params > 0 more packets will follow:
+    case params(ok: MySQLComStmtPrepareOK, remaining: Int)
+    case paramsDone(ok: MySQLComStmtPrepareOK)
+    /// If num_columns > 0 more packets will follow:
+    case columns(ok: MySQLComStmtPrepareOK, remaining: Int)
+    case columnsDone(ok: MySQLComStmtPrepareOK)
 }

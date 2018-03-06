@@ -25,7 +25,6 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
 
     /// Sends `MySQLPacket` to the server.
     func send(_ messages: [MySQLPacket], onResponse: @escaping (MySQLPacket) throws -> ()) -> Future<Void> {
-        var error: Error?
         return queue.enqueue(messages) { message in
             switch message {
             default: try onResponse(message)
@@ -54,7 +53,7 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
     }
 
     public func simpleQuery(_ string: String, onRow: @escaping ([String: String?]) throws -> ()) -> Future<Void> {
-        let comQuery = MySQLComQuery(string: string)
+        let comQuery = MySQLComQuery(query: string)
         var columns: [MySQLColumnDefinition41] = []
         var currentRow: [String: String?] = [:]
         return queue.enqueue([.comQuery(comQuery)]) { message in
@@ -72,6 +71,51 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
                 return false
             case .ok, .eof: return true
             default: throw MySQLError(identifier: "simpleQuery", reason: "Unsupported message encountered during simple query: \(message).", source: .capture())
+            }
+        }
+    }
+
+    public func query(_ string: String, _ parameters: [String],  onRow: @escaping ([String: String?]) throws -> ()) -> Future<Void> {
+        let comPrepare = MySQLComStmtPrepare(query: string)
+        var ok: MySQLComStmtPrepareOK?
+        var columns: [MySQLColumnDefinition41] = []
+        return queue.enqueue([.comStmtPrepare(comPrepare)]) { message in
+            switch message {
+            case .comStmtPrepareOK(let _ok):
+                ok = _ok
+                return false
+            case .columnDefinition41(let col):
+                let ok = ok!
+                columns.append(col)
+                if columns.count == ok.numColumns + ok.numParams {
+                    return true
+                } else {
+                    return false
+                }
+            case .ok, .eof:
+                // ignore ok and eof
+                return false
+            default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).", source: .capture())
+            }
+        }.flatMap(to: Void.self) {
+            return self.queue.enqueue([.comStmtPrepare(comPrepare)]) { message in
+                switch message {
+                case .comStmtPrepareOK(let _ok):
+                    ok = _ok
+                    return false
+                case .columnDefinition41(let col):
+                    let ok = ok!
+                    columns.append(col)
+                    if columns.count == ok.numColumns + ok.numParams {
+                        return true
+                    } else {
+                        return false
+                    }
+                case .ok, .eof:
+                    // ignore ok and eof
+                    return false
+                default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).", source: .capture())
+                }
             }
         }
     }

@@ -26,13 +26,13 @@ struct MySQLColumnDefinition41 {
     var orgName: String
 
     /// character_set (2) -- is the column character set and is defined in Protocol::CharacterSet.
-    var characterSet: UInt16
+    var characterSet: MySQLCharacterSet
 
     /// column_length (4) -- maximum length of the field
     var columnLength: UInt32
 
     /// column_type (1) -- type of the column as defined in Column Type
-    var columnType: Byte
+    var columnType: MySQLColumnType
 
     /// flags (2) -- flags
     var flags: UInt16
@@ -54,10 +54,10 @@ struct MySQLColumnDefinition41 {
         orgName = try bytes.requireLengthEncodedString(source: .capture())
         /// next_length (lenenc_int) -- length of the following fields (always 0x0c)
         let fixedLength = try bytes.requireLengthEncodedInteger(source: .capture())
-        assert(fixedLength == 0x0C)
-        characterSet = try bytes.requireInteger(endianness: .little, source: .capture())
+        assert(fixedLength == 0x0C, "invalid fixed length: \(fixedLength)")
+        characterSet = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
         columnLength = try bytes.requireInteger(endianness: .little, source: .capture())
-        columnType = try bytes.requireInteger(endianness: .little, source: .capture())
+        columnType = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
         flags = try bytes.requireInteger(endianness: .little, source: .capture())
         decimals = try bytes.requireInteger(endianness: .little, source: .capture())
         /// 2              filler [00] [00]
