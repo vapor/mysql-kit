@@ -1,7 +1,7 @@
 import Foundation
 
 extension MySQLConnection {
-    public func query(_ string: String, _ parameters: [String]) -> Future<[[MySQLColumn: MySQLData]]> {
+    public func query(_ string: String, _ parameters: [MySQLDataConvertible]) -> Future<[[MySQLColumn: MySQLData]]> {
         var rows: [[MySQLColumn: MySQLData]] = []
         return self.query(string, parameters) { row in
             rows.append(row)
@@ -10,7 +10,7 @@ extension MySQLConnection {
         }
     }
 
-    public func query(_ string: String, _ parameters: [String],  onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
+    public func query(_ string: String, _ parameters: [MySQLDataConvertible],  onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
         let comPrepare = MySQLComStmtPrepare(query: string)
         var ok: MySQLComStmtPrepareOK?
         var columns: [MySQLColumnDefinition41] = []
@@ -34,13 +34,13 @@ extension MySQLConnection {
             }
         }.flatMap(to: Void.self) {
             let ok = ok!
-            let comExecute = MySQLComStmtExecute(
+            let comExecute = try MySQLComStmtExecute(
                 statementID: ok.statementID,
                 flags: 0x00, // which flags?
-                values: [
-                    MySQLBinaryValue(type: .MYSQL_TYPE_VARCHAR, isUnsigned: false, data: .string(Data("foo".utf8))),
-                    MySQLBinaryValue(type: .MYSQL_TYPE_VARCHAR, isUnsigned: false, data: .string(Data("bar".utf8))),
-                ]
+                values: parameters.map { param in
+                    let data = try param.convertToMySQLData()
+                    return .init(type: data.type, isUnsigned: false, value: data.value)
+                }
             )
             var columns: [MySQLColumnDefinition41] = []
             return self.send([.comStmtExecute(comExecute)]) { message in
@@ -51,7 +51,7 @@ extension MySQLConnection {
                 case .binaryResultsetRow(let row):
                     var formatted: [MySQLColumn: MySQLData] = [:]
                     for (i, col) in columns.enumerated() {
-                        let data = MySQLData(type: col.columnType, value: row.values[i])
+                        let data = MySQLData(type: col.columnType, format: .binary, value: row.values[i])
                         formatted[col.makeMySQLColumn()] = data
                     }
                     try onRow(formatted)

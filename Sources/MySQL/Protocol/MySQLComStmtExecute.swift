@@ -36,7 +36,7 @@ struct MySQLComStmtExecute {
             var nullBitmap = Bytes(repeating: 0, count: (values.count + 7) / 8)
 
             for (i, value) in values.enumerated() {
-                if value.data == nil {
+                if value.value == nil {
                     let byteOffset = i / 8
                     let bitOffset = i % 8
 
@@ -62,7 +62,7 @@ struct MySQLComStmtExecute {
 
             /// set values
             for value in values {
-                if let data = value.data {
+                if let data = value.value {
                     switch data {
                     case .integer1(let int1): buffer.write(integer: int1, endianness: .little)
                     case .integer2(let int2): buffer.write(integer: int2, endianness: .little)

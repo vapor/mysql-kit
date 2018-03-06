@@ -5,17 +5,14 @@ import XCTest
 class MySQLTests: XCTestCase {
     func testSimpleQuery() throws {
         let client = try MySQLConnection.makeTest()
-        print("client: \(client)!")
         let results = try client.simpleQuery("SELECT @@version;").wait()
-        print(results)
-        XCTAssert(results[0]["@@version"]?.string?.contains("5.7") == true)
+        try XCTAssert(results[0]["@@version"]?.decode(String.self).contains("5.7") == true)
     }
 
     func testQuery() throws {
         let client = try MySQLConnection.makeTest()
-        print("client: \(client)!")
         let results = try client.query("SELECT CONCAT(?, ?) as test;", ["hello", "world"]).wait()
-        print(results)
+        try XCTAssertEqual(results[0]["test"]?.decode(String.self), "helloworld")
     }
 
     static let allTests = [

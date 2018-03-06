@@ -5,6 +5,9 @@ public struct MySQLData {
     /// This value's column type
     public var type: MySQLColumnType
 
+    /// The data's format.
+    public var format: MySQLDataFormat
+
     /// The value's optional data.
     var value: MySQLBinaryValueData?
 
@@ -36,6 +39,11 @@ public struct MySQLData {
     }
 }
 
+public enum MySQLDataFormat {
+    case binary
+    case text
+}
+
 extension MySQLData: CustomStringConvertible {
     /// See `CustomStringConvertible.description`
     public var description: String {
@@ -44,5 +52,38 @@ extension MySQLData: CustomStringConvertible {
         } else {
             return "<null>"
         }
+    }
+}
+
+extension MySQLData {
+    /// Decodes a `MySQLDataConvertible` type from `MySQLData`.
+    public func decode<T>(_ type: T.Type) throws -> T where T: MySQLDataConvertible {
+        return try T.convertFromMySQLData(self)
+    }
+}
+
+/// MARK: Convertible
+
+/// Capable of converting to/from `MySQLData`.
+public protocol MySQLDataConvertible {
+    /// Convert to `MySQLData`.
+    func convertToMySQLData() throws -> MySQLData
+
+    /// Convert from `MySQLData`.
+    static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Self
+}
+
+extension String: MySQLDataConvertible {
+    /// See `MySQLDataConvertible.convertToMySQLData(format:)`
+    public func convertToMySQLData() throws -> MySQLData {
+        return MySQLData(type: .MYSQL_TYPE_VARCHAR, format: .binary, value: .string(.init(self.utf8)))
+    }
+
+    /// See `MySQLDataConvertible.convertFromMySQLData()`
+    public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> String {
+        guard let string = mysqlData.string else {
+            throw MySQLError(identifier: "string", reason: "Cannot decode String from MySQLData: \(mysqlData).", source: .capture())
+        }
+        return string
     }
 }

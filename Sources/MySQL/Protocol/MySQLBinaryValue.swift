@@ -13,7 +13,7 @@ struct MySQLBinaryValue {
     var isUnsigned: Bool
 
     /// The value's optional data.
-    var data: MySQLBinaryValueData?
+    var value: MySQLBinaryValueData?
 }
 
 /// 14.7.3 Binary Protocol Value
