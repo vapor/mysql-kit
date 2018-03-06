@@ -27,38 +27,74 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
     //             again once more data is present in the `ByteBuffer`.
     func decode(ctx: ChannelHandlerContext, buffer: inout ByteBuffer) throws -> DecodingState {
         VERBOSE("MySQLPacketDecoder.decode(ctx: \(ctx), buffer: \(buffer)")
-
-        let packet: MySQLPacket
+        print(buffer.debugDescription)
 
         switch session.state {
         case .awaitingHandshake:
+            let packet: MySQLPacket
             let length = try buffer.requireInteger(endianness: .little, as: Int32.self, source: .capture())
             assert(length > 0)
             let handshake = try MySQLHandshakeV10(bytes: &buffer)
             packet = .handshakev10(handshake)
             session.state = .handshakeComplete(handshake.capabilities)
+            session.incrementSequenceID()
+            ctx.fireChannelRead(wrapInboundOut(packet))
         case .handshakeComplete(let capabilities):
-            buffer.set(integer: Byte(0), at: buffer.readerIndex + 3)
-            let length = try buffer.requireInteger(endianness: .little, as: Int32.self, source: .capture())
-            assert(length > 0)
+            let length = try buffer.requirePacketLength(source: .capture())
             guard let next: Byte = buffer.peekInteger() else {
                 throw MySQLError(identifier: "peekHeader", reason: "Could not peek at header type.", source: .capture())
             }
             if next == 0x00 && length >= 7 {
                 // parse OK packet
+                let packet: MySQLPacket
                 let ok = try MySQLOKPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
                 print(ok)
                 packet = .ok(ok)
+                session.incrementSequenceID()
+                ctx.fireChannelRead(wrapInboundOut(packet))
             } else if next == 0xFE && length < 9 {
-                // parse EOF packet
-                fatalError()
+                if capabilities.get(CLIENT_DEPRECATE_EOF) {
+                    // parse EOF packet
+                    let packet: MySQLPacket
+                    let eof = try MySQLOKPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
+                    packet = .ok(eof)
+                    session.incrementSequenceID()
+                    ctx.fireChannelRead(wrapInboundOut(packet))
+                } else {
+                    // parse EOF packet
+                    let packet: MySQLPacket
+                    let eof = try MySQLEOFPacket(bytes: &buffer, capabilities: capabilities)
+                    packet = .eof(eof)
+                    session.incrementSequenceID()
+                    ctx.fireChannelRead(wrapInboundOut(packet))
+                }
             } else {
-                // parse ?? packet
-                fatalError()
+                // parse simple query packets
+                let columnCount = try buffer.requireLengthEncodedInteger(source: .capture())
+                for _ in 0..<columnCount {
+                    let colLength = try buffer.requirePacketLength(source: .capture())
+                    assert(colLength > 0)
+                    let column = try MySQLColumnDefinition41(bytes: &buffer)
+                    session.incrementSequenceID()
+                    ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
+                }
+                rowParsing: while true {
+                    let rowLength = try buffer.requirePacketLength(source: .capture())
+                    assert(rowLength > 0)
+                    
+                    // parse cols for each row
+                    for _ in 0..<columnCount {
+                        let result = try MySQLResultSetRow(bytes: &buffer)
+                        ctx.fireChannelRead(wrapInboundOut(.resultSetRow(result)))
+                        if buffer.peekInteger(as: Byte.self, skipping: 4) == 0xFE {
+                            // EOF detected, break
+                            break rowParsing
+                        }
+                    }
+                }
             }
         }
 
-        ctx.fireChannelRead(wrapInboundOut(packet))
         return .continue
     }
 

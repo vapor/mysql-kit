@@ -59,6 +59,19 @@ extension ByteBuffer {
 /// MARK: Length Encoded Int
 
 extension ByteBuffer {
+    mutating func requirePacketLength(source: @autoclosure () -> (SourceLocation)) throws -> Int32 {
+        // erase sequence id so we can easily parse 4 byte integer
+        set(integer: Byte(0), at: readerIndex + 3)
+        return try requireInteger(endianness: .little, source: source)
+    }
+
+    func peekInteger<T>(endianness: Endianness = .big, as type: T.Type = T.self, skipping: Int = 0) -> T? where T: FixedWidthInteger {
+        guard readableBytes >= MemoryLayout<T>.size + skipping else {
+            return nil
+        }
+        return getInteger(at: readerIndex + skipping, endianness: endianness)
+    }
+
     public mutating func readLengthEncodedString() -> String? {
         guard let size = readLengthEncodedInteger() else {
             return nil

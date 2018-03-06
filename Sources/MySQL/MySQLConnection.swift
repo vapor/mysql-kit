@@ -44,6 +44,38 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
         }
     }
 
+    public func simpleQuery(_ string: String) -> Future<[[String: String?]]> {
+        var rows: [[String: String?]] = []
+        return simpleQuery(string) { row in
+            rows.append(row)
+        }.map(to: [[String: String?]].self) {
+            return rows
+        }
+    }
+
+    public func simpleQuery(_ string: String, onRow: @escaping ([String: String?]) throws -> ()) -> Future<Void> {
+        let comQuery = MySQLComQuery(string: string)
+        var columns: [MySQLColumnDefinition41] = []
+        var currentRow: [String: String?] = [:]
+        return queue.enqueue([.comQuery(comQuery)]) { message in
+            switch message {
+            case .columnDefinition41(let col):
+                columns.append(col)
+                return false
+            case .resultSetRow(let row):
+                let col = columns[currentRow.keys.count]
+                currentRow[col.name] = row.value
+                if currentRow.keys.count >= columns.count {
+                    try onRow(currentRow)
+                    currentRow = [:]
+                }
+                return false
+            case .ok, .eof: return true
+            default: throw MySQLError(identifier: "simpleQuery", reason: "Unsupported message encountered during simple query: \(message).", source: .capture())
+            }
+        }
+    }
+
     /// Authenticates the `PostgreSQLClient` using a username with no password.
     public func authenticate(username: String, database: String, password: String? = nil) -> Future<Void> {
         var handshake: MySQLHandshakeV10?

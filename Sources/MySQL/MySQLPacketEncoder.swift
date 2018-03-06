@@ -26,16 +26,18 @@ final class MySQLPacketEncoder: MessageToByteEncoder {
         let writeOffset = out.writerIndex
         out.write(bytes: [0x00, 0x00, 0x00, 0x00]) // save room for length
         switch message {
-        case .handshakeResponse41(let handshakeResponse):
-            handshakeResponse.serialize(into: &out)
-        default: fatalError()
+        case .handshakeResponse41(let handshakeResponse): handshakeResponse.serialize(into: &out)
+        case .comQuery(let comQuery):
+            session.resetSequenceID()
+            comQuery.serialize(into: &out)
+        default: throw MySQLError(identifier: "encode", reason: "Unsupported packet: \(message)", source: .capture())
         }
         let bytesWritten = out.writerIndex - writeOffset - 4
         out.set(integer: Byte(bytesWritten & 0xFF), at: writeOffset)
         out.set(integer: Byte(bytesWritten >> 8 & 0xFF), at: writeOffset + 1)
         out.set(integer: Byte(bytesWritten >> 16 & 0xFF), at: writeOffset + 2)
         // sequence ID
-        out.set(integer: Byte(1), at: writeOffset + 3)
+        out.set(integer: session.nextSequenceID, at: writeOffset + 3)
     }
 }
 

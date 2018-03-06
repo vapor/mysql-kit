@@ -39,4 +39,3 @@ extension ChannelPipeline {
         return EventLoopFuture<Void>.andAll(handlers.map { add(handler: $0) }, eventLoop: eventLoop)
     }
 }
-
