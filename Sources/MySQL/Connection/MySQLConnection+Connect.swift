@@ -1,5 +1,5 @@
 extension MySQLConnection {
-    /// Connects to a Redis server using a TCP socket.
+    /// Connects to a MySQL server using TCP.
     public static func connect(
         hostname: String = "localhost",
         port: Int = 3306,
@@ -23,6 +23,7 @@ extension MySQLConnection {
 }
 
 extension ChannelPipeline {
+    /// Adds MySQL packet encoder and decoder to the channel pipeline.
     func addMySQLClientHandlers(first: Bool = false) -> EventLoopFuture<Void> {
         let session = MySQLConnectionSession()
         return addHandlers(MySQLPacketEncoder(session: session), MySQLPacketDecoder(session: session), first: first)
