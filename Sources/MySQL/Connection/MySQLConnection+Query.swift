@@ -55,8 +55,11 @@ extension MySQLConnection {
                 statementID: ok.statementID,
                 flags: 0x00, // which flags?
                 values: parameters.map { param in
-                    let data = try param.convertToMySQLData()
-                    return .init(type: data.type, isUnsigned: false, storage: data.storage)
+                    let storage = try param.convertToMySQLData(format: .binary).storage
+                    switch storage {
+                    case .binary(let binary): return binary
+                    case .text: throw MySQLError(identifier: "binaryData", reason: "Binary data required.", source: .capture())
+                    }
                 }
             )
             var columns: [MySQLColumnDefinition41] = []
@@ -68,7 +71,7 @@ extension MySQLConnection {
                 case .binaryResultsetRow(let row):
                     var formatted: [MySQLColumn: MySQLData] = [:]
                     for (i, col) in columns.enumerated() {
-                        let data = MySQLData(type: col.columnType, format: .binary, storage: row.values[i])
+                        let data = MySQLData(storage: .binary(row.values[i]))
                         formatted[col.makeMySQLColumn()] = data
                     }
                     try onRow(formatted)

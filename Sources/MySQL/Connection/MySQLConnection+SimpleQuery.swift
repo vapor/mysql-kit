@@ -36,8 +36,7 @@ extension MySQLConnection {
                 return false
             case .resultSetRow(let row):
                 let col = columns[currentRow.keys.count]
-                let value: MySQLBinaryDataStorage? = row.value.flatMap { .string($0) }
-                currentRow[col.makeMySQLColumn()] = MySQLData(type: .MYSQL_TYPE_VARCHAR, format: .text, storage: value)
+                currentRow[col.makeMySQLColumn()] = MySQLData(storage: .text(row.value))
                 if currentRow.keys.count >= columns.count {
                     try onRow(currentRow)
                     currentRow = [:]

@@ -5,7 +5,7 @@ import Foundation
 /// in the resultset + 2 and the values for columns that are not NULL in the Binary Protocol Value format.
 struct MySQLBinaryResultsetRow {
     /// The values for this row.
-    var values: [MySQLBinaryDataStorage?]
+    var values: [MySQLBinaryData]
 
     /// Parses a `MySQLBinaryResultsetRow` from the `ByteBuffer`.
     init(bytes: inout ByteBuffer, columns: [MySQLColumnDefinition41]) throws {
@@ -15,12 +15,13 @@ struct MySQLBinaryResultsetRow {
         }
 
         let nullBitmap = try bytes.requireBytes(length: (columns.count + 7 + 2) / 8, source: .capture())
-        var values: [MySQLBinaryDataStorage?] = []
+        var values: [MySQLBinaryData] = []
 
         for column in columns {
             if false {
                 // null case
             } else {
+                let storage: MySQLBinaryDataStorage
                 switch column.columnType {
                 case .MYSQL_TYPE_VARCHAR,
                      .MYSQL_TYPE_VAR_STRING,
@@ -35,21 +36,36 @@ struct MySQLBinaryResultsetRow {
                      .MYSQL_TYPE_DECIMAL,
                      .MYSQL_TYPE_NEWDECIMAL:
                     let data = try bytes.requireLengthEncodedData(source: .capture())
-                    values.append(.string(data))
+                    storage = .string(data)
                 case .MYSQL_TYPE_LONGLONG:
-                    let int8 = try bytes.requireInteger(endianness: .little, as: UInt64.self, source: .capture())
-                    values.append(.integer8(int8))
+                    if column.flags.get(.COLUMN_UNSIGNED) {
+                        storage = try .uinteger8(bytes.requireInteger(endianness: .little, source: .capture()))
+                    } else {
+                        storage = try .integer8(bytes.requireInteger(endianness: .little, source: .capture()))
+                    }
                 case .MYSQL_TYPE_LONG, .MYSQL_TYPE_INT24:
-                    let int4 = try bytes.requireInteger(endianness: .little, as: UInt32.self, source: .capture())
-                    values.append(.integer4(int4))
+                    if column.flags.get(.COLUMN_UNSIGNED) {
+                        storage = try .uinteger4(bytes.requireInteger(endianness: .little, source: .capture()))
+                    } else {
+                        storage = try .integer4(bytes.requireInteger(endianness: .little, source: .capture()))
+                    }
                 case .MYSQL_TYPE_SHORT, .MYSQL_TYPE_YEAR:
-                    let int2 = try bytes.requireInteger(endianness: .little, as: UInt16.self, source: .capture())
-                    values.append(.integer2(int2))
+                    if column.flags.get(.COLUMN_UNSIGNED) {
+                        storage = try .uinteger2(bytes.requireInteger(endianness: .little, source: .capture()))
+                    } else {
+                        storage = try .integer2(bytes.requireInteger(endianness: .little, source: .capture()))
+                    }
                 case .MYSQL_TYPE_TINY:
-                    let int1 = try bytes.requireInteger(endianness: .little, as: UInt8.self, source: .capture())
-                    values.append(.integer1(int1))
+                    if column.flags.get(.COLUMN_UNSIGNED) {
+                        storage = try .uinteger1(bytes.requireInteger(endianness: .little, source: .capture()))
+                    } else {
+                        storage = try .integer1(bytes.requireInteger(endianness: .little, source: .capture()))
+                    }
                 default: fatalError("Unsupported type: \(column)")
                 }
+                let binary = MySQLBinaryData(type: column.columnType, isUnsigned: column.flags.get(.COLUMN_UNSIGNED), storage: storage)
+                print(binary)
+                values.append(binary)
             }
         }
 

@@ -26,19 +26,23 @@ enum MySQLBinaryDataStorage {
 
     /// ProtocolBinary::MYSQL_TYPE_LONGLONG
     /// value (8) -- integer
-    case integer8(UInt64)
+    case integer8(Int64)
+    case uinteger8(UInt64)
 
     /// ProtocolBinary::MYSQL_TYPE_LONG, ProtocolBinary::MYSQL_TYPE_INT24:
     /// value (4) -- integer
-    case integer4(UInt32)
+    case integer4(Int32)
+    case uinteger4(UInt32)
 
     /// ProtocolBinary::MYSQL_TYPE_SHORT, ProtocolBinary::MYSQL_TYPE_YEAR:
     /// value (2) -- integer
-    case integer2(UInt16)
+    case integer2(Int16)
+    case uinteger2(UInt16)
 
     /// ProtocolBinary::MYSQL_TYPE_TINY:
     /// value (1) -- integer
-    case integer1(UInt8)
+    case integer1(Int8)
+    case uinteger1(UInt8)
 
     /// MYSQL_TYPE_DOUBLE stores a floating point in IEEE 754 double precision format
     /// first byte is the last byte of the significant as stored in C.

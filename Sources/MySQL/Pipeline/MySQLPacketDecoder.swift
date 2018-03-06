@@ -107,7 +107,6 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             default: break
             }
 
-
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
                 return .continue
             }
@@ -151,8 +150,6 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         }
         return .continue
     }
-
-
 
     /// Statement Protocol (Prepared Query)
     func decodeStatementProtocol(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, statementState: MySQLStatementProtocolState, capabilities: MySQLCapabilities) throws -> DecodingState {
@@ -216,6 +213,15 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
                 return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
             }
         case .waitingExecute:
+            // check for error or OK packet
+            let peek = buffer.peekInteger(as: Byte.self, skipping: 4)
+            switch peek {
+            case 0xFF, 0x00:
+                session.connectionState = .none
+                return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
+            default: break
+            }
+            
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
                 return .continue
             }

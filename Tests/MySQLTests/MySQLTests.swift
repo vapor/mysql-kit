@@ -19,8 +19,15 @@ class MySQLTests: XCTestCase {
         let client = try MySQLConnection.makeTest()
         let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS foos;").wait()
         XCTAssertEqual(dropResults.count, 0)
-        let createResults = try client.simpleQuery("CREATE TABLE foos (id INT, name VARCHAR(64));").wait()
+        let createResults = try client.simpleQuery("CREATE TABLE foos (id INT SIGNED, name VARCHAR(64));").wait()
         XCTAssertEqual(createResults.count, 0)
+        let insertResults = try client.query("INSERT INTO foos VALUES (?, ?);", [-1, "vapor"]).wait()
+        XCTAssertEqual(insertResults.count, 0)
+        let selectResults = try client.query("SELECT * FROM foos WHERE name = ?;", ["vapor"]).wait()
+        XCTAssertEqual(selectResults.count, 1)
+        print(selectResults)
+        try XCTAssertEqual(selectResults[0]["id"]?.decode(Int.self), -1)
+        try XCTAssertEqual(selectResults[0]["name"]?.decode(String.self), "vapor")
     }
 
     static let allTests = [

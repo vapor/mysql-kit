@@ -68,6 +68,10 @@ struct MySQLComStmtExecute {
                     case .integer2(let int2): buffer.write(integer: int2, endianness: .little)
                     case .integer4(let int4): buffer.write(integer: int4, endianness: .little)
                     case .integer8(let int8): buffer.write(integer: int8, endianness: .little)
+                    case .uinteger1(let uint1): buffer.write(integer: uint1, endianness: .little)
+                    case .uinteger2(let uint2): buffer.write(integer: uint2, endianness: .little)
+                    case .uinteger4(let uint4): buffer.write(integer: uint4, endianness: .little)
+                    case .uinteger8(let uint8): buffer.write(integer: uint8, endianness: .little)
                     case .float4(let float4): fatalError("write float4 is not yet supported")
                     case .float8(let float8): fatalError("write float8 is not yet supported")
                     case .string(let data):

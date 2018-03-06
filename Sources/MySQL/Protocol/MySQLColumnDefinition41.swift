@@ -1,5 +1,25 @@
 import Bits
 
+/// These don't seem to be documented anywhere.
+struct MySQLColumnFlags: MySQLFlags {
+    /// The raw status value.
+    public var raw: UInt16
+
+    /// Create a new `MySQLStatusFlags` from the raw value.
+    public init(raw: UInt16) {
+        self.raw = raw
+    }
+
+    /// This column is unsigned.
+    public static var COLUMN_UNSIGNED: MySQLColumnFlags = 0b000_0000_0010_0000
+
+    /// This column is the primary key.
+    public static var PRIMARY_KEY: MySQLColumnFlags = 0b000_0000_0000_0010
+
+    /// This column is not null.
+    public static var COLUMN_NOT_NULL: MySQLColumnFlags = 0b000_0000_0000_0001
+}
+
 /// Protocol::ColumnDefinition41
 ///
 /// Column Definition
@@ -35,7 +55,7 @@ struct MySQLColumnDefinition41 {
     var columnType: MySQLDataType
 
     /// flags (2) -- flags
-    var flags: UInt16
+    var flags: MySQLColumnFlags
 
     /// decimals (1) -- max shown decimal digits
     /// - 0x00 for integers and static strings
@@ -58,7 +78,7 @@ struct MySQLColumnDefinition41 {
         characterSet = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
         columnLength = try bytes.requireInteger(endianness: .little, source: .capture())
         columnType = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
-        flags = try bytes.requireInteger(endianness: .little, source: .capture())
+        flags = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
         decimals = try bytes.requireInteger(endianness: .little, source: .capture())
         /// 2              filler [00] [00]
         let filler = try bytes.requireInteger(endianness: .little, as: UInt16.self, source: .capture())
