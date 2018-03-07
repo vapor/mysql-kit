@@ -61,6 +61,51 @@ struct MySQLBinaryResultsetRow {
                     } else {
                         storage = try .integer1(bytes.requireInteger(endianness: .little, source: .capture()))
                     }
+                case .MYSQL_TYPE_TIME, .MYSQL_TYPE_DATE, .MYSQL_TYPE_DATETIME, .MYSQL_TYPE_TIMESTAMP:
+                    let time: MySQLTime
+                    /// type to store a DATE, DATETIME and TIMESTAMP fields in the binary protocol.
+                    /// to save space the packet can be compressed:
+                    let length = try bytes.requireInteger(endianness: .little, as: Byte.self, source: .capture())
+                    switch length {
+                    case 0:
+                        /// if year, month, day, hour, minutes, seconds and micro_seconds are all 0, length is 0 and no other field is sent
+                        time = MySQLTime(year: 0, month: 0, day: 0, hour: 0, minute: 0, second: 0, microsecond: 0)
+                    case 4:
+                        /// if hour, minutes, seconds and micro_seconds are all 0, length is 4 and no other field is sent
+                        time = try MySQLTime(
+                            year: bytes.requireInteger(endianness: .little, source: .capture()),
+                            month: bytes.requireInteger(endianness: .little, source: .capture()),
+                            day: bytes.requireInteger(endianness: .little, source: .capture()),
+                            hour: 0,
+                            minute: 0,
+                            second: 0,
+                            microsecond: 0
+                        )
+                    case 7:
+                        /// if micro_seconds is 0, length is 7 and micro_seconds is not sent
+                        time = try MySQLTime(
+                            year: bytes.requireInteger(endianness: .little, source: .capture()),
+                            month: bytes.requireInteger(endianness: .little, source: .capture()),
+                            day: bytes.requireInteger(endianness: .little, source: .capture()),
+                            hour: bytes.requireInteger(endianness: .little, source: .capture()),
+                            minute: bytes.requireInteger(endianness: .little, source: .capture()),
+                            second: bytes.requireInteger(endianness: .little, source: .capture()),
+                            microsecond: 0
+                        )
+                    case 11:
+                        /// otherwise length is 11
+                        time = try MySQLTime(
+                            year: bytes.requireInteger(endianness: .little, source: .capture()),
+                            month: bytes.requireInteger(endianness: .little, source: .capture()),
+                            day: bytes.requireInteger(endianness: .little, source: .capture()),
+                            hour: bytes.requireInteger(endianness: .little, source: .capture()),
+                            minute: bytes.requireInteger(endianness: .little, source: .capture()),
+                            second: bytes.requireInteger(endianness: .little, source: .capture()),
+                            microsecond: bytes.requireInteger(endianness: .little, source: .capture())
+                        )
+                    default: throw MySQLError(identifier: "timeLength", reason: "Invalid MYSQL_TIME length.", source: .capture())
+                    }
+                    storage = .time(time)
                 default: throw MySQLError(identifier: "binaryColumn", reason: "Unsupported type: \(column)", source: .capture())
                 }
             }

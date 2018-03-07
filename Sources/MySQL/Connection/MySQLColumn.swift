@@ -2,18 +2,12 @@
 public struct MySQLColumn: Hashable {
     /// See `Hashable.hashValue`
     public var hashValue: Int {
-        return name.hashValue
+        return ((table ?? "_") + "." + name).hashValue
     }
 
     /// See `Equatable.==`
     public static func ==(lhs: MySQLColumn, rhs: MySQLColumn) -> Bool {
-        if let ltable = lhs.table, let rtable = rhs.table {
-            // if both have tables, check
-            if ltable != rtable {
-                return false
-            }
-        }
-        return lhs.name == rhs.name
+        return lhs.name == rhs.name && lhs.table == rhs.table
     }
 
     /// The table this column belongs to.

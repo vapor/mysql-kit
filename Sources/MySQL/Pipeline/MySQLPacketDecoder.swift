@@ -27,14 +27,18 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
     //             again once more data is present in the `ByteBuffer`.
     func decode(ctx: ChannelHandlerContext, buffer: inout ByteBuffer) throws -> DecodingState {
         VERBOSE("MySQLPacketDecoder.decode(ctx: \(ctx), buffer: \(buffer)")
-        switch session.handshakeState {
-        case .waiting: return try decodeHandshake(ctx:ctx, buffer: &buffer)
-        case .complete(let capabilities):
-            switch session.connectionState {
-            case .none: return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
-            case .text(let textState): return try decodeTextProtocol(ctx: ctx, buffer: &buffer, textState: textState, capabilities: capabilities)
-            case .statement(let statementState): return try decodeStatementProtocol(ctx: ctx, buffer: &buffer, statementState: statementState, capabilities: capabilities)
+        do {
+            switch session.handshakeState {
+            case .waiting: return try decodeHandshake(ctx:ctx, buffer: &buffer)
+            case .complete(let capabilities):
+                switch session.connectionState {
+                case .none: return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
+                case .text(let textState): return try decodeTextProtocol(ctx: ctx, buffer: &buffer, textState: textState, capabilities: capabilities)
+                case .statement(let statementState): return try decodeStatementProtocol(ctx: ctx, buffer: &buffer, statementState: statementState, capabilities: capabilities)
+                }
             }
+        } catch {
+            fatalError("\(error)")
         }
     }
 

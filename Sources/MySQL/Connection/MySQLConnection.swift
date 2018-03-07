@@ -17,6 +17,9 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
     /// The channel
     private let channel: Channel
 
+    /// If non-nil, will log queries.
+    public var logger: MySQLLogger?
+
     /// Creates a new MySQL client with the provided MySQL packet queue and channel.
     init(queue: QueueHandler<MySQLPacket, MySQLPacket>, channel: Channel) {
         self.queue = queue

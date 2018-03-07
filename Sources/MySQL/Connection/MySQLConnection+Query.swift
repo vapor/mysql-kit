@@ -55,7 +55,7 @@ extension MySQLConnection {
                 statementID: ok.statementID,
                 flags: 0x00, // which flags?
                 values: parameters.map { param in
-                    let storage = try param.convertToMySQLData(format: .binary).storage
+                    let storage = try param.convertToMySQLData().storage
                     switch storage {
                     case .binary(let binary): return binary
                     case .text: throw MySQLError(identifier: "binaryData", reason: "Binary data required.", source: .capture())

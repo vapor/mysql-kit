@@ -52,4 +52,7 @@ enum MySQLBinaryDataStorage {
     /// MYSQL_TYPE_FLOAT stores a floating point in IEEE 754 single precision format
     /// value (string.fix_len) -- (len=4) float
     case float4(Float)
+
+    /// MYSQL_TIME
+    case time(MySQLTime)
 }

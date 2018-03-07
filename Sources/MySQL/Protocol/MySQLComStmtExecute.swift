@@ -73,6 +73,15 @@ struct MySQLComStmtExecute {
                     case .string(let data):
                         buffer.write(lengthEncoded: numericCast(data.count))
                         buffer.write(bytes: data)
+                    case .time(let time):
+                        buffer.write(integer: Byte(11), endianness: .little)
+                        buffer.write(integer: time.year, endianness: .little)
+                        buffer.write(integer: time.month, endianness: .little)
+                        buffer.write(integer: time.day, endianness: .little)
+                        buffer.write(integer: time.hour, endianness: .little)
+                        buffer.write(integer: time.minute, endianness: .little)
+                        buffer.write(integer: time.second, endianness: .little)
+                        buffer.write(integer: time.microsecond, endianness: .little)
                     }
                 }
             }
