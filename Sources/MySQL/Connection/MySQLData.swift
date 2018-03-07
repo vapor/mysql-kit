@@ -30,6 +30,16 @@ public struct MySQLData {
         self.storage = .binary(binary)
     }
 
+    /// Creates a new `MySQLData` from JSON-encoded `Data`.
+    public init<E>(json: E?) throws where E: Encodable {
+        let binary = try MySQLBinaryData(
+            type: .MYSQL_TYPE_JSON,
+            isUnsigned: true,
+            storage: json.flatMap { try .string(JSONEncoder().encode($0)) }
+        )
+        self.storage = .binary(binary)
+    }
+
     /// Creates a new `MySQLData` from a `FixedWidthInteger`.
     public init<I>(integer: I?) where I: FixedWidthInteger {
         let type: MySQLDataType
@@ -117,6 +127,14 @@ public struct MySQLData {
             default: return nil
             }
         }
+    }
+
+    /// Access the value as JSON encoded data.
+    public func json<D>(_ type: D.Type) throws -> D? where D: Decodable {
+        guard let data = self.data() else {
+            return nil
+        }
+        return try JSONDecoder().decode(D.self, from: data)
     }
 
     /// Access the value as a string.

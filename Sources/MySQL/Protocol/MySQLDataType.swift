@@ -70,6 +70,9 @@ public struct MySQLDataType: Equatable {
     /// see Protocol::MYSQL_TYPE_TIME
     public static let MYSQL_TYPE_TIME2: MySQLDataType = 0x13
 
+    /// Implemented by ProtocolBinary::MYSQL_TYPE_JSON
+    public static let MYSQL_TYPE_JSON: MySQLDataType = 0xf5
+
     /// Implemented by ProtocolBinary::MYSQL_TYPE_NEWDECIMAL
     public static let MYSQL_TYPE_NEWDECIMAL: MySQLDataType = 0xf6
 
