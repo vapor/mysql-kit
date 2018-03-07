@@ -4,7 +4,7 @@ public final class MySQLDatabase: Database {
     public let config: MySQLDatabaseConfig
 
     /// If non-nil, will log queries.
-    public var logger: MySQLLogger?
+    public var logger: DatabaseLogger?
 
     /// Creates a new `PostgreSQLDatabase`.
     public init(config: MySQLDatabaseConfig) {
