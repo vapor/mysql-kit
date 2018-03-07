@@ -38,11 +38,20 @@ extension MySQLColumnDefinition41 {
 }
 
 extension Dictionary where Key == MySQLColumn {
-    public subscript(_ name: String) -> Value? {
-        return self[MySQLColumn(table: nil, name: name)]
+    /// Accesses the _first_ value from this dictionary with a matching field name.
+    public func firstValue(forColumn columnName: String) -> Value? {
+        for (field, value) in self {
+            if field.name == columnName {
+                return value
+            }
+        }
+        return nil
     }
 
-    public subscript(table: String, name: String) -> Value? {
-        return self[MySQLColumn(table: table, name: name)]
+    /// Access a `Value` from this dictionary keyed by `MySQLColumn`s
+    /// using a field (column) name and entity (table) name.
+    public func value(forTable table: String, atColumn column: String) -> Value? {
+        return self[MySQLColumn(table: table, name: column)]
     }
 }
+

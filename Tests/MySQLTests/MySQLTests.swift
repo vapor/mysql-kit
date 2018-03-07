@@ -6,14 +6,14 @@ class MySQLTests: XCTestCase {
     func testSimpleQuery() throws {
         let client = try MySQLConnection.makeTest()
         let results = try client.simpleQuery("SELECT @@version;").wait()
-        try XCTAssert(results[0]["@@version"]?.decode(String.self).contains("5.7") == true)
+        try XCTAssert(results[0].firstValue(forColumn: "@@version")?.decode(String.self).contains("5.7") == true)
         print(results)
     }
 
     func testQuery() throws {
         let client = try MySQLConnection.makeTest()
         let results = try client.query("SELECT CONCAT(?, ?) as test;", ["hello", "world"]).wait()
-        try XCTAssertEqual(results[0]["test"]?.decode(String.self), "helloworld")
+        try XCTAssertEqual(results[0].firstValue(forColumn: "test")?.decode(String.self), "helloworld")
         print(results)
     }
 
@@ -28,8 +28,8 @@ class MySQLTests: XCTestCase {
         let selectResults = try client.query("SELECT * FROM foos WHERE name = ?;", ["vapor"]).wait()
         XCTAssertEqual(selectResults.count, 1)
         print(selectResults)
-        try XCTAssertEqual(selectResults[0]["id"]?.decode(Int.self), -1)
-        try XCTAssertEqual(selectResults[0]["name"]?.decode(String.self), "vapor")
+        try XCTAssertEqual(selectResults[0].firstValue(forColumn: "id")?.decode(Int.self), -1)
+        try XCTAssertEqual(selectResults[0].firstValue(forColumn: "name")?.decode(String.self), "vapor")
 
         // test double parameterized query
         let selectResults2 = try client.query("SELECT * FROM foos WHERE name = ?;", ["vapor"]).wait()
@@ -94,7 +94,7 @@ class MySQLTests: XCTestCase {
         print(selectResults)
 
         for test in tests {
-            try test.match(selectResults[0][test.name], #file, #line)
+            try test.match(selectResults[0].firstValue(forColumn: test.name), #file, #line)
         }
     }
 
@@ -116,7 +116,7 @@ extension MySQLConnection {
                 XCTFail("\(error)")
             }
         }.wait()
-        _ = try client.authenticate(username: "foo", database: "test", password: "bar").wait()
+        _ = try client.authenticate(username: "vapor_username", database: "vapor_database", password: "vapor_password").wait()
         return client
     }
 }
