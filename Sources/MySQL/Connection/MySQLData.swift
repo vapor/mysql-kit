@@ -30,6 +30,16 @@ public struct MySQLData {
         self.storage = .binary(binary)
     }
 
+    /// Creates a new `MySQLData` from JSON-encoded `Data`.
+    public init(json: Data?) {
+        let binary = MySQLBinaryData(
+            type: .MYSQL_TYPE_STRING,
+            isUnsigned: true,
+            storage: json.flatMap { .string($0) }
+        )
+        self.storage = .binary(binary)
+    }
+
     /// Creates a new `MySQLData` from a `FixedWidthInteger`.
     public init<I>(integer: I?) where I: FixedWidthInteger {
         let type: MySQLDataType

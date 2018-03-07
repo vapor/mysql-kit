@@ -34,7 +34,8 @@ struct MySQLBinaryResultsetRow {
                      .MYSQL_TYPE_GEOMETRY,
                      .MYSQL_TYPE_BIT,
                      .MYSQL_TYPE_DECIMAL,
-                     .MYSQL_TYPE_NEWDECIMAL:
+                     .MYSQL_TYPE_NEWDECIMAL,
+                     .MYSQL_TYPE_JSON:
                     let data = try bytes.requireLengthEncodedData(source: .capture())
                     storage = .string(data)
                 case .MYSQL_TYPE_LONGLONG:
