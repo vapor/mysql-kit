@@ -45,7 +45,7 @@ jobs:
           command: swift build -c release
 
 
-  linux-mysql:
+  linux-fluent:
     docker:
       - image: norionomura/swift:swift-4.1-branch
       - image: mysql:5.7
