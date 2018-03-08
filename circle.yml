@@ -1,6 +1,8 @@
 version: 2
 
 jobs:
+
+
   macos:
     macos:
       xcode: "9.2"
@@ -25,12 +27,53 @@ jobs:
           MYSQL_USER: vapor_username
           MYSQL_PASSWORD: vapor_password
     steps:
+      - run:
+          name: Update APT
+          command: apt-get update
+      - run:
+          name: Install Swift NIO dependencies
+          command: apt-get install -yq pkg-config libssl-dev
       - checkout
-      - run: apt-get update
-      - run: apt-get install -yq libssl-dev pkg-config
-      - run: swift build
-      - run: swift test
-      - run: swift build -c release
+      - run: 
+          name: Compile code
+          command: swift build
+      - run: 
+          name: Run unit tests
+          command: swift test
+      - run: 
+          name: Compile code with optimizations
+          command: swift build -c release
+
+
+  linux-fluent:
+    docker:
+      - image: norionomura/swift:swift-4.1-branch
+      - image: mysql:5.7
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: vapor_database
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+    steps:
+      - run:
+          name: Update APT
+          command: apt-get update
+      - run:
+          name: Install Swift NIO dependencies
+          command: apt-get install -yq pkg-config libssl-dev
+      - run:
+          name: Clone Fluent MySQL
+          command: git clone -b nio https://github.com/vapor/fluent-mysql.git
+          working_directory: ~/
+      - run:
+          name: Switch Fluent MySQL to this MySQL revision
+          command: swift package edit MySQL --revision $CIRCLE_SHA1
+          working_directory: ~/fluent-mysql
+      - run:
+          name: Run Fluent MySQL unit tests
+          command: swift test
+          working_directory: ~/fluent-mysql
+
 
 workflows:
   version: 2
@@ -38,4 +81,5 @@ workflows:
     jobs:
      # - macos
       - linux
+      - linux-fluent
 
