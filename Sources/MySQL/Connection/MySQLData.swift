@@ -486,7 +486,6 @@ struct MySQLTime {
 
 extension Calendar {
     func ccomponent<I>(_ component: Calendar.Component, from date: Date) -> I where I: FixedWidthInteger {
-
         return numericCast(self.component(component, from: date))
     }
 }
@@ -503,7 +502,7 @@ extension Date {
             hour: numericCast(comps.hour ?? 0),
             minute: numericCast(comps.minute ?? 0),
             second: numericCast(comps.second ?? 0),
-            microsecond: 0
+            microsecond: numericCast((comps.nanosecond ?? 0) / 1_000)
         )
     }
 }
@@ -541,7 +540,7 @@ extension Date: MySQLDataConvertible {
             hour: numericCast(time.hour),
             minute: numericCast(time.minute),
             second: numericCast(time.second),
-            nanosecond: 0,
+            nanosecond: numericCast(time.microsecond) * 1_000,
             weekday: nil,
             weekdayOrdinal: nil,
             quarter: nil,
