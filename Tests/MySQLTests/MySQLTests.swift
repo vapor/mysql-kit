@@ -98,11 +98,29 @@ class MySQLTests: XCTestCase {
         }
     }
 
+    func testPipelining() throws {
+        let client = try MySQLConnection.makeTest()
+        let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS foos;").wait()
+        XCTAssertEqual(dropResults.count, 0)
+        let createResults = try client.simpleQuery("CREATE TABLE foos (id INT SIGNED, name VARCHAR(64));").wait()
+        XCTAssertEqual(createResults.count, 0)
+        let results = try [
+            client.query("INSERT INTO foos VALUES (?, ?);", [1, "vapor1"]),
+            client.query("INSERT INTO foos VALUES (?, ?);", [2, "vapor2"])
+        ].flatten(on: client.eventLoop).wait()
+        print(results)
+
+        let selectResults = try client.simpleQuery("SELECT * FROM foos;").wait()
+        XCTAssertEqual(selectResults.count, 2)
+        print(selectResults)
+    }
+
     static let allTests = [
         ("testSimpleQuery", testSimpleQuery),
         ("testQuery", testQuery),
         ("testInsert", testInsert),
         ("testKitchenSink", testKitchenSink),
+        ("testPipelining", testPipelining),
     ]
 }
 

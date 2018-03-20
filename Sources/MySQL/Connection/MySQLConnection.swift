@@ -20,6 +20,9 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
     /// If non-nil, will log queries.
     public var logger: DatabaseLogger?
 
+    /// The current query running, if one exists.
+    internal var current: Future<Void>?
+
     /// Creates a new MySQL client with the provided MySQL packet queue and channel.
     init(queue: QueueHandler<MySQLPacket, MySQLPacket>, channel: Channel) {
         self.queue = queue

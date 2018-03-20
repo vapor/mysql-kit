@@ -27,11 +27,22 @@ extension MySQLConnection {
     ///     - parameters: An array of parameters to bind. The count _must_ equal the number of `?` in the query string.
     ///     - onRow: Handles each row as it is received from the server.
     /// - returns: A future that will complete when the query is finished.
-    public func query(_ string: String, _ parameters: [MySQLDataConvertible],  onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
+    public func query(_ string: String, _ parameters: [MySQLDataConvertible], onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
+        if let current = self.current {
+            return current.flatMap(to: Void.self) {
+                return self._query(string, parameters, onRow: onRow)
+            }
+        } else {
+            return _query(string, parameters, onRow: onRow)
+        }
+    }
+
+    /// Private, non-sync query.
+    private func _query(_ string: String, _ parameters: [MySQLDataConvertible],  onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
         let comPrepare = MySQLComStmtPrepare(query: string)
         var ok: MySQLComStmtPrepareOK?
         var columns: [MySQLColumnDefinition41] = []
-        return send([.comStmtPrepare(comPrepare)]) { message in
+        let current = send([.comStmtPrepare(comPrepare)]) { message in
             switch message {
             case .comStmtPrepareOK(let _ok):
                 ok = _ok
@@ -82,6 +93,10 @@ extension MySQLConnection {
                 default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).", source: .capture())
                 }
             }
+        }.map(to: Void.self) {
+            self.current = nil
         }
+        self.current = current
+        return current
     }
 }
