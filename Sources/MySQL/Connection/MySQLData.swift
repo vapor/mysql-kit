@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents row data for a single MySQL column.
-public struct MySQLData {
+public struct MySQLData: Equatable {
     /// The value's data.
     var storage: MySQLDataStorage
 
@@ -260,7 +260,7 @@ public struct MySQLText: MySQLDataConvertible {
     }
 }
 
-enum MySQLDataStorage {
+enum MySQLDataStorage: Equatable {
     case text(Data?)
     case binary(MySQLBinaryData)
 }
@@ -483,7 +483,7 @@ extension UUID {
 /// to one of the temporal types (MYSQL_TYPE_TIME, MYSQL_TYPE_DATE, MYSQL_TYPE_DATETIME, MYSQL_TYPE_TIMESTAMP).
 ///
 /// https://dev.mysql.com/doc/refman/5.7/en/c-api-prepared-statement-data-structures.html
-struct MySQLTime {
+struct MySQLTime: Equatable {
     /// The year
     var year: UInt16
 

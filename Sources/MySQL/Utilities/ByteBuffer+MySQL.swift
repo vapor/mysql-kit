@@ -130,16 +130,39 @@ extension ByteBuffer {
 
         switch first {
         case 0xFC:
+            guard let _ = readInteger(endianness: .little, as: UInt8.self) else {
+                return nil
+            }
             guard let uint16 = readInteger(endianness: .little, as: UInt16.self) else {
                 return nil
             }
-            return numericCast(uint16) + 0xFC
-        case 0xFD: fatalError("3-byte int support")
+            return numericCast(uint16)
+        case 0xFD:
+            guard let _ = readInteger(endianness: .little, as: UInt8.self) else {
+                return nil
+            }
+            guard let one = readInteger(endianness: .little, as: UInt8.self) else {
+                return nil
+            }
+            guard let two = readInteger(endianness: .little, as: UInt8.self) else {
+                return nil
+            }
+            guard let three = readInteger(endianness: .little, as: UInt8.self) else {
+                return nil
+            }
+            var num: UInt64 = 0
+            num += numericCast(one)   << 0
+            num += numericCast(two)   << 8
+            num += numericCast(three) << 16
+            return num
         case 0xFE:
+            guard let _ = readInteger(endianness: .little, as: UInt8.self) else {
+                return nil
+            }
             guard let uint64 = readInteger(endianness: .little, as: UInt64.self) else {
                 return nil
             }
-            return uint64 + 0xFE
+            return uint64
         default:
             guard let byte = readInteger(endianness: .little, as: UInt8.self) else {
                 return nil
@@ -155,12 +178,17 @@ extension ByteBuffer {
             write(integer: Byte(int))
         case 251..<65_536:
             /// If the value is ≥ 251 and < (216), it is stored as fc + 2-byte integer.
-            write(integer: UInt16(int))
+            write(integer: Byte(0xFC))
+            write(integer: UInt16(int), endianness: .little)
         case 65_536..<16_777_216:
             /// If the value is ≥ (216) and < (224), it is stored as fd + 3-byte integer.
-            fatalError("3-byte integer not yet implemented")
+            write(integer: Byte(0xFD))
+            write(integer: Byte((int >> 0) & 0xFF))
+            write(integer: Byte((int >> 8) & 0xFF))
+            write(integer: Byte((int >> 16) & 0xFF))
         case 16_777_216..<UInt64.max:
             /// If the value is ≥ (224) and < (264) it is stored as fe + 8-byte integer.
+            write(integer: Byte(0xFE), endianness: .little)
             write(integer: int)
         default: fatalError() // will never hit
         }

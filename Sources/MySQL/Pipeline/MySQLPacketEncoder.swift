@@ -37,7 +37,7 @@ final class MySQLPacketEncoder: MessageToByteEncoder {
             session.connectionState = .statement(.waitingPrepare)
         case .comStmtExecute(let comExecute):
             session.resetSequenceID()
-            comExecute.serialize(into: &out)
+            try comExecute.serialize(into: &out)
             session.connectionState = .statement(.waitingExecute)
         default: throw MySQLError(identifier: "encode", reason: "Unsupported packet: \(message)", source: .capture())
         }

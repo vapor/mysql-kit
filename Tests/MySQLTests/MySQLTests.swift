@@ -115,12 +115,48 @@ class MySQLTests: XCTestCase {
         print(selectResults)
     }
 
+    func testLargeValues() throws {
+        func testSize(_ size: Int) throws {
+            let client = try MySQLConnection.makeTest()
+            let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS foos;").wait()
+            XCTAssertEqual(dropResults.count, 0)
+            let createResults = try client.simpleQuery("CREATE TABLE foos (id INT SIGNED, name LONGTEXT);").wait()
+
+            let bigName = String(repeating: "v", count: size)
+            XCTAssertEqual(createResults.count, 0)
+            _ = try client.query("INSERT INTO foos VALUES (?, ?);", [1, bigName]).wait()
+            let selectResults = try client.simpleQuery("SELECT * FROM foos;").wait()
+            XCTAssertEqual(selectResults.count, 1)
+            if let value = selectResults.first?.firstValue(forColumn: "name") {
+                let fetched = try String.convertFromMySQLData(value)
+                XCTAssertEqual(fetched.count, bigName.count)
+            } else {
+                XCTFail()
+            }
+        }
+        /// 1-byte
+        try testSize(0)
+        try testSize(128)
+        try testSize(250)
+
+        /// 2-byte
+        try testSize(251)
+        try testSize(252)
+        try testSize(65_535)
+        try testSize(65_536)
+
+        /// 3-byte
+        try testSize(65_537)
+        try testSize(1_000_000)
+    }
+
     static let allTests = [
         ("testSimpleQuery", testSimpleQuery),
         ("testQuery", testQuery),
         ("testInsert", testInsert),
         ("testKitchenSink", testKitchenSink),
         ("testPipelining", testPipelining),
+        ("testLargeValues", testLargeValues),
     ]
 }
 

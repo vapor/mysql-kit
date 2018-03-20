@@ -23,7 +23,7 @@ struct MySQLComStmtExecute {
     var values: [MySQLBinaryData]
 
     /// Serializes the `MySQLComStmtExecute` into a buffer.
-    func serialize(into buffer: inout ByteBuffer) {
+    func serialize(into buffer: inout ByteBuffer) throws {
         /// [17] COM_STMT_EXECUTE
         buffer.write(integer: Byte(0x17))
         buffer.write(integer: statementID, endianness: .little)
@@ -71,6 +71,10 @@ struct MySQLComStmtExecute {
                     case .float4(let float4): buffer.write(floatingPoint: float4)
                     case .float8(let float8): buffer.write(floatingPoint: float8)
                     case .string(let data):
+                        /// larger than 2^24 not yet supported
+                        guard data.count < 16_777_216 else {
+                            throw MySQLError(identifier: "dataTooLarge", reason: "Data must be <= 16MB", source: .capture())
+                        }
                         buffer.write(lengthEncoded: numericCast(data.count))
                         buffer.write(bytes: data)
                     case .time(let time):
