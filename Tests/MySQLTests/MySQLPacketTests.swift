@@ -53,8 +53,8 @@ class MySQLPacketTests: XCTestCase {
     }
 
     func testHandshakeResponse41_wireshark() throws {
-        var buffer = ByteBufferAllocator().buffer(capacity: 256)
-        let response = MySQLHandshakeResponse41(
+        _ = ByteBufferAllocator().buffer(capacity: 256)
+        _ = MySQLHandshakeResponse41(
             capabilities: [CLIENT_PROTOCOL_41],
             maxPacketSize: 1_073_741_824,
             characterSet: 0x0a,

@@ -238,6 +238,28 @@ public struct MySQLData {
     public static let null = MySQLData(storage: .binary(.init(type: .MYSQL_TYPE_NULL, isUnsigned: false, storage: nil)))
 }
 
+
+/// Represents a MySQL TEXT column.
+public struct MySQLText: MySQLDataConvertible {
+    /// This TEXT column's string.
+    public var string: String
+
+    /// Creates a new `MySQLText`.
+    public init(string: String) {
+        self.string = string
+    }
+
+    /// See `MySQLDataConvertible.convertToMySQLData()`
+    public func convertToMySQLData() throws -> MySQLData {
+        return MySQLData(string: string)
+    }
+
+    /// See `MySQLDataConvertible.convertFromMySQLData()`
+    public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> MySQLText {
+        return try MySQLText(string: .convertFromMySQLData(mysqlData))
+    }
+}
+
 enum MySQLDataStorage {
     case text(Data?)
     case binary(MySQLBinaryData)

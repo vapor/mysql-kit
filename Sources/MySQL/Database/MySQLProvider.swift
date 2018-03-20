@@ -19,7 +19,9 @@ public final class MySQLProvider: Provider {
     }
 
     /// See `Provider.boot`
-    public func boot(_ worker: Container) throws { }
+    public func didBoot(_ worker: Container) throws -> Future<Void> {
+        return .done(on: worker)
+    }
 }
 
 /// MARK: Services
@@ -33,7 +35,7 @@ extension MySQLDatabaseConfig: ServiceType {
 extension MySQLDatabase: ServiceType {
     /// See `ServiceType.makeService(for:)`
     public static func makeService(for worker: Container) throws -> MySQLDatabase {
-        return try .init(config: worker.make(for: MySQLDatabase.self))
+        return try .init(config: worker.make())
     }
 }
 
