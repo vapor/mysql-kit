@@ -517,7 +517,15 @@ extension Date {
         let comps = Calendar(identifier: .gregorian)
             .dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: self)
 
-        print(comps.nanosecond)
+
+        let microsecond: UInt32
+        #if os(macOS)
+        microsecond = numericCast((comps.nanosecond ?? 0) / 1_000)
+        #else
+        microsecond = numericCast(UInt64(timeIntervalSince1970 * 1_000_000) % 1_000_000)
+        #endif
+        print(microsecond)
+        print(timeIntervalSince1970)
 
         return MySQLTime(
             year: numericCast(comps.year ?? 0),
@@ -526,7 +534,7 @@ extension Date {
             hour: numericCast(comps.hour ?? 0),
             minute: numericCast(comps.minute ?? 0),
             second: numericCast(comps.second ?? 0),
-            microsecond: numericCast((comps.nanosecond ?? 0) / 1_000)
+            microsecond: microsecond
         )
     }
 }
