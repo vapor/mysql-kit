@@ -522,10 +522,9 @@ extension Date {
         #if os(macOS)
         microsecond = numericCast((comps.nanosecond ?? 0) / 1_000)
         #else
+        /// For some reason comps.nanosecond is `nil` on linux :(
         microsecond = numericCast(UInt64(timeIntervalSince1970 * 1_000_000) % 1_000_000)
         #endif
-        print(microsecond)
-        print(timeIntervalSince1970)
 
         return MySQLTime(
             year: numericCast(comps.year ?? 0),
