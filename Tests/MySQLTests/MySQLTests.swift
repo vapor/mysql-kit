@@ -1,5 +1,5 @@
 import Async
-import MySQL
+@testable import MySQL
 import XCTest
 
 class MySQLTests: XCTestCase {
@@ -148,6 +148,11 @@ class MySQLTests: XCTestCase {
         /// 3-byte
         try testSize(65_537)
         try testSize(1_000_000)
+    }
+
+    func testMicroseconds() throws {
+        let date = Date().convertToMySQLTime()
+        XCTAssertNotEqual(date.microsecond, 0)
     }
 
     static let allTests = [
