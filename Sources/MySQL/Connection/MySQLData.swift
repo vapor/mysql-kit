@@ -517,7 +517,7 @@ extension Date {
         let comps = Calendar(identifier: .gregorian)
             .dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: self)
 
-        print(comps)
+        print(comps.nanosecond)
 
         return MySQLTime(
             year: numericCast(comps.year ?? 0),
