@@ -162,6 +162,7 @@ class MySQLTests: XCTestCase {
         ("testKitchenSink", testKitchenSink),
         ("testPipelining", testPipelining),
         ("testLargeValues", testLargeValues),
+        ("testMicroseconds", testMicroseconds),
     ]
 }
 
