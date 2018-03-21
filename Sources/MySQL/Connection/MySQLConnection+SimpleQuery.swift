@@ -57,7 +57,8 @@ extension MySQLConnection {
             case .ok, .eof: return true
             default: throw MySQLError(identifier: "simpleQuery", reason: "Unsupported message encountered during simple query: \(message).", source: .capture())
             }
-        }.map(to: Void.self) {
+        }
+        current.always {
             self.current = nil
         }
         self.current = current

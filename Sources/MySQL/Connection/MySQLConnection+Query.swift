@@ -93,7 +93,8 @@ extension MySQLConnection {
                 default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).", source: .capture())
                 }
             }
-        }.map(to: Void.self) {
+        }
+        current.always {
             self.current = nil
         }
         self.current = current
