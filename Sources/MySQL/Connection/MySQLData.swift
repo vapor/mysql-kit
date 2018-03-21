@@ -513,6 +513,35 @@ extension Calendar {
 }
 
 extension Date {
+    static func convertFromMySQLTime(_ time: MySQLTime) throws -> Date {
+        let comps = DateComponents(
+            calendar: Calendar(identifier: .gregorian),
+            timeZone: TimeZone(secondsFromGMT: 0)!,
+            era: nil,
+            year: numericCast(time.year),
+            month: numericCast(time.month),
+            day: numericCast(time.day),
+            hour: numericCast(time.hour),
+            minute: numericCast(time.minute),
+            second: numericCast(time.second),
+            nanosecond: numericCast(time.microsecond) * 1_000,
+            weekday: nil,
+            weekdayOrdinal: nil,
+            quarter: nil,
+            weekOfMonth: nil,
+            weekOfYear: nil,
+            yearForWeekOfYear: nil
+        )
+        guard let date = comps.date else {
+            throw MySQLError(identifier: "date", reason: "Could not parse Date from: \(time)", source: .capture())
+        }
+        #if os(macOS)
+        return date
+        #else
+        return date.addingTimeInterval(TimeInterval(time.microsecond) / 1_000_000)
+        #endif
+    }
+
     func convertToMySQLTime() -> MySQLTime {
         let comps = Calendar(identifier: .gregorian)
             .dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: self)
@@ -561,28 +590,7 @@ extension Date: MySQLDataConvertible {
         case .text: throw MySQLError(identifier: "timeText", reason: "Parsing MySQLTime from text is not supported.", source: .capture())
         }
 
-        let comps = DateComponents(
-            calendar: Calendar(identifier: .gregorian),
-            timeZone: TimeZone(secondsFromGMT: 0)!,
-            era: nil,
-            year: numericCast(time.year),
-            month: numericCast(time.month),
-            day: numericCast(time.day),
-            hour: numericCast(time.hour),
-            minute: numericCast(time.minute),
-            second: numericCast(time.second),
-            nanosecond: numericCast(time.microsecond) * 1_000,
-            weekday: nil,
-            weekdayOrdinal: nil,
-            quarter: nil,
-            weekOfMonth: nil,
-            weekOfYear: nil,
-            yearForWeekOfYear: nil
-        )
-        guard let date = comps.date else {
-            throw MySQLError(identifier: "date", reason: "Could not parse Date from: \(mysqlData)", source: .capture())
-        }
-        return date
+        return try .convertFromMySQLTime(time)
     }
 }
 

@@ -150,9 +150,13 @@ class MySQLTests: XCTestCase {
         try testSize(1_000_000)
     }
 
-    func testMicroseconds() throws {
-        let date = Date().convertToMySQLTime()
-        XCTAssertNotEqual(date.microsecond, 0)
+    func testTimePrecision() throws {
+        let time = Date().convertToMySQLTime()
+        XCTAssertNotEqual(time.microsecond, 0)
+        try XCTAssertNotEqual(
+            Date.convertFromMySQLTime(time).convertToMySQLTime().microsecond,
+            time.microsecond
+        )
     }
 
     static let allTests = [
@@ -162,7 +166,7 @@ class MySQLTests: XCTestCase {
         ("testKitchenSink", testKitchenSink),
         ("testPipelining", testPipelining),
         ("testLargeValues", testLargeValues),
-        ("testMicroseconds", testMicroseconds),
+        ("testTimePrecision", testTimePrecision),
     ]
 }
 
