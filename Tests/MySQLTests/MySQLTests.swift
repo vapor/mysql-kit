@@ -153,7 +153,7 @@ class MySQLTests: XCTestCase {
     func testTimePrecision() throws {
         let time = Date().convertToMySQLTime()
         XCTAssertNotEqual(time.microsecond, 0)
-        try XCTAssertNotEqual(
+        try XCTAssertEqual(
             Date.convertFromMySQLTime(time).convertToMySQLTime().microsecond,
             time.microsecond
         )

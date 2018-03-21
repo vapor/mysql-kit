@@ -514,6 +514,14 @@ extension Calendar {
 
 extension Date {
     static func convertFromMySQLTime(_ time: MySQLTime) throws -> Date {
+        /// For some reason comps.nanosecond is `nil` on linux :(
+        let nanosecond: Int
+        #if os(macOS)
+        nanosecond = numericCast(time.microsecond) * 1_000
+        #else
+        nanosecond = 0
+        #endif
+
         let comps = DateComponents(
             calendar: Calendar(identifier: .gregorian),
             timeZone: TimeZone(secondsFromGMT: 0)!,
@@ -535,6 +543,8 @@ extension Date {
         guard let date = comps.date else {
             throw MySQLError(identifier: "date", reason: "Could not parse Date from: \(time)", source: .capture())
         }
+        
+        /// For some reason comps.nanosecond is `nil` on linux :(
         #if os(macOS)
         return date
         #else
@@ -547,11 +557,11 @@ extension Date {
             .dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: self)
 
 
+        /// For some reason comps.nanosecond is `nil` on linux :(
         let microsecond: UInt32
         #if os(macOS)
         microsecond = numericCast((comps.nanosecond ?? 0) / 1_000)
         #else
-        /// For some reason comps.nanosecond is `nil` on linux :(
         microsecond = numericCast(UInt64(timeIntervalSince1970 * 1_000_000) % 1_000_000)
         #endif
 
