@@ -26,12 +26,8 @@ extension MySQLConnection {
     ///     - onRow: Handles each row as it is received from the server.
     /// - returns: A future that will complete when the query is finished.
     public func simpleQuery(_ string: String, onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
-        if let current = self.current {
-            return current.flatMap(to: Void.self) {
-                return self._simpleQuery(string, onRow: onRow)
-            }
-        } else {
-            return _simpleQuery(string, onRow: onRow)
+        return operation {
+            return self._simpleQuery(string, onRow: onRow)
         }
     }
 
@@ -41,7 +37,7 @@ extension MySQLConnection {
         let comQuery = MySQLComQuery(query: string)
         var columns: [MySQLColumnDefinition41] = []
         var currentRow: [MySQLColumn: MySQLData] = [:]
-        let current = send([.comQuery(comQuery)]) { message in
+        return send([.comQuery(comQuery)]) { message in
             switch message {
             case .columnDefinition41(let col):
                 columns.append(col)
@@ -58,10 +54,5 @@ extension MySQLConnection {
             default: throw MySQLError(identifier: "simpleQuery", reason: "Unsupported message encountered during simple query: \(message).", source: .capture())
             }
         }
-        current.always {
-            self.current = nil
-        }
-        self.current = current
-        return current
     }
 }

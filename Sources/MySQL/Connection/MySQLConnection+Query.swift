@@ -28,12 +28,8 @@ extension MySQLConnection {
     ///     - onRow: Handles each row as it is received from the server.
     /// - returns: A future that will complete when the query is finished.
     public func query(_ string: String, _ parameters: [MySQLDataConvertible], onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
-        if let current = self.current {
-            return current.flatMap(to: Void.self) {
-                return self._query(string, parameters, onRow: onRow)
-            }
-        } else {
-            return _query(string, parameters, onRow: onRow)
+        return operation {
+            return self._query(string, parameters, onRow: onRow)
         }
     }
 
@@ -42,7 +38,7 @@ extension MySQLConnection {
         let comPrepare = MySQLComStmtPrepare(query: string)
         var ok: MySQLComStmtPrepareOK?
         var columns: [MySQLColumnDefinition41] = []
-        let current = send([.comStmtPrepare(comPrepare)]) { message in
+        return send([.comStmtPrepare(comPrepare)]) { message in
             switch message {
             case .comStmtPrepareOK(let _ok):
                 ok = _ok
@@ -94,10 +90,5 @@ extension MySQLConnection {
                 }
             }
         }
-        current.always {
-            self.current = nil
-        }
-        self.current = current
-        return current
     }
 }
