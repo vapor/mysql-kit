@@ -41,9 +41,18 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
     }
 
     /// Submits an async task to be pipelined.
-    internal func submit(_ work: @escaping () -> Future<Void>) -> Future<Void> {
-        pipeline = pipeline.then(work)
-        return pipeline
+    internal func operation(_ work: @escaping () -> Future<Void>) -> Future<Void> {
+        /// perform this work when the current pipeline future is completed
+        let new = pipeline.then(work)
+
+        /// append this work to the pipeline, discarding errors as the pipeline
+        //// does not care about them
+        pipeline = new.catchMap { err in
+            return ()
+        }
+
+        /// return the newly enqueued work's future result
+        return new
     }
 
     /// Closes this client.

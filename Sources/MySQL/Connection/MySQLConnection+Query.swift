@@ -28,7 +28,7 @@ extension MySQLConnection {
     ///     - onRow: Handles each row as it is received from the server.
     /// - returns: A future that will complete when the query is finished.
     public func query(_ string: String, _ parameters: [MySQLDataConvertible], onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
-        return submit {
+        return operation {
             return self._query(string, parameters, onRow: onRow)
         }
     }
