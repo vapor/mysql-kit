@@ -106,12 +106,13 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(createResults.count, 0)
         let results = try [
             client.query("INSERT INTO foos VALUES (?, ?);", [1, "vapor1"]),
-            client.query("INSERT INTO foos VALUES (?, ?);", [2, "vapor2"])
+            client.query("INSERT INTO foos VALUES (?, ?);", [2, "vapor2"]),
+            client.query("INSERT INTO foos VALUES (?, ?);", [3, "vapor2"]),
         ].flatten(on: client.eventLoop).wait()
         print(results)
 
         let selectResults = try client.simpleQuery("SELECT * FROM foos;").wait()
-        XCTAssertEqual(selectResults.count, 2)
+        XCTAssertEqual(selectResults.count, 3)
         print(selectResults)
     }
 

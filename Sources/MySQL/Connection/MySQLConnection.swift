@@ -21,22 +21,29 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
     public var logger: DatabaseLogger?
 
     /// The current query running, if one exists.
-    internal var current: Future<Void>?
+    private var pipeline: Future<Void>
 
     /// Creates a new MySQL client with the provided MySQL packet queue and channel.
     init(queue: QueueHandler<MySQLPacket, MySQLPacket>, channel: Channel) {
         self.queue = queue
         self.channel = channel
+        self.pipeline = Future.map(on: channel.eventLoop) { }
     }
 
     /// Sends `MySQLPacket` to the server.
-    func send(_ messages: [MySQLPacket], onResponse: @escaping (MySQLPacket) throws -> Bool) -> Future<Void> {
+    internal func send(_ messages: [MySQLPacket], onResponse: @escaping (MySQLPacket) throws -> Bool) -> Future<Void> {
         return queue.enqueue(messages) { message in
             switch message {
             case .err(let err): throw err.makeError(source: .capture())
             default: return try onResponse(message)
             }
         }
+    }
+
+    /// Submits an async task to be pipelined.
+    internal func submit(_ work: @escaping () -> Future<Void>) -> Future<Void> {
+        pipeline = pipeline.then(work)
+        return pipeline
     }
 
     /// Closes this client.
