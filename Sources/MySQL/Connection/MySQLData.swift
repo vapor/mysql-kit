@@ -1,4 +1,4 @@
-import Foundation
+import Core
 
 /// Represents row data for a single MySQL column.
 public struct MySQLData: Equatable {

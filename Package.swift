@@ -24,7 +24,7 @@ let package = Package(
 
     ],
     targets: [
-        .target(name: "MySQL", dependencies: ["Async", "Bits", "Crypto", "DatabaseKit", "NIO", "Service"]),
+        .target(name: "MySQL", dependencies: ["Async", "Bits", "Core", "Crypto", "DatabaseKit", "NIO", "Service"]),
         .testTarget(name: "MySQLTests", dependencies: ["Crypto", "MySQL"]),
     ]
 )
