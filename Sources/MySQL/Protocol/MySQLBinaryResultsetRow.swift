@@ -107,10 +107,10 @@ struct MySQLBinaryResultsetRow {
                     default: throw MySQLError(identifier: "timeLength", reason: "Invalid MYSQL_TIME length.", source: .capture())
                     }
                     storage = .time(time)
-				case .MYSQL_TYPE_FLOAT:
-					storage = try .float4(bytes.requireFloatingPoint(as: Float.self, source: .capture()))
-				case .MYSQL_TYPE_DOUBLE:
-					storage = try .float8(bytes.requireFloatingPoint(as: Double.self, source: .capture()))
+                case .MYSQL_TYPE_FLOAT:
+                    storage = try .float4(bytes.requireFloatingPoint(as: Float.self, source: .capture()))
+                case .MYSQL_TYPE_DOUBLE:
+                    storage = try .float8(bytes.requireFloatingPoint(as: Double.self, source: .capture()))
                 default: throw MySQLError(identifier: "binaryColumn", reason: "Unsupported type: \(column)", source: .capture())
                 }
             }
