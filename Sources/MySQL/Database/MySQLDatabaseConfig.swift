@@ -1,6 +1,6 @@
 /// Config options for a `MySQLDatabase`
 public struct MySQLDatabaseConfig {
-    /// Creates a `PostgreSQLDatabaseConfig` with default settings.
+    /// Creates a `MySQLDatabaseConfig` with default settings.
     public static func root(database: String) -> MySQLDatabaseConfig {
         return .init(hostname: "localhost", port: 3306, username: "root", database: database)
     }
@@ -20,7 +20,7 @@ public struct MySQLDatabaseConfig {
     /// Database name.
     public let database: String
 
-    /// Creates a new `PostgreSQLDatabaseConfig`.
+    /// Creates a new `MySQLDatabaseConfig`.
     public init(hostname: String, port: Int, username: String, password: String? = nil, database: String) {
         self.hostname = hostname
         self.port = port
