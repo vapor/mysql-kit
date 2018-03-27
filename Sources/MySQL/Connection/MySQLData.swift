@@ -282,7 +282,7 @@ extension MySQLData: CustomStringConvertible {
                     switch binary.type {
                     case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING:
                         return String(data: data, encoding: .utf8).flatMap { "string(\"\($0)\")" } ?? "<non-utf8 string (\(data.count))>"
-                    default: return "data(0x\(data.hexString))"
+                    default: return "data(0x\(data.hexEncodedString()))"
                     }
                 default: return "\(data)"
                 }
