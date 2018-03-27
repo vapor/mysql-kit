@@ -20,7 +20,7 @@ public struct MySQLDatabaseConfig {
     /// Database name.
     public let database: String
 
-    /// Creates a new `PostgreSQLDatabaseConfig`.
+    /// Creates a new `MySQLDatabaseConfig`.
     public init(hostname: String, port: Int = 3306, username: String, password: String? = nil, database: String) {
         self.hostname = hostname
         self.port = port
