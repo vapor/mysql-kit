@@ -6,7 +6,7 @@ public final class MySQLDatabase: Database {
     /// If non-nil, will log queries.
     public var logger: DatabaseLogger?
 
-    /// Creates a new `PostgreSQLDatabase`.
+    /// Creates a new `MySQLDatabase`.
     public init(config: MySQLDatabaseConfig) {
         self.config = config
     }
@@ -30,7 +30,7 @@ public final class MySQLDatabase: Database {
 }
 
 extension DatabaseIdentifier {
-    /// Default identifier for `PostgreSQLDatabase`.
+    /// Default identifier for `MySQLDatabase`.
     public static var mysql: DatabaseIdentifier<MySQLDatabase> {
         return .init("mysql")
     }
