@@ -82,18 +82,6 @@ fileprivate struct MySQLRowKeyedEncodingContainer<K>: KeyedEncodingContainerProt
     mutating func encode(_ value: String, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
     mutating func superEncoder() -> Encoder { return encoder }
     mutating func superEncoder(forKey key: K) -> Encoder { return encoder }
-// shouldn't need this since mysql is easier about accept null values
-//    mutating func encodeIfPresent<T>(_ value: T?, forKey key: K) throws where T : Encodable {
-//        if let value = value {
-//            try encode(value, forKey: key)
-//        } else {
-//            if let convertibleType = T.self as? MySQLDataConvertible.Type {
-//                encoder.data[key.stringValue] = PostgreSQLData(type: convertibleType.postgreSQLDataType, data: nil)
-//            } else {
-//                try encodeNil(forKey: key)
-//            }
-//        }
-//    }
     
     mutating func encode<T>(_ value: T, forKey key: K) throws where T: Encodable {
         guard let convertible = value as? MySQLDataConvertible else {
