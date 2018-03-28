@@ -42,7 +42,7 @@ extension MySQLConnection {
             switch message {
             case .comStmtPrepareOK(let _ok):
                 ok = _ok
-                return false
+                return _ok.numParams == 0 && _ok.numColumns == 0
             case .columnDefinition41(let col):
                 let ok = ok!
                 columns.append(col)
