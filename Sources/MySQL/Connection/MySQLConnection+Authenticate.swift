@@ -51,7 +51,7 @@ extension MySQLConnection {
                     CLIENT_DEPRECATE_EOF
                 ],
                 maxPacketSize: 1_024,
-                characterSet: 0x21,
+                characterSet: 0x2D,
                 username: username,
                 authResponse: authResponse,
                 database: database,
