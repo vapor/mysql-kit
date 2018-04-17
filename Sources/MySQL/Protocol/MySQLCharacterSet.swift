@@ -21,15 +21,17 @@ public struct MySQLCharacterSet: Equatable {
     }
 
     /// Creates a new `MySQLCharacterSet`
-    init(string: String) {
+    init?(string: String) {
         if string == "latin1_swedish_ci" {
             self.raw = 0x0008
+        } else if string == "utf8_general_ci" {
+              self.raw = 0x0021
         } else if string == "binary" {
             self.raw = 0x003f
         } else if string == "utf8mb4_unicode_ci" {
             self.raw = 0x00e0
-        } else { // "utf8_general_ci"
-            self.raw = 0x0021
+        } else {
+          return nil
         }
     }
 

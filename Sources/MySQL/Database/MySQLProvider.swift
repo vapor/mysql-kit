@@ -29,7 +29,7 @@ public final class MySQLProvider: Provider {
 extension MySQLDatabaseConfig: ServiceType {
     /// See `ServiceType.makeService(for:)`
     public static func makeService(for worker: Container) throws -> MySQLDatabaseConfig {
-        return .root(database: "vapor")
+        return try .root(database: "vapor")
     }
 }
 extension MySQLDatabase: ServiceType {
@@ -38,4 +38,3 @@ extension MySQLDatabase: ServiceType {
         return try .init(config: worker.make())
     }
 }
-
