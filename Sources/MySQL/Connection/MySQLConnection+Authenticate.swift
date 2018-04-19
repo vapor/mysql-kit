@@ -48,7 +48,8 @@ extension MySQLConnection {
                     CLIENT_PLUGIN_AUTH,
                     CLIENT_SECURE_CONNECTION,
                     CLIENT_CONNECT_WITH_DB,
-                    CLIENT_DEPRECATE_EOF
+                    CLIENT_DEPRECATE_EOF,
+                    CLIENT_MULTI_STATEMENTS,
                 ],
                 maxPacketSize: 1_024,
                 characterSet: 0x21,
