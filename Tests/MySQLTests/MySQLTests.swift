@@ -179,19 +179,17 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(selectResults2.count, 1)
     }
 
-    func testInvalidCharacterSet() throws {
-        let hostname = "localhost"
-        let port = 3306
-        let username = "vapor_username"
-        let password = "vapor_password"
-        let database = "vapor_database"
-        let characterSet = "utf64_imaginary"
-
-        XCTAssertThrowsError(try MySQLDatabaseConfig(hostname: hostname, port: port, username: username, password: password, database: database, characterSet: characterSet)) { error in
-            XCTAssert(error is MySQLError)
-            XCTAssertEqual((error as! MySQLError).identifier, "invalidCharacterSet")
-            XCTAssertEqual((error as! MySQLError).reason, "Cannot initialize MySQLCharacterSet with value utf64_imaginary.")
-        }
+    func testStringCharacterSet() throws {
+        var characterSet = "latin1_swedish_ci"
+        XCTAssertNotNil(MySQLCharacterSet(string: characterSet))
+        characterSet = "utf8_general_ci"
+        XCTAssertNotNil(MySQLCharacterSet(string: characterSet))
+        characterSet = "binary"
+        XCTAssertNotNil(MySQLCharacterSet(string: characterSet))
+        characterSet = "utf8mb4_unicode_ci"
+        XCTAssertNotNil(MySQLCharacterSet(string: characterSet))
+        characterSet = "utf64_imaginary"
+        XCTAssertNil(MySQLCharacterSet(string: characterSet))
     }
 
     static let allTests = [
@@ -203,7 +201,7 @@ class MySQLTests: XCTestCase {
         ("testLargeValues", testLargeValues),
         ("testTimePrecision", testTimePrecision),
         ("testSaveEmoticonsUnicode", testSaveEmoticonsUnicode),
-        ("testInvalidCharacterSet", testInvalidCharacterSet),
+        ("testStringCharacterSet", testStringCharacterSet),
     ]
 }
 
