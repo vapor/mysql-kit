@@ -33,9 +33,9 @@ extension MySQLConnection {
                     throw MySQLError(identifier: "salt", reason: "Server-supplied salt too short.", source: .capture())
                 }
                 let salt = Data(handshake.authPluginData[..<20])
-                let passwordHash = try SHA1.digest(password)
-                let passwordDoubleHash = try SHA1.digest(passwordHash)
-                var hash = try SHA1.digest(salt + passwordDoubleHash)
+                let passwordHash = try SHA1.hash(password)
+                let passwordDoubleHash = try SHA1.hash(passwordHash)
+                var hash = try SHA1.hash(salt + passwordDoubleHash)
                 for i in 0..<20 {
                     hash[i] = hash[i] ^ passwordHash[i]
                 }
