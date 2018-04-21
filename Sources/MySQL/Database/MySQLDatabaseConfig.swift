@@ -19,13 +19,16 @@ public struct MySQLDatabaseConfig {
 
     /// Database name.
     public let database: String
+    
+    public let allowMultipleStatements: Bool
 
     /// Creates a new `MySQLDatabaseConfig`.
-    public init(hostname: String = "127.0.0.1", port: Int = 3306, username: String, password: String? = nil, database: String) {
+    public init(hostname: String = "127.0.0.1", port: Int = 3306, username: String, password: String? = nil, database: String, allowMultipleStatements: Bool = false) {
         self.hostname = hostname
         self.port = port
         self.username = username
         self.database = database
         self.password = password
+        self.allowMultipleStatements = allowMultipleStatements
     }
 }
