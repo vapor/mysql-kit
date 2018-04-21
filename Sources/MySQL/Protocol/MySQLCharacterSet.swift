@@ -44,7 +44,7 @@ extension MySQLCharacterSet: CustomStringConvertible {
         case .utf8_general_ci: return "utf8_general_ci"
         case .binary: return "binary"
         case .utf8mb4_unicode_ci: return "utf8mb4_unicode_ci"
-        default: return "unknown \(self)"
+        default: return "unknown \(self.raw)"
         }
     }
 }
