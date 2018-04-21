@@ -30,7 +30,7 @@ extension MySQLCharacterSet: CustomStringConvertible {
         case .latin1_swedish_ci: return "latin1_swedish_ci"
         case .utf8_general_ci: return "utf8_general_ci"
         case .binary: return "binary"
-        default: return "unknown \(self)"
+        default: return "unknown \(self.raw)"
         }
     }
 }
