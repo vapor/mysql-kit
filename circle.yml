@@ -16,6 +16,28 @@ jobs:
       # - run: swift build -c release
       - run: swift test
 
+  linux-5.0:
+    docker:
+      - image: codevapor/swift:4.1
+      - image: mysql:5.0
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: vapor_database
+          # MYSQL_ROOT_HOST: %
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+    steps:
+      - checkout
+      - run: 
+          name: Compile code
+          command: swift build
+      - run: 
+          name: Run unit tests
+          command: swift test
+      - run: 
+          name: Compile code with optimizations
+          command: swift build -c release
+
   linux:
     docker:
       - image: codevapor/swift:4.1
@@ -68,6 +90,7 @@ workflows:
   tests:
     jobs:
      # - macos
+      - linux-5.0
       - linux
       - linux-fluent
 
