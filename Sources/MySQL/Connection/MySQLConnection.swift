@@ -15,6 +15,9 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
     /// See `DatabaseConnection`.
     public var isClosed: Bool
 
+    /// See `Extendable`
+    public var extend: Extend
+
     /// Handles enqueued redis commands and responses.
     private let queue: QueueHandler<MySQLPacket, MySQLPacket>
 
@@ -27,8 +30,8 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
     /// The current query running, if one exists.
     private var pipeline: Future<Void>
 
-    /// See `Extendable.extend`
-    public var extend: Extend
+    /// Currently running `send(...)`.
+    private var currentSend: Promise<Void>?
 
     /// Creates a new MySQL client with the provided MySQL packet queue and channel.
     init(queue: QueueHandler<MySQLPacket, MySQLPacket>, channel: Channel) {
@@ -37,23 +40,44 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
         self.pipeline = Future.map(on: channel.eventLoop) { }
         self.extend = [:]
         self.isClosed = false
+
+        // when the channel closes, set isClosed to true and fail any
+        // currently running calls to `send(...)`.
         channel.closeFuture.always {
             self.isClosed = true
+            if let current = self.currentSend {
+                current.fail(error: closeError)
+            }
         }
     }
 
     /// Sends `MySQLPacket` to the server.
     internal func send(_ messages: [MySQLPacket], onResponse: @escaping (MySQLPacket) throws -> Bool) -> Future<Void> {
+        // if currentSend is not nil, previous send has not completed
+        assert(currentSend == nil, "Attempting to call `send(...)` again before previous invocation has completed.")
+
+        // if the connection is closed, fail immidiately
         guard !isClosed else {
-            let error = MySQLError(identifier: "closed", reason: "Connection is closed.", source: .capture())
-            return eventLoop.newFailedFuture(error: error)
+            return eventLoop.newFailedFuture(error: closeError)
         }
-        return queue.enqueue(messages) { message in
+
+        // create a new promise and store it
+        let promise = eventLoop.newPromise(Void.self)
+        currentSend = promise
+
+        // cascade this enqueue to the newly created promise
+        queue.enqueue(messages) { message in
             switch message {
             case .err(let err): throw err.makeError(source: .capture())
             default: return try onResponse(message)
             }
-        }
+        }.cascade(promise: promise)
+
+        // when the promise completes, remove the reference to it
+        promise.futureResult.always { self.currentSend = nil }
+
+        // return the promise's future result (same as `queue.enqueue`)
+        return promise.futureResult
     }
 
     /// Submits an async task to be pipelined.
@@ -76,3 +100,6 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
         channel.close(promise: nil)
     }
 }
+
+/// Error to throw if the connection has closed.
+private let closeError = MySQLError(identifier: "closed", reason: "Connection is closed.", source: .capture())
