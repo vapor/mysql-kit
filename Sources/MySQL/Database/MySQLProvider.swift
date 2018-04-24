@@ -13,7 +13,7 @@ public final class MySQLProvider: Provider {
         try services.register(DatabaseKitProvider())
         services.register(MySQLDatabaseConfig.self)
         services.register(MySQLDatabase.self)
-        var databases = DatabaseConfig()
+        var databases = DatabasesConfig()
         databases.add(database: MySQLDatabase.self, as: .mysql)
         services.register(databases)
     }

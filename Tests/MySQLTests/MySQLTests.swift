@@ -160,6 +160,16 @@ class MySQLTests: XCTestCase {
         )
     }
 
+    func testDisconnect() throws {
+        return;
+        let client = try MySQLConnection.makeTest()
+        while true {
+            let version = try client.simpleQuery("SELECT @@version").wait()
+            print(version)
+            sleep(1)
+        }
+    }
+
     static let allTests = [
         ("testSimpleQuery", testSimpleQuery),
         ("testQuery", testQuery),

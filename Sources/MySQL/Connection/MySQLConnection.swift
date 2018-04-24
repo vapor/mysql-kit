@@ -7,10 +7,13 @@ import Service
 
 /// A MySQL frontend client.
 public final class MySQLConnection: BasicWorker, DatabaseConnection {
-    /// See `Worker.eventLoop`
+    /// See `Worker`.
     public var eventLoop: EventLoop {
         return channel.eventLoop
     }
+
+    /// See `DatabaseConnection`.
+    public var isClosed: Bool
 
     /// Handles enqueued redis commands and responses.
     private let queue: QueueHandler<MySQLPacket, MySQLPacket>
@@ -33,10 +36,18 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
         self.channel = channel
         self.pipeline = Future.map(on: channel.eventLoop) { }
         self.extend = [:]
+        self.isClosed = false
+        channel.closeFuture.always {
+            self.isClosed = true
+        }
     }
 
     /// Sends `MySQLPacket` to the server.
     internal func send(_ messages: [MySQLPacket], onResponse: @escaping (MySQLPacket) throws -> Bool) -> Future<Void> {
+        guard !isClosed else {
+            let error = MySQLError(identifier: "closed", reason: "Connection is closed.", source: .capture())
+            return eventLoop.newFailedFuture(error: error)
+        }
         return queue.enqueue(messages) { message in
             switch message {
             case .err(let err): throw err.makeError(source: .capture())
