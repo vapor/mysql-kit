@@ -6,7 +6,7 @@ class MySQLTests: XCTestCase {
     func testSimpleQuery() throws {
         let client = try MySQLConnection.makeTest()
         let results = try client.simpleQuery("SELECT @@version;").wait()
-        try XCTAssert(results[0].firstValue(forColumn: "@@version")?.decode(String.self).contains("5.7") == true)
+        try XCTAssert(results[0].firstValue(forColumn: "@@version")?.decode(String.self).contains("5.") == true)
         print(results)
     }
 
@@ -175,7 +175,7 @@ extension MySQLConnection {
     /// Creates a test event loop and psql client.
     static func makeTest() throws -> MySQLConnection {
         let group = MultiThreadedEventLoopGroup(numThreads: 1)
-        let client = try MySQLConnection.connect(on: group) { error in
+        let client = try MySQLConnection.connect(hostname: "192.168.99.100", on: group) { error in
             // for some reason connection refused error is happening?
             if !"\(error)".contains("refused") {
                 XCTFail("\(error)")

@@ -103,6 +103,15 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         textState: MySQLTextProtocolState,
         capabilities: MySQLCapabilities
     ) throws -> DecodingState {
+        if !capabilities.get(CLIENT_DEPRECATE_EOF) {
+            // check for error or OK packet
+            let peek = buffer.peekInteger(as: Byte.self, skipping: 4)
+            switch peek {
+            case 0xFE: return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
+            default: break
+            }
+        }
+        
         switch textState {
         case .waiting:
             // check for error or OK packet
