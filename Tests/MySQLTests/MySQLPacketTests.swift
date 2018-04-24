@@ -27,7 +27,7 @@ class MySQLPacketTests: XCTestCase {
         XCTAssertEqual(handshakeV10.protocolVersion, 10)
         XCTAssertEqual(handshakeV10.serverVersion, "5.5.2-m2")
         XCTAssertEqual(handshakeV10.connectionID, 11)
-        XCTAssertEqual(handshakeV10.authPluginData.count, 8)
+        XCTAssertEqual(handshakeV10.authPluginData.count, 20)
         XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PLUGIN_AUTH), false)
         XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_SECURE_CONNECTION), true)
         XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PROTOCOL_41), true)
