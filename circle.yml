@@ -16,7 +16,7 @@ jobs:
       # - run: swift build -c release
       - run: swift test
 
-  linux-5.5:
+  5.5-linux:
     docker:
       - image: codevapor/swift:4.1
       - image: mysql:5.5
@@ -34,11 +34,8 @@ jobs:
       - run: 
           name: Run unit tests
           command: swift test
-      - run: 
-          name: Compile code with optimizations
-          command: swift build -c release
 
-  linux:
+  5.7-linux:
     docker:
       - image: codevapor/swift:4.1
       - image: mysql:5.7
@@ -56,15 +53,31 @@ jobs:
       - run: 
           name: Run unit tests
           command: swift test
-      - run: 
-          name: Compile code with optimizations
-          command: swift build -c release
 
-
-  linux-fluent:
+  8.0-linux:
     docker:
       - image: codevapor/swift:4.1
-      - image: mysql:5.7
+      - image: mysql:8.0
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: vapor_database
+          # MYSQL_ROOT_HOST: %
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+    steps:
+      - checkout
+      - run: 
+          name: Compile code
+          command: swift build
+      - run: 
+          name: Run unit tests
+          command: swift test
+
+
+  8.0-linux-fluent:
+    docker:
+      - image: codevapor/swift:4.1
+      - image: mysql:8.0
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: vapor_database
@@ -90,9 +103,10 @@ workflows:
   tests:
     jobs:
      # - macos
-      - linux-5.5
-      - linux
-      - linux-fluent
+      - 5.5-linux
+      - 5.7-linux
+      - 8.0-linux
+      - 8.0-linux-fluent
 
   nightly:
     triggers:
