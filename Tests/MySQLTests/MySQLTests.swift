@@ -175,7 +175,7 @@ extension MySQLConnection {
     /// Creates a test event loop and psql client.
     static func makeTest() throws -> MySQLConnection {
         let group = MultiThreadedEventLoopGroup(numThreads: 1)
-        let client = try MySQLConnection.connect(hostname: "192.168.99.100", on: group) { error in
+        let client = try MySQLConnection.connect(hostname: "localhost", on: group) { error in
             // for some reason connection refused error is happening?
             if !"\(error)".contains("refused") {
                 XCTFail("\(error)")
