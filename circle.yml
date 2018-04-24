@@ -57,7 +57,7 @@ jobs:
   8.0-linux:
     docker:
       - image: codevapor/swift:4.1
-      - image: mysql:8.0
+      - image: mysql:8.0.3
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: vapor_database
@@ -77,7 +77,7 @@ jobs:
   8.0-linux-fluent:
     docker:
       - image: codevapor/swift:4.1
-      - image: mysql:8.0
+      - image: mysql:8.0.3
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: vapor_database
@@ -97,6 +97,15 @@ jobs:
           command: swift test
           working_directory: ~/fluent-mysql
 
+  linux-release:
+    docker:
+      - image: codevapor/swift:4.1
+    steps:
+      - checkout
+      - run: 
+          name: Compile code with optimizations
+          command: swift build -c release
+
 
 workflows:
   version: 2
@@ -107,6 +116,7 @@ workflows:
       - 5.7-linux
       - 8.0-linux
       - 8.0-linux-fluent
+      - linux-release
 
   nightly:
     triggers:
@@ -118,5 +128,5 @@ workflows:
                 - master
                 
     jobs:
-      - linux
+      - 8.0-linux
       # - macos
