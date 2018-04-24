@@ -6,7 +6,7 @@ class MySQLTests: XCTestCase {
     func testSimpleQuery() throws {
         let client = try MySQLConnection.makeTest()
         let results = try client.simpleQuery("SELECT @@version;").wait()
-        try XCTAssert(results[0].firstValue(forColumn: "@@version")?.decode(String.self).contains("5.") == true)
+        try XCTAssert(results[0].firstValue(forColumn: "@@version")?.decode(String.self).contains(".") == true)
         print(results)
     }
 
