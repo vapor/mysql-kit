@@ -7,10 +7,7 @@ public protocol MySQLLogger {
 }
 
 extension DatabaseLogger: MySQLLogger {
-    /// See MySQLLogger.log
     public func log(query: String) {
-        let log = DatabaseLog(query: query)
-        record(log: log)
+        record(query: query, values: [])
     }
 }
-

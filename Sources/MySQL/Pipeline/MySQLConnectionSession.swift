@@ -80,6 +80,7 @@ enum MySQLStatementProtocolState {
 
     case waitingExecute
     case rowColumns(columns: [MySQLColumnDefinition41], remaining: Int)
+    case rowColumnsDone(columns: [MySQLColumnDefinition41])
     /// ProtocolBinary::ResultsetRow until eof
     case rows(columns: [MySQLColumnDefinition41])
 }

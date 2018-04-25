@@ -54,10 +54,16 @@ public struct MySQLData: Equatable {
         let storage: MySQLBinaryDataStorage?
 
         if let integer = integer {
-            if I.isSigned {
-                storage = .integer8(numericCast(integer))
-            } else {
-                storage = .uinteger8(numericCast(integer))
+            switch (I.bitWidth, I.isSigned) {
+                case ( 8, true):  storage = .integer1(numericCast(integer))
+                case ( 8, false): storage = .uinteger1(numericCast(integer))
+                case (16, true):  storage = .integer2(numericCast(integer))
+                case (16, false): storage = .uinteger2(numericCast(integer))
+                case (32, true):  storage = .integer4(numericCast(integer))
+                case (32, false): storage = .uinteger4(numericCast(integer))
+                case (64, true):  storage = .integer8(numericCast(integer))
+                case (64, false): storage = .uinteger8(numericCast(integer))
+                default: fatalError("Unsupported bit-width: \(I.bitWidth)")
             }
         } else {
             storage = nil
