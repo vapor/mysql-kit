@@ -22,7 +22,8 @@ public final class MySQLDatabase: Database {
                 return client.authenticate(
                     username: config.username,
                     database: config.database,
-                    password: config.password
+                    password: config.password,
+                    allowMultipleStatements: config.allowMultipleStatements
                 ).transform(to: client)
             }
         }
