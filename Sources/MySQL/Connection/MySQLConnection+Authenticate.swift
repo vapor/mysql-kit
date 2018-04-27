@@ -22,10 +22,13 @@ extension MySQLConnection {
             guard let handshake = handshake else {
                 throw MySQLError(identifier: "handshake", reason: "Handshake required for auth response.", source: .capture())
             }
-            let authPlugin = handshake.authPluginName ?? "none"
+            let authPlugin = handshake.authPluginName
             let authResponse: Data
             switch authPlugin {
-            case "mysql_native_password":
+            case .some("mysql_native_password"), .none:
+                guard handshake.capabilities.get(CLIENT_SECURE_CONNECTION) else {
+                    throw MySQLError(identifier: "authproto", reason: "Pre-4.1 auth protocol is not supported or safe.", source: .capture())
+                }
                 guard let password = password else {
                     throw MySQLError(identifier: "password", reason: "Password required for auth plugin.", source: .capture())
                 }
@@ -40,7 +43,7 @@ extension MySQLConnection {
                     hash[i] = hash[i] ^ passwordHash[i]
                 }
                 authResponse = hash
-            default: throw MySQLError(identifier: "authPlugin", reason: "Unsupported auth plugin: \(authPlugin)", source: .capture())
+            default: throw MySQLError(identifier: "authPlugin", reason: "Unsupported auth plugin: \(authPlugin ?? "<none>")", source: .capture())
             }
             let response = MySQLHandshakeResponse41(
                 capabilities: [
@@ -55,7 +58,7 @@ extension MySQLConnection {
                 username: username,
                 authResponse: authResponse,
                 database: database,
-                authPluginName: authPlugin
+                authPluginName: authPlugin ?? "<none>"
             )
             return self.send([.handshakeResponse41(response)]) { message in
                 switch message {

@@ -11,8 +11,8 @@ public final class MySQLDatabase: Database {
         self.config = config
     }
 
-    /// See `Database.makeConnection()`
-    public func makeConnection(on worker: Worker) -> Future<MySQLConnection> {
+    /// See `Database`
+    public func newConnection(on worker: Worker) -> Future<MySQLConnection> {
         let config = self.config
         return Future.flatMap(on: worker) {
             return try MySQLConnection.connect(hostname: config.hostname, port: config.port, on: worker) { error in

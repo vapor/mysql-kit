@@ -71,11 +71,17 @@ struct MySQLHandshakeV10 {
             let reserved = try bytes.requireBytes(length: 10, source: .capture())
             assert(reserved == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-            if capabilities.get(CLIENT_SECURE_CONNECTION), authPluginDataLength > 0 {
-                let len = max(13, authPluginDataLength - 8)
-                let authPluginDataPart2 = try bytes.requireBytes(length: numericCast(len), source: .capture())
-
-                self.authPluginData = Data(authPluginDataPart1 + authPluginDataPart2)
+            if capabilities.get(CLIENT_SECURE_CONNECTION) {
+                if capabilities.get(CLIENT_PLUGIN_AUTH) {
+                    let len = max(13, authPluginDataLength - 8)
+                    let authPluginDataPart2 = try bytes.requireBytes(length: numericCast(len), source: .capture())
+                    self.authPluginData = Data(authPluginDataPart1 + authPluginDataPart2)
+                } else {
+                    let authPluginDataPart2 = try bytes.requireBytes(length: 12, source: .capture())
+                    self.authPluginData = Data(authPluginDataPart1 + authPluginDataPart2)
+                    let filler: Byte = try bytes.requireInteger(source: .capture())
+                    assert(filler == 0x00)
+                }
             } else {
                 self.authPluginData = Data(authPluginDataPart1)
             }
