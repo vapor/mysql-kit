@@ -26,7 +26,7 @@ extension MySQLConnection {
             let authResponse: Data
             switch authPlugin {
             case .some("mysql_native_password"), .none:
-                guard handshake.capabilities.get(CLIENT_SECURE_CONNECTION) else {
+                guard handshake.capabilities.contains(.CLIENT_SECURE_CONNECTION) else {
                     throw MySQLError(identifier: "authproto", reason: "Pre-4.1 auth protocol is not supported or safe.", source: .capture())
                 }
                 guard let password = password else {
@@ -47,11 +47,11 @@ extension MySQLConnection {
             }
             let response = MySQLHandshakeResponse41(
                 capabilities: [
-                    CLIENT_PROTOCOL_41,
-                    CLIENT_PLUGIN_AUTH,
-                    CLIENT_SECURE_CONNECTION,
-                    CLIENT_CONNECT_WITH_DB,
-                    CLIENT_DEPRECATE_EOF
+                    .CLIENT_PROTOCOL_41,
+                    .CLIENT_PLUGIN_AUTH,
+                    .CLIENT_SECURE_CONNECTION,
+                    .CLIENT_CONNECT_WITH_DB,
+                    .CLIENT_DEPRECATE_EOF
                 ],
                 maxPacketSize: 1_024,
                 characterSet: 0x21,

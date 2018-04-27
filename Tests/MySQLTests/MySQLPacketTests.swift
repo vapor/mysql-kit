@@ -12,9 +12,9 @@ class MySQLPacketTests: XCTestCase {
         XCTAssertEqual(handshakeV10.serverVersion, "5.7.18")
         XCTAssertEqual(handshakeV10.connectionID, 5)
         XCTAssertEqual(handshakeV10.authPluginData.count, 21)
-        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PLUGIN_AUTH), true)
-        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_SECURE_CONNECTION), true)
-        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PROTOCOL_41), true)
+        XCTAssertEqual(handshakeV10.capabilities.contains(.CLIENT_PLUGIN_AUTH), true)
+        XCTAssertEqual(handshakeV10.capabilities.contains(.CLIENT_SECURE_CONNECTION), true)
+        XCTAssertEqual(handshakeV10.capabilities.contains(.CLIENT_PROTOCOL_41), true)
         XCTAssertEqual(handshakeV10.characterSet, 33)
         XCTAssertEqual(handshakeV10.statusFlags, 2)
         XCTAssertEqual(handshakeV10.authPluginName, "mysql_native_password")
@@ -28,9 +28,9 @@ class MySQLPacketTests: XCTestCase {
         XCTAssertEqual(handshakeV10.serverVersion, "5.5.2-m2")
         XCTAssertEqual(handshakeV10.connectionID, 11)
         XCTAssertEqual(handshakeV10.authPluginData.count, 20)
-        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PLUGIN_AUTH), false)
-        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_SECURE_CONNECTION), true)
-        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PROTOCOL_41), true)
+        XCTAssertEqual(handshakeV10.capabilities.contains(.CLIENT_PLUGIN_AUTH), false)
+        XCTAssertEqual(handshakeV10.capabilities.contains(.CLIENT_SECURE_CONNECTION), true)
+        XCTAssertEqual(handshakeV10.capabilities.contains(.CLIENT_PROTOCOL_41), true)
         XCTAssertEqual(handshakeV10.characterSet, 8)
         XCTAssertEqual(handshakeV10.statusFlags, 2)
         XCTAssertEqual(handshakeV10.authPluginName, nil)
@@ -44,9 +44,9 @@ class MySQLPacketTests: XCTestCase {
         XCTAssertEqual(handshakeV10.serverVersion, "5.6.4-m7-log")
         XCTAssertEqual(handshakeV10.connectionID, 2646)
         XCTAssertEqual(handshakeV10.authPluginData.count, 21)
-        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PLUGIN_AUTH), true)
-        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_SECURE_CONNECTION), true)
-        XCTAssertEqual(handshakeV10.capabilities.get(CLIENT_PROTOCOL_41), true)
+        XCTAssertEqual(handshakeV10.capabilities.contains(.CLIENT_PLUGIN_AUTH), true)
+        XCTAssertEqual(handshakeV10.capabilities.contains(.CLIENT_SECURE_CONNECTION), true)
+        XCTAssertEqual(handshakeV10.capabilities.contains(.CLIENT_PROTOCOL_41), true)
         XCTAssertEqual(handshakeV10.characterSet, 8)
         XCTAssertEqual(handshakeV10.statusFlags, 2)
         XCTAssertEqual(handshakeV10.authPluginName, "mysql_native_password")
@@ -55,7 +55,7 @@ class MySQLPacketTests: XCTestCase {
     func testHandshakeResponse41_wireshark() throws {
         _ = ByteBufferAllocator().buffer(capacity: 256)
         _ = MySQLHandshakeResponse41(
-            capabilities: [CLIENT_PROTOCOL_41],
+            capabilities: [.CLIENT_PROTOCOL_41],
             maxPacketSize: 1_073_741_824,
             characterSet: 0x0a,
             username: "root",
@@ -69,10 +69,10 @@ class MySQLPacketTests: XCTestCase {
         var buffer = ByteBufferAllocator().buffer(capacity: 256)
         let response = MySQLHandshakeResponse41(
             capabilities: [
-                CLIENT_PROTOCOL_41,
-                CLIENT_PLUGIN_AUTH,
-                CLIENT_SECURE_CONNECTION,
-                CLIENT_CONNECT_WITH_DB
+                .CLIENT_PROTOCOL_41,
+                .CLIENT_PLUGIN_AUTH,
+                .CLIENT_SECURE_CONNECTION,
+                .CLIENT_CONNECT_WITH_DB
             ],
             maxPacketSize: 1_073_741_824,
             characterSet: 0x0a,

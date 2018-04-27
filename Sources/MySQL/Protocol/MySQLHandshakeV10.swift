@@ -60,7 +60,7 @@ struct MySQLHandshakeV10 {
             )
 
             let authPluginDataLength: Byte
-            if capabilities.get(CLIENT_PLUGIN_AUTH) {
+            if capabilities.contains(.CLIENT_PLUGIN_AUTH) {
                 authPluginDataLength = try bytes.requireInteger(endianness: .little, source: .capture())
             } else {
                 authPluginDataLength = try bytes.requireInteger(endianness: .little, source: .capture())
@@ -71,8 +71,8 @@ struct MySQLHandshakeV10 {
             let reserved = try bytes.requireBytes(length: 10, source: .capture())
             assert(reserved == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-            if capabilities.get(CLIENT_SECURE_CONNECTION) {
-                if capabilities.get(CLIENT_PLUGIN_AUTH) {
+            if capabilities.contains(.CLIENT_SECURE_CONNECTION) {
+                if capabilities.contains(.CLIENT_PLUGIN_AUTH) {
                     let len = max(13, authPluginDataLength - 8)
                     let authPluginDataPart2 = try bytes.requireBytes(length: numericCast(len), source: .capture())
                     self.authPluginData = Data(authPluginDataPart1 + authPluginDataPart2)
@@ -86,7 +86,7 @@ struct MySQLHandshakeV10 {
                 self.authPluginData = Data(authPluginDataPart1)
             }
 
-            if capabilities.get(CLIENT_PLUGIN_AUTH) {
+            if capabilities.contains(.CLIENT_PLUGIN_AUTH) {
                 self.authPluginName = try bytes.requireNullTerminatedString(source: .capture())
             }
         } else {

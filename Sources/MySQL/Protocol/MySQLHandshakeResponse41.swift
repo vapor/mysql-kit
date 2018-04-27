@@ -54,14 +54,14 @@ struct MySQLHandshakeResponse41 {
 
     /// Serializes the `MySQLHandshakeResponse41` into a buffer.
     func serialize(into buffer: inout ByteBuffer) {
-        buffer.write(integer: capabilities.raw, endianness: .little)
+        buffer.write(integer: capabilities.rawValue, endianness: .little)
         buffer.write(integer: maxPacketSize, endianness: .little)
         buffer.write(integer: Byte(characterSet.raw & 0xFF), endianness: .little)
         /// string[23]     reserved (all [0])
         buffer.write(bytes: [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
         buffer.write(nullTerminated: username)
-        assert(capabilities.get(CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) == false, "CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA not supported")
-        if capabilities.get(CLIENT_SECURE_CONNECTION) {
+        assert(capabilities.contains(.CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA) == false, "CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA not supported")
+        if capabilities.contains(.CLIENT_SECURE_CONNECTION) {
             assert(authResponse.count < Byte.max, "auth response too large")
             buffer.write(integer: Byte(authResponse.count), endianness: .little)
             buffer.write(bytes: authResponse)
@@ -70,16 +70,16 @@ struct MySQLHandshakeResponse41 {
             buffer.write(bytes: authResponse)
             buffer.write(integer: Byte(0))
         }
-        if capabilities.get(CLIENT_CONNECT_WITH_DB) {
+        if capabilities.contains(.CLIENT_CONNECT_WITH_DB) {
             buffer.write(nullTerminated: database)
         } else {
             assert(database == "", "CLIENT_CONNECT_WITH_DB not enabled")
         }
-        if capabilities.get(CLIENT_PLUGIN_AUTH) {
+        if capabilities.contains(.CLIENT_PLUGIN_AUTH) {
             buffer.write(nullTerminated: authPluginName)
         } else {
             assert(authPluginName == "", "CLIENT_PLUGIN_AUTH not enabled")
         }
-        assert(capabilities.get(CLIENT_CONNECT_ATTRS) == false, "CLIENT_CONNECT_ATTRS not supported")
+        assert(capabilities.contains(.CLIENT_CONNECT_ATTRS) == false, "CLIENT_CONNECT_ATTRS not supported")
     }
 }
