@@ -24,24 +24,23 @@ extension MySQLConnection {
             }
             let authPlugin = handshake.authPluginName ?? "none"
             let authResponse: Data
-            if let password = password, password.lengthOfBytes(using: .utf8) > 0 {
-                switch authPlugin {
-                case "mysql_native_password":
-                    guard handshake.authPluginData.count >= 20 else {
-                        throw MySQLError(identifier: "salt", reason: "Server-supplied salt too short.", source: .capture())
-                    }
-                    let salt = Data(handshake.authPluginData[..<20])
-                    let passwordHash = try SHA1.hash(password)
-                    let passwordDoubleHash = try SHA1.hash(passwordHash)
-                    var hash = try SHA1.hash(salt + passwordDoubleHash)
-                    for i in 0..<20 {
-                      hash[i] = hash[i] ^ passwordHash[i]
-                    }
-                    authResponse = hash
-                default: throw MySQLError(identifier: "authPlugin", reason: "Unsupported auth plugin: \(authPlugin)", source: .capture())
+            switch authPlugin {
+            case "mysql_native_password":
+                guard let password = password else {
+                    throw MySQLError(identifier: "password", reason: "Password required for auth plugin.", source: .capture())
                 }
-            } else {
-                authResponse = Data(base64Encoded: "")!
+                guard handshake.authPluginData.count >= 20 else {
+                    throw MySQLError(identifier: "salt", reason: "Server-supplied salt too short.", source: .capture())
+                }
+                let salt = Data(handshake.authPluginData[..<20])
+                let passwordHash = try SHA1.hash(password)
+                let passwordDoubleHash = try SHA1.hash(passwordHash)
+                var hash = try SHA1.hash(salt + passwordDoubleHash)
+                for i in 0..<20 {
+                    hash[i] = hash[i] ^ passwordHash[i]
+                }
+                authResponse = hash
+            default: throw MySQLError(identifier: "authPlugin", reason: "Unsupported auth plugin: \(authPlugin)", source: .capture())
             }
             let response = MySQLHandshakeResponse41(
                 capabilities: [

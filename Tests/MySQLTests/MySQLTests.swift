@@ -192,42 +192,6 @@ class MySQLTests: XCTestCase {
         XCTAssertNil(MySQLCharacterSet(string: characterSet))
     }
 
-    func testEmptyPassword() throws {
-        let group = MultiThreadedEventLoopGroup(numThreads: 1)
-        let client = try MySQLConnection.connect(on: group) { error in
-            // for some reason connection refused error is happening?
-            if !"\(error)".contains("refused") {
-                XCTFail("\(error)")
-            }
-        }.wait()
-
-        _ = try client.authenticate(username: "root", database: "mysql").wait()
-        print("Logged as root without password.")
-        let dropUserResults = try client.simpleQuery("DROP USER IF EXISTS 'testEmptyPassword'@'localhost';").wait()
-        XCTAssertEqual(dropUserResults.count, 0)
-        let createUserResults = try client.simpleQuery("CREATE USER IF NOT EXISTS 'testEmptyPassword'@'localhost' IDENTIFIED BY '';").wait()
-        XCTAssertEqual(createUserResults.count, 0)
-        let grantPrevilegesResults = try client.simpleQuery("GRANT ALL PRIVILEGES ON vapor_database . * TO 'testEmptyPassword'@'localhost';").wait()
-        XCTAssertEqual(grantPrevilegesResults.count, 0)
-        let flushPrevilegesResults = try client.simpleQuery("FLUSH PRIVILEGES;").wait()
-        XCTAssertEqual(flushPrevilegesResults.count, 0)
-        //client.close()
-
-
-        let client2 = try MySQLConnection.connect(on: group) { error in
-            // for some reason connection refused error is happening?
-            if !"\(error)".contains("refused") {
-                XCTFail("\(error)")
-            }
-        }.wait()
-        try client2.authenticate(username: "testEmptyPassword", database: "vapor_database", password: "").wait()
-        print("Logged as testEmptyPassword with empty password.")
-        let selectResults = try client2.simpleQuery("SELECT * FROM foos;").wait()
-        XCTAssertEqual(selectResults.count, 3)
-        try XCTAssertEqual(selectResults[0].firstValue(forColumn: "id")?.decode(Int.self), 1)
-        try XCTAssertEqual(selectResults[0].firstValue(forColumn: "name")?.decode(String.self), "vapor1")
-    }
-
     static let allTests = [
         ("testSimpleQuery", testSimpleQuery),
         ("testQuery", testQuery),
@@ -238,7 +202,6 @@ class MySQLTests: XCTestCase {
         ("testTimePrecision", testTimePrecision),
         ("testSaveEmoticonsUnicode", testSaveEmoticonsUnicode),
         ("testStringCharacterSet", testStringCharacterSet),
-        ("testEmptyPassword", testEmptyPassword)
     ]
 }
 
