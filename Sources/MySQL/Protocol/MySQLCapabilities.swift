@@ -137,7 +137,20 @@ public struct MySQLCapabilities: OptionSet {
     /// Therefore, the EOF packet in the Text Resultset is replaced with an OK packet. EOF packets are deprecated as of MySQL 5.7.5.
     public static let CLIENT_DEPRECATE_EOF = MySQLCapabilities(rawValue: 0x01000000)
     
-    
+    /// Default capabilities.
+    ///
+    /// - CLIENT_PROTOCOL_41,
+    /// - CLIENT_PLUGIN_AUTH,
+    /// - CLIENT_SECURE_CONNECTION,
+    /// - CLIENT_CONNECT_WITH_DB,
+    /// - CLIENT_DEPRECATE_EOF
+    public static let `default`: MySQLCapabilities = [
+        .CLIENT_PROTOCOL_41,
+        .CLIENT_PLUGIN_AUTH,
+        .CLIENT_SECURE_CONNECTION,
+        .CLIENT_CONNECT_WITH_DB,
+        .CLIENT_DEPRECATE_EOF
+    ]
 }
 
 extension MySQLCapabilities: CustomStringConvertible {

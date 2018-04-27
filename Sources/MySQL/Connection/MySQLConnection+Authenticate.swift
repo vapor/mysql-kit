@@ -9,7 +9,7 @@ extension MySQLConnection {
     ///     - database: The database to select.
     ///     - password: Password for the user specified by `username`.
     /// - returns: A future that will complete when the authenticate is finished.
-    public func authenticate(username: String, database: String, password: String? = nil) -> Future<Void> {
+    public func authenticate(username: String, database: String, password: String? = nil, capabilities: MySQLCapabilities = .default) -> Future<Void> {
         var handshake: MySQLHandshakeV10?
         return send([]) { message in
             switch message {
@@ -46,13 +46,7 @@ extension MySQLConnection {
             default: throw MySQLError(identifier: "authPlugin", reason: "Unsupported auth plugin: \(authPlugin ?? "<none>")", source: .capture())
             }
             let response = MySQLHandshakeResponse41(
-                capabilities: [
-                    .CLIENT_PROTOCOL_41,
-                    .CLIENT_PLUGIN_AUTH,
-                    .CLIENT_SECURE_CONNECTION,
-                    .CLIENT_CONNECT_WITH_DB,
-                    .CLIENT_DEPRECATE_EOF
-                ],
+                capabilities: capabilities,
                 maxPacketSize: 1_024,
                 characterSet: 0x21,
                 username: username,
