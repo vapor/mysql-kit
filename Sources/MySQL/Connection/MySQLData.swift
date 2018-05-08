@@ -199,7 +199,7 @@ public struct MySQLData: Equatable {
             case .uinteger8(let uint64): return try safeCast(uint64)
             case .string(let data):
                 switch binary.type {
-                case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING, .MYSQL_TYPE_STRING: return String(data: data, encoding: .ascii).flatMap { I.init($0) }
+                case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING, .MYSQL_TYPE_STRING, .MYSQL_TYPE_DECIMAL, .MYSQL_TYPE_NEWDECIMAL: return String(data: data, encoding: .ascii).flatMap { I.init($0) }
                 case .MYSQL_TYPE_BIT:
                     if data.count == 1 {
                         return I(data[0])
@@ -238,7 +238,7 @@ public struct MySQLData: Equatable {
             case .float8(let double): return F(double)
             case .string(let data):
                 switch binary.type {
-                case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING, .MYSQL_TYPE_STRING:
+                case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING, .MYSQL_TYPE_STRING, .MYSQL_TYPE_DECIMAL, .MYSQL_TYPE_NEWDECIMAL:
                     return String(data: data, encoding: .ascii)
                         .flatMap { Float80($0) }
                         .flatMap { F.init($0) }
