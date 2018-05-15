@@ -54,7 +54,7 @@ struct MySQLHandshakeResponse41 {
 
     /// Serializes the `MySQLHandshakeResponse41` into a buffer.
     func serialize(into buffer: inout ByteBuffer) {
-        buffer.write(integer: capabilities.raw, endianness: .little)
+        buffer.write(integer: capabilities.mysqlSpecific, endianness: .little, as: UInt32.self)
         buffer.write(integer: maxPacketSize, endianness: .little)
         buffer.write(integer: Byte(characterSet.raw & 0xFF), endianness: .little)
         /// string[23]     reserved (all [0])

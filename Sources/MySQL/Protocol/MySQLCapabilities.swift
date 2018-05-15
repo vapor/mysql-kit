@@ -2,12 +2,30 @@
 ///
 /// https://dev.mysql.com/doc/internals/en/capability-flags.html#packet-Protocol::CapabilityFlags
 struct MySQLCapabilities {
-    /// The raw capability value.
-    var raw: UInt32
+    /// The raw capabilities value.
+    var raw: UInt64
+
+    /// MySQL specific flags
+    var mysqlSpecific: UInt32 {
+        get {
+            return UInt32(raw)
+        }
+    }
+
+    /// See: [MariaDB Initial Handshake Packet specific flags](https://mariadb.com/kb/en/library/1-connecting-connecting/)
+    var mariaDBSpecific: UInt32 {
+        get {
+            return UInt32(raw >> 32)
+        }
+        
+        set {
+            raw |= UInt64(newValue) << 32
+        }
+    }
 
     /// Create a new `MySQLCapabilityFlags` from the upper and lower values.
     init(upper: UInt16? = nil, lower: UInt16) {
-        var raw: UInt32 = 0
+        var raw: UInt64 = 0
         if let upper = upper {
             raw = numericCast(lower)
             raw |= numericCast(upper) << 16
@@ -82,7 +100,10 @@ extension MySQLCapabilities: CustomStringConvertible {
             "CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS": CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS,
             "CLIENT_SESSION_TRACK": CLIENT_SESSION_TRACK,
             "CLIENT_DEPRECATE_EOF": CLIENT_DEPRECATE_EOF,
-        ]
+            "MARIADB_CLIENT_PROGRESS": MARIADB_CLIENT_PROGRESS,
+            "MARIADB_CLIENT_COM_MULTI": MARIADB_CLIENT_COM_MULTI,
+            "MARIADB_CLIENT_STMT_BULK_OPERATIONS": MARIADB_CLIENT_STMT_BULK_OPERATIONS,
+       ]
         var desc: [String] = []
         for (name, flag) in all {
             if get(flag) {
@@ -93,7 +114,7 @@ extension MySQLCapabilities: CustomStringConvertible {
     }
 }
 
-typealias MySQLCapability = UInt32
+typealias MySQLCapability = UInt64
 
 /// Use the improved version of Old Password Authentication.
 /// note: Assumed to be set since 4.1.1.
@@ -210,3 +231,16 @@ var CLIENT_SESSION_TRACK: MySQLCapability = 0x00800000
 /// Although the OK packet is extensible, the EOF packet is not due to the overlap of its bytes with the content of the Text Resultset Row.
 /// Therefore, the EOF packet in the Text Resultset is replaced with an OK packet. EOF packets are deprecated as of MySQL 5.7.5.
 var CLIENT_DEPRECATE_EOF: MySQLCapability = 0x01000000
+
+// MARK: MariaDBCapabilities
+
+/// See: [MariaDB Initial Handshake Packet specific flags](https://mariadb.com/kb/en/library/1-connecting-connecting/)
+
+/// Client support progress indicator (since 10.2).
+var MARIADB_CLIENT_PROGRESS: MySQLCapability = 0x0100000000 // 1 << 32
+
+/// Permit COM_MULTI protocol.
+var MARIADB_CLIENT_COM_MULTI: MySQLCapability = 0x0200000000 // 1 << 33
+
+/// Permit bulk insert.
+var MARIADB_CLIENT_STMT_BULK_OPERATIONS: MySQLCapability = 0x0400000000 // 1 << 34
