@@ -7,7 +7,7 @@ public final class MySQLRowEncoder {
 
     /// Encodes the supplied `Encodable` item to a MySQL row.
     // fixme: make this generic
-    public func encode(_ encodable: Encodable) throws -> [MySQLColumn: MySQLData] {
+    public func encode<E>(_ encodable: E) throws -> [MySQLColumn: MySQLData] where E: Encodable {
         let encoder = _MySQLRowEncoder()
         try encodable.encode(to: encoder)
         var results: [MySQLColumn: MySQLData] = [:]
@@ -31,7 +31,7 @@ fileprivate final class _MySQLRowEncoder: Encoder {
         self.data = [:]
     }
 
-    func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> where Key : CodingKey {
+    func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> where Key: CodingKey {
         let container = MySQLRowKeyedEncodingContainer<Key>(encoder: self)
         return KeyedEncodingContainer(container)
     }
@@ -66,23 +66,10 @@ fileprivate struct MySQLRowKeyedEncodingContainer<K>: KeyedEncodingContainerProt
         self.codingPath = []
     }
 
-    mutating func encodeNil(forKey key: K) throws { encoder.data[key.stringValue] = .null }
-    mutating func encode(_ value: Bool, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: Int, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: Int16, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: Int32, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: Int64, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: UInt, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: UInt8, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: UInt16, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: UInt32, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: UInt64, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: Double, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: Float, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func encode(_ value: String, forKey key: K) throws { encoder.data[key.stringValue] = try value.convertToMySQLData() }
-    mutating func superEncoder() -> Encoder { return encoder }
-    mutating func superEncoder(forKey key: K) -> Encoder { return encoder }
-    
+    mutating func encodeNil(forKey key: K) throws {
+        encoder.data[key.stringValue] = .null
+    }
+
     mutating func encode<T>(_ value: T, forKey key: K) throws where T: Encodable {
         guard let convertible = value as? MySQLDataConvertible else {
             let type = Swift.type(of: value)
@@ -98,12 +85,41 @@ fileprivate struct MySQLRowKeyedEncodingContainer<K>: KeyedEncodingContainerProt
         encoder.data[key.stringValue] = try convertible.convertToMySQLData()
     }
 
+    mutating func _serialize<T>(_ value: T?, forKey key: K) throws where T : Encodable {
+        if let v = value {
+            try encode(v, forKey: key)
+        } else {
+            try encodeNil(forKey: key)
+        }
+    }
+
+    mutating func encodeIfPresent(_ value: Bool?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: Int?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: Int16?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: Int32?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: Int64?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: UInt?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: UInt8?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: UInt16?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: UInt32?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: UInt64?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: Double?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: Float?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent(_ value: String?, forKey key: K) throws { try _serialize(value, forKey: key) }
+    mutating func encodeIfPresent<T>(_ value: T?, forKey key: K) throws where T : Encodable { try _serialize(value, forKey: key) }
+
     mutating func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: K) -> KeyedEncodingContainer<NestedKey> where NestedKey : CodingKey {
         return encoder.container(keyedBy: NestedKey.self)
     }
 
     mutating func nestedUnkeyedContainer(forKey key: K) -> UnkeyedEncodingContainer {
         return encoder.unkeyedContainer()
+    }
+    mutating func superEncoder() -> Encoder {
+        return encoder
+    }
+    mutating func superEncoder(forKey key: K) -> Encoder {
+        return encoder
     }
 }
 

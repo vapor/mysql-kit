@@ -15,9 +15,23 @@ public struct MySQLColumn: Hashable {
 
     /// The column's name.
     public var name: String
+
+    /// Creates a new `MySQLColumn`.
+    public init(table: String? = nil, name: String) {
+        self.table = table
+        self.name = name
+    }
+}
+
+extension MySQLColumn: ExpressibleByStringLiteral {
+    /// See `ExpressibleByStringLiteral`.
+    public init(stringLiteral value: String) {
+        self.init(name: value)
+    }
 }
 
 extension MySQLColumn: CustomStringConvertible {
+    /// See `CustomStringConvertible`.
     public var description: String {
         if let table = table {
             return "\(table)(\(name))"

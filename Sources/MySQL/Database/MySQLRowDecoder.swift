@@ -73,7 +73,7 @@ fileprivate struct MySQLRowKeyedDecodingContainer<K>: KeyedDecodingContainerProt
         allKeys = self.decoder.data.keys.compactMap { K(stringValue: $0) }
     }
     func contains(_ key: K) -> Bool { return decoder.data.keys.contains(key.stringValue) }
-    func decodeNil(forKey key: K) -> Bool { return decoder.data[key.stringValue]?.data == nil }
+    func decodeNil(forKey key: K) -> Bool { return decoder.data[key.stringValue]?.isNull ?? true }
     func decode(_ type: Int.Type, forKey key: K) throws -> Int { return try decoder.require(key: key).decode(Int.self) }
     func decode(_ type: Int8.Type, forKey key: K) throws -> Int8 { return try decoder.require(key: key).decode(Int8.self) }
     func decode(_ type: Int16.Type, forKey key: K) throws -> Int16 { return try decoder.require(key: key).decode(Int16.self) }
