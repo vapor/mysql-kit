@@ -17,6 +17,17 @@ public final class MySQLRowEncoder {
         }
         return results
     }
+
+    public func anyEncode(_ encodable: Encodable) throws -> [MySQLColumn: MySQLData] {
+        let encoder = _MySQLRowEncoder()
+        try encodable.encode(to: encoder)
+        var results: [MySQLColumn: MySQLData] = [:]
+        for (name, data) in encoder.data {
+            let col = MySQLColumn(table: nil, name: name)
+            results[col] = data
+        }
+        return results
+    }
 }
 
 /// MARK: Private
