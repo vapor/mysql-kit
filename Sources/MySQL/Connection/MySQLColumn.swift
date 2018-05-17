@@ -2,7 +2,7 @@
 public struct MySQLColumn: Hashable {
     /// See `Hashable.hashValue`
     public var hashValue: Int {
-        return ((table ?? "_") + "." + name).hashValue
+        return (table?.hashValue ?? 0) &+ name.hashValue
     }
 
     /// See `Equatable.==`
