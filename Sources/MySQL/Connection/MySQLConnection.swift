@@ -27,6 +27,10 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
     /// If non-nil, will log queries.
     public var logger: DatabaseLogger?
 
+    /// Pointer to the last metadata returned from a call to `query(...)` or `simpleQuery(...)`.
+    /// See `MySQLQueryMetadata` for more information.
+    public var lastMetadata: MySQLQueryMetadata?
+
     /// The current query running, if one exists.
     private var pipeline: Future<Void>
 
@@ -103,3 +107,21 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
 
 /// Error to throw if the connection has closed.
 private let closeError = MySQLError(identifier: "closed", reason: "Connection is closed.", source: .capture())
+
+
+
+public struct MySQLQueryMetadata {
+    private let ok: MySQLOKPacket
+
+    public var affectedRows: UInt64 {
+        return ok.affectedRows
+    }
+
+    public var lastInsertID: UInt64? {
+        return ok.lastInsertID
+    }
+
+    init(_ ok: MySQLOKPacket) {
+        self.ok = ok
+    }
+}

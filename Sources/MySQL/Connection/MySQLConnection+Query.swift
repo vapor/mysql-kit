@@ -34,7 +34,7 @@ extension MySQLConnection {
     }
 
     /// Private, non-sync query.
-    private func _query(_ string: String, _ parameters: [MySQLDataConvertible],  onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
+    private func _query(_ string: String, _ parameters: [MySQLDataConvertible], onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
         let comPrepare = MySQLComStmtPrepare(query: string)
         var ok: MySQLComStmtPrepareOK?
         var columns: [MySQLColumnDefinition41] = []
@@ -56,7 +56,7 @@ extension MySQLConnection {
                 return false
             default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).", source: .capture())
             }
-        }.flatMap(to: Void.self) {
+        }.flatMap {
             let ok = ok!
             let comExecute = try MySQLComStmtExecute(
                 statementID: ok.statementID,
@@ -83,7 +83,10 @@ extension MySQLConnection {
                     }
                     try onRow(formatted)
                     return false
-                case .ok, .eof:
+                case .ok(let ok):
+                    self.lastMetadata = .init(ok)
+                    return true
+                case .eof:
                     // rows are done
                     return true
                 default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).", source: .capture())

@@ -50,7 +50,10 @@ extension MySQLConnection {
                     currentRow = [:]
                 }
                 return false
-            case .ok, .eof: return true
+            case .ok(let ok):
+                self.lastMetadata = .init(ok)
+                return true
+            case .eof: return true
             default: throw MySQLError(identifier: "simpleQuery", reason: "Unsupported message encountered during simple query: \(message).", source: .capture())
             }
         }
