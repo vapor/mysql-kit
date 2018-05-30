@@ -20,6 +20,15 @@ public struct MySQLData: Equatable {
         self.storage = .binary(binary)
     }
 
+    public init(decimal: Decimal) {
+        let binary = MySQLBinaryData(
+            type: .MYSQL_TYPE_NEWDECIMAL,
+            isUnsigned: true,
+            storage: .string(.init(decimal.description.utf8))
+        )
+        self.storage = .binary(binary)
+    }
+
     /// Creates a new `MySQLData` from `Data`.
     public init(data: Data?) {
         let binary = MySQLBinaryData(
@@ -190,7 +199,7 @@ public struct MySQLData: Equatable {
             case .uinteger8(let uint64): return try safeCast(uint64)
             case .string(let data):
                 switch binary.type {
-                case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING, .MYSQL_TYPE_STRING: return String(data: data, encoding: .ascii).flatMap { I.init($0) }
+                case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING, .MYSQL_TYPE_STRING, .MYSQL_TYPE_DECIMAL, .MYSQL_TYPE_NEWDECIMAL: return String(data: data, encoding: .ascii).flatMap { I.init($0) }
                 case .MYSQL_TYPE_BIT:
                     if data.count == 1 {
                         return I(data[0])
@@ -229,7 +238,7 @@ public struct MySQLData: Equatable {
             case .float8(let double): return F(double)
             case .string(let data):
                 switch binary.type {
-                case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING, .MYSQL_TYPE_STRING:
+                case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING, .MYSQL_TYPE_STRING, .MYSQL_TYPE_DECIMAL, .MYSQL_TYPE_NEWDECIMAL:
                     return String(data: data, encoding: .ascii)
                         .flatMap { Float80($0) }
                         .flatMap { F.init($0) }
@@ -346,6 +355,24 @@ extension String: MySQLDataConvertible {
             throw MySQLError(identifier: "string", reason: "Cannot decode String from MySQLData: \(mysqlData).", source: .capture())
         }
         return string
+    }
+}
+
+extension Decimal: MySQLDataConvertible {
+    /// See `MySQLDataConvertible.convertToMySQLData(format:)`
+    public func convertToMySQLData() throws -> MySQLData {
+        return MySQLData(decimal: self)
+    }
+
+    /// See `MySQLDataConvertible.convertFromMySQLData()`
+    public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Decimal {
+        guard let string = mysqlData.string() else {
+            throw MySQLError(identifier: "decimal", reason: "Cannot decode String from MySQLData: \(mysqlData).", source: .capture())
+        }
+        guard let decimal = Decimal(string: string) else {
+            throw MySQLError(identifier: "decimal", reason: "Cannot decode Decimal from String: \(string).", source: .capture())
+        }
+        return decimal
     }
 }
 
