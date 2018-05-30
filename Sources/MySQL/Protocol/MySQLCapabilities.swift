@@ -3,28 +3,28 @@
 /// https://dev.mysql.com/doc/internals/en/capability-flags.html#packet-Protocol::CapabilityFlags
 public struct MySQLCapabilities: OptionSet {
     /// The raw capabilities value.
-    var raw: UInt64
+    public var rawValue: UInt64
 
     /// MySQL specific flags
     var mysqlSpecific: UInt32 {
         get {
-            return UInt32(raw)
+            return UInt32(rawValue & 0xFFFFFFFF)
         }
     }
 
     /// See: [MariaDB Initial Handshake Packet specific flags](https://mariadb.com/kb/en/library/1-connecting-connecting/)
     var mariaDBSpecific: UInt32 {
         get {
-            return UInt32(raw >> 32)
+            return UInt32(rawValue >> 32)
         }
         
         set {
-            raw |= UInt64(newValue) << 32
+            rawValue |= UInt64(newValue) << 32
         }
     }
 
     /// Create a new `MySQLCapabilityFlags` from the upper and lower values.
-    public init(rawValue: UInt32) {
+    public init(rawValue: UInt64) {
         self.rawValue = rawValue
     }
     
