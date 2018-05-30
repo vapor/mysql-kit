@@ -30,7 +30,7 @@ struct MySQLErrorPacket {
         }
 
         errorCode = try bytes.requireInteger(endianness: .little, source: .capture())
-        if capabilities.get(CLIENT_PROTOCOL_41) {
+        if capabilities.contains(.CLIENT_PROTOCOL_41) {
             sqlStateMarker = try bytes.requireString(length: 1, source: .capture())
             sqlState = try bytes.requireString(length: 5, source: .capture())
         }

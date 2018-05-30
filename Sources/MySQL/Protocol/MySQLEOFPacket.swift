@@ -21,7 +21,7 @@ struct MySQLEOFPacket {
         default: throw MySQLError(identifier: "eofPacketHeader", reason: "Invalid EOF packet header: \(header)", source: .capture())
         }
 
-        if capabilities.get(CLIENT_PROTOCOL_41) {
+        if capabilities.contains(.CLIENT_PROTOCOL_41) {
             warningsCount = try bytes.requireInteger(endianness: .little, source: .capture())
             statusFlags = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
         } else {

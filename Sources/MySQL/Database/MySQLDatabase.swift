@@ -23,6 +23,7 @@ public final class MySQLDatabase: Database {
                     username: config.username,
                     database: config.database,
                     password: config.password,
+                    capabilities: config.capabilities,
                     characterSet: config.characterSet
                 ).transform(to: client)
             }
