@@ -71,7 +71,7 @@ struct MySQLHandshakeV10 {
             let reserved = try bytes.requireBytes(length: 6, source: .capture())
             assert(reserved == [0, 0, 0, 0, 0, 0])
 
-            if capabilities.get(CLIENT_LONG_PASSWORD) {
+            if capabilities.contains(.CLIENT_LONG_PASSWORD) {
                 /// string[4]     reserved (all [00])
                 let reserved2 = try bytes.requireBytes(length: 4, source: .capture())
                 assert(reserved2 == [0, 0, 0, 0])

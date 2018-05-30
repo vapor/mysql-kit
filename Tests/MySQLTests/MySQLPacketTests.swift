@@ -89,10 +89,10 @@ class MySQLPacketTests: XCTestCase {
         var buffer = ByteBufferAllocator().buffer(capacity: 256)
         let response = MySQLHandshakeResponse41(
             capabilities: [
-                CLIENT_PROTOCOL_41,
-                CLIENT_PLUGIN_AUTH,
-                CLIENT_SECURE_CONNECTION,
-                CLIENT_CONNECT_WITH_DB
+                .CLIENT_PROTOCOL_41,
+                .CLIENT_PLUGIN_AUTH,
+                .CLIENT_SECURE_CONNECTION,
+                .CLIENT_CONNECT_WITH_DB
             ],
             maxPacketSize: 1_073_741_824,
             characterSet: MySQLCharacterSet.utf8mb4_unicode_ci,
