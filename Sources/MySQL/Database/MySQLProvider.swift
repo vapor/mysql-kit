@@ -38,4 +38,3 @@ extension MySQLDatabase: ServiceType {
         return try .init(config: worker.make())
     }
 }
-

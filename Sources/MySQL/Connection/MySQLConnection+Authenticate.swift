@@ -9,7 +9,7 @@ extension MySQLConnection {
     ///     - database: The database to select.
     ///     - password: Password for the user specified by `username`.
     /// - returns: A future that will complete when the authenticate is finished.
-    public func authenticate(username: String, database: String, password: String? = nil) -> Future<Void> {
+    public func authenticate(username: String, database: String, password: String? = nil, capabilities: MySQLCapabilities = .default,  characterSet: MySQLCharacterSet = .utf8_general_ci) -> Future<Void> {
         var handshake: MySQLHandshakeV10?
         return send([]) { message in
             switch message {
@@ -26,7 +26,7 @@ extension MySQLConnection {
             let authResponse: Data
             switch authPlugin {
             case .some("mysql_native_password"), .none:
-                guard handshake.capabilities.get(CLIENT_SECURE_CONNECTION) else {
+                guard handshake.capabilities.contains(.CLIENT_SECURE_CONNECTION) else {
                     throw MySQLError(identifier: "authproto", reason: "Pre-4.1 auth protocol is not supported or safe.", source: .capture())
                 }
                 guard let password = password else {
@@ -46,15 +46,9 @@ extension MySQLConnection {
             default: throw MySQLError(identifier: "authPlugin", reason: "Unsupported auth plugin: \(authPlugin ?? "<none>")", source: .capture())
             }
             let response = MySQLHandshakeResponse41(
-                capabilities: [
-                    CLIENT_PROTOCOL_41,
-                    CLIENT_PLUGIN_AUTH,
-                    CLIENT_SECURE_CONNECTION,
-                    CLIENT_CONNECT_WITH_DB,
-                    CLIENT_DEPRECATE_EOF
-                ],
+                capabilities: capabilities,
                 maxPacketSize: 1_024,
-                characterSet: 0x21,
+                characterSet: characterSet,
                 username: username,
                 authResponse: authResponse,
                 database: database,
