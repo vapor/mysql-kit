@@ -9,7 +9,7 @@ extension MySQLConnection {
     ///     - database: The database to select.
     ///     - password: Password for the user specified by `username`.
     /// - returns: A future that will complete when the authenticate is finished.
-    public func authenticate(username: String, database: String, password: String? = nil, capabilities: MySQLCapabilities = .default,  characterSet: MySQLCharacterSet = .utf8_general_ci) -> Future<Void> {
+    public func authenticate(username: String, database: String, password: String? = nil, capabilities: MySQLCapabilities = .default, characterSet: MySQLCharacterSet = .utf8_general_ci) -> Future<Void> {
         var handshake: MySQLHandshakeV10?
         return send([]) { message in
             switch message {

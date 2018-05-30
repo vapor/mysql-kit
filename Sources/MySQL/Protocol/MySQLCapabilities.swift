@@ -6,14 +6,14 @@ public struct MySQLCapabilities: OptionSet {
     public var rawValue: UInt64
 
     /// MySQL specific flags
-    var mysqlSpecific: UInt32 {
+    internal var mysqlSpecific: UInt32 {
         get {
             return UInt32(rawValue & 0xFFFFFFFF)
         }
     }
 
     /// See: [MariaDB Initial Handshake Packet specific flags](https://mariadb.com/kb/en/library/1-connecting-connecting/)
-    var mariaDBSpecific: UInt32 {
+    internal var mariaDBSpecific: UInt32 {
         get {
             return UInt32(rawValue >> 32)
         }
