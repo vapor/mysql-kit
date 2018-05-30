@@ -67,9 +67,20 @@ struct MySQLHandshakeV10 {
                 assert(authPluginDataLength == 0x00, "invalid auth plugin data filler: \(authPluginDataLength)")
             }
 
-            /// string[10]     reserved (all [00])
-            let reserved = try bytes.requireBytes(length: 10, source: .capture())
-            assert(reserved == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+            /// string[6]     reserved (all [00])
+            let reserved = try bytes.requireBytes(length: 6, source: .capture())
+            assert(reserved == [0, 0, 0, 0, 0, 0])
+
+            if capabilities.get(CLIENT_LONG_PASSWORD) {
+                /// string[4]     reserved (all [00])
+                let reserved2 = try bytes.requireBytes(length: 4, source: .capture())
+                assert(reserved2 == [0, 0, 0, 0])
+            } else {
+                /// Capabilities 3rd part. MariaDB specific flags.
+                /// See: [MariaDB Initial Handshake Packet specific flags](https://mariadb.com/kb/en/library/1-connecting-connecting/)
+                let mariaDBSpecific: UInt32 = try bytes.requireInteger(endianness: .little, source: .capture())
+                self.capabilities.mariaDBSpecific = mariaDBSpecific
+            }
 
             if capabilities.contains(.CLIENT_SECURE_CONNECTION) {
                 if capabilities.contains(.CLIENT_PLUGIN_AUTH) {

@@ -2,16 +2,35 @@
 ///
 /// https://dev.mysql.com/doc/internals/en/capability-flags.html#packet-Protocol::CapabilityFlags
 public struct MySQLCapabilities: OptionSet {
-    
-    public var rawValue: UInt32
-    
+    /// The raw capabilities value.
+    var raw: UInt64
+
+    /// MySQL specific flags
+    var mysqlSpecific: UInt32 {
+        get {
+            return UInt32(raw)
+        }
+    }
+
+    /// See: [MariaDB Initial Handshake Packet specific flags](https://mariadb.com/kb/en/library/1-connecting-connecting/)
+    var mariaDBSpecific: UInt32 {
+        get {
+            return UInt32(raw >> 32)
+        }
+        
+        set {
+            raw |= UInt64(newValue) << 32
+        }
+    }
+
+    /// Create a new `MySQLCapabilityFlags` from the upper and lower values.
     public init(rawValue: UInt32) {
         self.rawValue = rawValue
     }
     
     /// Create a new `MySQLCapabilities` from the upper and lower values.
     init(upper: UInt16? = nil, lower: UInt16) {
-        var raw: UInt32 = 0
+        var raw: UInt64 = 0
         if let upper = upper {
             raw = numericCast(lower)
             raw |= numericCast(upper) << 16
@@ -136,6 +155,17 @@ public struct MySQLCapabilities: OptionSet {
     /// Although the OK packet is extensible, the EOF packet is not due to the overlap of its bytes with the content of the Text Resultset Row.
     /// Therefore, the EOF packet in the Text Resultset is replaced with an OK packet. EOF packets are deprecated as of MySQL 5.7.5.
     public static let CLIENT_DEPRECATE_EOF = MySQLCapabilities(rawValue: 0x01000000)
+  
+    /// See: [MariaDB Initial Handshake Packet specific flags](https://mariadb.com/kb/en/library/1-connecting-connecting/)
+
+    /// Client support progress indicator (since 10.2).
+    public static let MARIADB_CLIENT_PROGRESS = MySQLCapabilities(rawValue: 0x0100000000) // 1 << 32
+
+    /// Permit COM_MULTI protocol.
+    public static let MARIADB_CLIENT_COM_MULTI = MySQLCapabilities(rawValue: 0x0200000000) // 1 << 33
+
+    /// Permit bulk insert.
+    public static let MARIADB_CLIENT_STMT_BULK_OPERATIONS = MySQLCapabilities(rawValue: 0x0400000000) // 1 << 34
     
     /// Default capabilities.
     ///
@@ -180,7 +210,7 @@ extension MySQLCapabilities: CustomStringConvertible {
         "CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS": CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS,
         "CLIENT_SESSION_TRACK": CLIENT_SESSION_TRACK,
         "CLIENT_DEPRECATE_EOF": CLIENT_DEPRECATE_EOF,
-        ]
+    ]
     
     public var description: String {
         var desc: [String] = []
