@@ -160,6 +160,38 @@ class MySQLTests: XCTestCase {
         )
     }
 
+    func testSaveEmoticonsUnicode() throws {
+        let client = try MySQLConnection.makeTestUtf8mb4()
+        let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS emojis;").wait()
+        XCTAssertEqual(dropResults.count, 0)
+        let createResults = try client.simpleQuery("CREATE TABLE emojis (id INT SIGNED NOT NULL, description VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL);").wait()
+        XCTAssertEqual(createResults.count, 0)
+        let insertResults = try client.query("INSERT INTO emojis VALUES (?, ?);", [1, "🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"]).wait()
+        XCTAssertEqual(insertResults.count, 0)
+        let selectResults = try client.query("SELECT * FROM emojis WHERE description = ?;", ["🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"]).wait()
+        XCTAssertEqual(selectResults.count, 1)
+        print(selectResults)
+        try XCTAssertEqual(selectResults[0].firstValue(forColumn: "id")?.decode(Int.self), 1)
+        try XCTAssertEqual(selectResults[0].firstValue(forColumn: "description")?.decode(String.self), "🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔")
+
+        // test double parameterized query
+        let selectResults2 = try client.query("SELECT * FROM emojis WHERE description = ?;", ["🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"]).wait()
+        XCTAssertEqual(selectResults2.count, 1)
+    }
+
+    func testStringCharacterSet() throws {
+        var characterSet = "latin1_swedish_ci"
+        XCTAssertNotNil(MySQLCharacterSet(string: characterSet))
+        characterSet = "utf8_general_ci"
+        XCTAssertNotNil(MySQLCharacterSet(string: characterSet))
+        characterSet = "binary"
+        XCTAssertNotNil(MySQLCharacterSet(string: characterSet))
+        characterSet = "utf8mb4_unicode_ci"
+        XCTAssertNotNil(MySQLCharacterSet(string: characterSet))
+        characterSet = "utf64_imaginary"
+        XCTAssertNil(MySQLCharacterSet(string: characterSet))
+    }
+
     func testDisconnect() throws {
         return;
         let client = try MySQLConnection.makeTest()
@@ -178,6 +210,8 @@ class MySQLTests: XCTestCase {
         ("testPipelining", testPipelining),
         ("testLargeValues", testLargeValues),
         ("testTimePrecision", testTimePrecision),
+        ("testSaveEmoticonsUnicode", testSaveEmoticonsUnicode),
+        ("testStringCharacterSet", testStringCharacterSet),
     ]
 }
 
@@ -192,6 +226,19 @@ extension MySQLConnection {
             }
         }.wait()
         _ = try client.authenticate(username: "vapor_username", database: "vapor_database", password: "vapor_password").wait()
+        return client
+    }
+
+    /// Creates a test event loop and psql client.
+    static func makeTestUtf8mb4() throws -> MySQLConnection {
+        let group = MultiThreadedEventLoopGroup(numThreads: 1)
+        let client = try MySQLConnection.connect(on: group) { error in
+            // for some reason connection refused error is happening?
+            if !"\(error)".contains("refused") {
+                XCTFail("\(error)")
+            }
+        }.wait()
+        _ = try client.authenticate(username: "vapor_username", database: "vapor_database", password: "vapor_password", characterSet: .utf8mb4_unicode_ci).wait()
         return client
     }
 }

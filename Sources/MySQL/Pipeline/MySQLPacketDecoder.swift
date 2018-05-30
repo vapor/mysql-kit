@@ -71,7 +71,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             let ok = try MySQLOKPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
             packet = .ok(ok)
         } else if next == 0xFE && length < 9 {
-            if capabilities.get(CLIENT_DEPRECATE_EOF) {
+            if capabilities.contains(.CLIENT_DEPRECATE_EOF) {
                 // parse EOF packet
                 let eof = try MySQLOKPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
                 packet = .ok(eof)
@@ -103,7 +103,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         textState: MySQLTextProtocolState,
         capabilities: MySQLCapabilities
     ) throws -> DecodingState {
-        if !capabilities.get(CLIENT_DEPRECATE_EOF) {
+        if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
             // check for error or OK packet
             let peek = buffer.peekInteger(as: Byte.self, skipping: 4)
             switch peek {
@@ -215,7 +215,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
                 session.connectionState = .statement(.columnsDone)
             }
 
-            if !capabilities.get(CLIENT_DEPRECATE_EOF) {
+            if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
                 return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
             }
         case .columns(var remaining):
@@ -234,7 +234,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
                 session.connectionState = .statement(.columns(remaining: remaining))
             }
         case .columnsDone:
-            if !capabilities.get(CLIENT_DEPRECATE_EOF) {
+            if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
                 return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
             }
         case .waitingExecute:
@@ -268,7 +268,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
                 session.connectionState = .statement(.rowColumns(columns: columns, remaining: remaining))
             }
         case .rowColumnsDone(let columns):
-            if !capabilities.get(CLIENT_DEPRECATE_EOF) {
+            if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
                 let result = try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
                 session.connectionState = .statement(.rows(columns: columns))
                 return result

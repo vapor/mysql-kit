@@ -22,7 +22,9 @@ public final class MySQLDatabase: Database {
                 return client.authenticate(
                     username: config.username,
                     database: config.database,
-                    password: config.password
+                    password: config.password,
+                    capabilities: config.capabilities,
+                    characterSet: config.characterSet
                 ).transform(to: client)
             }
         }
@@ -35,4 +37,3 @@ extension DatabaseIdentifier {
         return .init("mysql")
     }
 }
-

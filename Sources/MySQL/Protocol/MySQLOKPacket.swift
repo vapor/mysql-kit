@@ -38,16 +38,16 @@ struct MySQLOKPacket {
         affectedRows = try bytes.requireLengthEncodedInteger(source: .capture())
         lastInsertID = try bytes.requireLengthEncodedInteger(source: .capture())
         
-        if capabilities.get(CLIENT_PROTOCOL_41) {
+        if capabilities.contains(.CLIENT_PROTOCOL_41) {
             statusFlags = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
             warningsCount = try bytes.requireInteger(endianness: .little, source: .capture())
-        } else if capabilities.get(CLIENT_TRANSACTIONS) {
+        } else if capabilities.contains(.CLIENT_TRANSACTIONS) {
             statusFlags = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
         } else {
-            statusFlags = .init(raw: 0)
+            statusFlags = []
         }
 
-        if capabilities.get(CLIENT_SESSION_TRACK) {
+        if capabilities.contains(.CLIENT_SESSION_TRACK) {
             if bytes.readerIndex - startIndex >= length {
                 // entire packet has been read already
                 info = ""
