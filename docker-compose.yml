@@ -1,7 +1,7 @@
 version: '2'
 
 services:
-  cleartext:
+  db:
     image: mysql:5.7
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: "true"
