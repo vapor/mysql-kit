@@ -85,6 +85,26 @@ class MySQLPacketTests: XCTestCase {
         print(buffer.debugDescription)
     }
 
+    func testHandshakeResponse41_example2() throws {
+        var buffer = ByteBufferAllocator().buffer(capacity: 256)
+        let response = MySQLHandshakeResponse41(
+            capabilities: [
+                CLIENT_PROTOCOL_41,
+                CLIENT_PLUGIN_AUTH,
+                CLIENT_SECURE_CONNECTION,
+                CLIENT_CONNECT_WITH_DB
+            ],
+            maxPacketSize: 1_073_741_824,
+            characterSet: MySQLCharacterSet.utf8mb4_unicode_ci,
+            username: "john",
+            authResponse: .init(),
+            database: "test",
+            authPluginName: "mysql_native_password"
+        )
+        response.serialize(into: &buffer)
+        print(buffer.debugDescription)
+    }
+
     static let allTests = [
         ("testHandshakeV10_wireshark", testHandshakeV10_wireshark),
         ("testHandshakeV10_example1", testHandshakeV10_example1),
