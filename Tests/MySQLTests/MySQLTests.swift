@@ -202,6 +202,16 @@ class MySQLTests: XCTestCase {
         }
     }
 
+    func testURLParsing() throws {
+        let databaseURL = "mysql://username:password@hostname.com:3306/database"
+        let config = try MySQLDatabaseConfig(url: databaseURL)
+        XCTAssertEqual(config.hostname, "hostname.com")
+        XCTAssertEqual(config.port, 3306)
+        XCTAssertEqual(config.username, "username")
+        XCTAssertEqual(config.password, "password")
+        XCTAssertEqual(config.database, "database")
+    }
+
     static let allTests = [
         ("testSimpleQuery", testSimpleQuery),
         ("testQuery", testQuery),
@@ -212,6 +222,8 @@ class MySQLTests: XCTestCase {
         ("testTimePrecision", testTimePrecision),
         ("testSaveEmoticonsUnicode", testSaveEmoticonsUnicode),
         ("testStringCharacterSet", testStringCharacterSet),
+        ("testDisconnect", testDisconnect),
+        ("testURLParsing", testURLParsing)
     ]
 }
 
