@@ -44,7 +44,7 @@ public struct MySQLDatabaseConfig {
             let hostname = url.host,
             let port = url.port,
             let username = url.user,
-            url.path.count > 0
+            let database = url.databaseName
         else {
             throw MySQLError(
                 identifier: "Bad Connection String",
@@ -58,16 +58,9 @@ public struct MySQLDatabaseConfig {
         self.hostname = hostname
         self.port = port
         self.username = username
+        self.database = database
         self.password = url.password
         self.capabilities = capabilities
         self.characterSet = characterSet
-
-        let database = url.path
-
-        if database.hasPrefix("/") {
-            self.database = database.dropFirst().description
-        } else {
-            self.database = database
-        }
     }
 }
