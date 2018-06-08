@@ -126,6 +126,7 @@ class MySQLTests: XCTestCase {
     func testLargeValues() throws {
         func testSize(_ size: Int) throws {
             let client = try MySQLConnection.makeTest()
+            client.logger = nil // the output will be too big
             let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS foos;").wait()
             XCTAssertEqual(dropResults.count, 0)
             let createResults = try client.simpleQuery("CREATE TABLE foos (id INT SIGNED, name LONGTEXT);").wait()
