@@ -7,15 +7,18 @@ class MySQLTests: XCTestCase {
         let conn = try MySQLConnection.makeTest()
         defer { try! conn.close().wait() }
         let results = try conn.simpleQuery("SELECT @@version").wait()
-        try conn.simpleQuery("SELECT @@version").wait()
-        try conn.simpleQuery("SELECT @@version").wait()
+        _ = try conn.simpleQuery("SELECT @@version").wait()
+        _ = try conn.simpleQuery("SELECT @@version").wait()
         try XCTAssert(results[0].firstValue(forColumn: "@@version")?.decode(String.self).contains(".") == true)
     }
 
     func testQuery() throws {
         let conn = try MySQLConnection.makeTest()
         defer { try? conn.close().wait() }
-        let results = try conn.query("SELECT CONCAT(?, ?) as test;", ["hello", "world"]).wait()
+        let results = try conn.query(.raw("SELECT CONCAT(?, ?) as test;", [
+            "hello".convertToMySQLData(),
+            "world".convertToMySQLData()
+        ])).wait()
         try XCTAssertEqual(results[0].firstValue(forColumn: "test")?.decode(String.self), "helloworld")
         print(results)
     }
@@ -26,16 +29,16 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(dropResults.count, 0)
         let createResults = try client.simpleQuery("CREATE TABLE foos (id INT SIGNED, name VARCHAR(64));").wait()
         XCTAssertEqual(createResults.count, 0)
-        let insertResults = try client.query("INSERT INTO foos VALUES (?, ?);", [-1, "vapor"]).wait()
+        let insertResults = try client.query(.raw("INSERT INTO foos VALUES (?, ?);", [-1, "vapor"])).wait()
         XCTAssertEqual(insertResults.count, 0)
-        let selectResults = try client.query("SELECT * FROM foos WHERE name = ?;", ["vapor"]).wait()
+        let selectResults = try client.query(.raw("SELECT * FROM foos WHERE name = ?;", ["vapor"])).wait()
         XCTAssertEqual(selectResults.count, 1)
         print(selectResults)
         try XCTAssertEqual(selectResults[0].firstValue(forColumn: "id")?.decode(Int.self), -1)
         try XCTAssertEqual(selectResults[0].firstValue(forColumn: "name")?.decode(String.self), "vapor")
 
         // test double parameterized query
-        let selectResults2 = try client.query("SELECT * FROM foos WHERE name = ?;", ["vapor"]).wait()
+        let selectResults2 = try client.query(.raw("SELECT * FROM foos WHERE name = ?;", ["vapor"])).wait()
         XCTAssertEqual(selectResults2.count, 1)
     }
 
@@ -44,12 +47,12 @@ class MySQLTests: XCTestCase {
         struct KitechSinkColumn {
             let name: String
             let columnType: String
-            let data: MySQLDataConvertible
+            let data: MySQLData
             let match: (MySQLData?, StaticString, UInt) throws -> ()
             init<T>(_ name: String, _ columnType: String, _ value: T) where T: MySQLDataConvertible & Equatable {
                 self.name = name
                 self.columnType = columnType
-                data = value
+                data = try! value.convertToMySQLData()
                 self.match = { data, file, line in
                     if let data = data {
                         let t = try T.convertFromMySQLData(data)
@@ -88,11 +91,11 @@ class MySQLTests: XCTestCase {
 
         /// insert data
         let placeholders = tests.map { _ in "?" }.joined(separator: ", ")
-        let insertResults = try client.query("INSERT INTO kitchen_sink VALUES (\(placeholders));", tests.map { $0.data }).wait()
+        let insertResults = try client.query(.raw("INSERT INTO kitchen_sink VALUES (\(placeholders));", tests.map { $0.data })).wait()
         XCTAssertEqual(insertResults.count, 0)
 
         // select data
-        let selectResults = try client.query("SELECT * FROM kitchen_sink WHERE name = ?;", ["vapor"]).wait()
+        let selectResults = try client.query(.raw("SELECT * FROM kitchen_sink WHERE name = ?;", ["vapor"])).wait()
         XCTAssertEqual(selectResults.count, 1)
         print(selectResults)
 
@@ -109,9 +112,9 @@ class MySQLTests: XCTestCase {
         let createResults = try client.simpleQuery("CREATE TABLE foos (id INT SIGNED, name VARCHAR(64));").wait()
         XCTAssertEqual(createResults.count, 0)
         let results = try [
-            client.query("INSERT INTO foos VALUES (?, ?);", [1, "vapor1"]),
-            client.query("INSERT INTO foos VALUES (?, ?);", [2, "vapor2"]),
-            client.query("INSERT INTO foos VALUES (?, ?);", [3, "vapor2"]),
+            client.query(.raw("INSERT INTO foos VALUES (?, ?);", [1, "vapor1"])),
+            client.query(.raw("INSERT INTO foos VALUES (?, ?);", [2, "vapor2"])),
+            client.query(.raw("INSERT INTO foos VALUES (?, ?);", [3, "vapor2"])),
         ].flatten(on: client.eventLoop).wait()
         print(results)
 
@@ -129,7 +132,7 @@ class MySQLTests: XCTestCase {
 
             let bigName = String(repeating: "v", count: size)
             XCTAssertEqual(createResults.count, 0)
-            _ = try client.query("INSERT INTO foos VALUES (?, ?);", [1, bigName]).wait()
+            _ = try client.query(.raw("INSERT INTO foos VALUES (?, ?);", [1, bigName.convertToMySQLData()])).wait()
             let selectResults = try client.simpleQuery("SELECT * FROM foos;").wait()
             XCTAssertEqual(selectResults.count, 1)
             if let value = selectResults.first?.firstValue(forColumn: "name") {
@@ -171,16 +174,16 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(dropResults.count, 0)
         let createResults = try client.simpleQuery("CREATE TABLE emojis (id INT SIGNED NOT NULL, description VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL);").wait()
         XCTAssertEqual(createResults.count, 0)
-        let insertResults = try client.query("INSERT INTO emojis VALUES (?, ?);", [1, "🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"]).wait()
+        let insertResults = try client.query(.raw("INSERT INTO emojis VALUES (?, ?);", [1, "🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"])).wait()
         XCTAssertEqual(insertResults.count, 0)
-        let selectResults = try client.query("SELECT * FROM emojis WHERE description = ?;", ["🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"]).wait()
+        let selectResults = try client.query(.raw("SELECT * FROM emojis WHERE description = ?;", ["🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"])).wait()
         XCTAssertEqual(selectResults.count, 1)
         print(selectResults)
         try XCTAssertEqual(selectResults[0].firstValue(forColumn: "id")?.decode(Int.self), 1)
         try XCTAssertEqual(selectResults[0].firstValue(forColumn: "description")?.decode(String.self), "🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔")
 
         // test double parameterized query
-        let selectResults2 = try client.query("SELECT * FROM emojis WHERE description = ?;", ["🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"]).wait()
+        let selectResults2 = try client.query(.raw("SELECT * FROM emojis WHERE description = ?;", ["🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"])).wait()
         XCTAssertEqual(selectResults2.count, 1)
     }
 

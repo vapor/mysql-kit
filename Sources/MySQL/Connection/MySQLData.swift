@@ -2,11 +2,17 @@ import Core
 
 /// Represents row data for a single MySQL column.
 public struct MySQLData: Equatable {
+    
+    internal enum Storage: Equatable {
+        case text(Data?)
+        case binary(MySQLBinaryData)
+    }
+    
     /// The value's data.
-    var storage: MySQLDataStorage
+    internal var storage: Storage
 
     /// Internal init using raw `MySQLBinaryDataStorage`.
-    internal init(storage: MySQLDataStorage) {
+    internal init(storage: Storage) {
         self.storage = storage
     }
 
@@ -15,7 +21,7 @@ public struct MySQLData: Equatable {
         let binary = MySQLBinaryData(
             type: .MYSQL_TYPE_VARCHAR,
             isUnsigned: true,
-            storage: string.flatMap { .string(.init($0.utf8)) }
+            storage: string.flatMap { .string(.init($0.utf8)) } ?? .null
         )
         self.storage = .binary(binary)
     }
@@ -34,7 +40,7 @@ public struct MySQLData: Equatable {
         let binary = MySQLBinaryData(
             type: .MYSQL_TYPE_BLOB,
             isUnsigned: true,
-            storage: data.flatMap { .string($0) }
+            storage: data.flatMap { .string($0) } ?? .null
         )
         self.storage = .binary(binary)
     }
@@ -44,7 +50,7 @@ public struct MySQLData: Equatable {
         let binary = try MySQLBinaryData(
             type: .MYSQL_TYPE_JSON,
             isUnsigned: true,
-            storage: json.flatMap { try .string(JSONEncoder().encode($0)) }
+            storage: json.flatMap { try .string(JSONEncoder().encode($0)) } ?? .null
         )
         self.storage = .binary(binary)
     }
@@ -81,7 +87,7 @@ public struct MySQLData: Equatable {
         let binary = MySQLBinaryData(
             type: type,
             isUnsigned: !I.isSigned,
-            storage: storage
+            storage: storage ?? .null
         )
         self.storage = .binary(binary)
     }
@@ -108,7 +114,7 @@ public struct MySQLData: Equatable {
         let binary = MySQLBinaryData(
             type: type,
             isUnsigned: false,
-            storage: storage
+            storage: storage ?? .null
         )
         self.storage = .binary(binary)
     }
@@ -125,7 +131,11 @@ public struct MySQLData: Equatable {
     public var isNull: Bool {
         switch storage {
         case .text(let data): return data == nil
-        case .binary(let binary): return binary.storage == nil
+        case .binary(let binary):
+            switch binary.storage {
+            case .null: return true
+            default: return false
+            }
         }
     }
 
@@ -134,10 +144,7 @@ public struct MySQLData: Equatable {
         switch storage {
         case .text(let data): return data
         case .binary(let binary):
-            guard let value = binary.storage else {
-                return nil
-            }
-            switch value {
+            switch binary.storage {
             case .string(let data): return data
             default: return nil
             }
@@ -157,10 +164,7 @@ public struct MySQLData: Equatable {
         switch storage {
         case .text(let data): return data.flatMap { String(data: $0, encoding: .utf8) }
         case .binary(let binary):
-            guard let value = binary.storage else {
-                return nil
-            }
-            switch value {
+            switch binary.storage {
             case .string(let data): return String(data: data, encoding: .utf8)
             default: return nil // support more
             }
@@ -172,10 +176,6 @@ public struct MySQLData: Equatable {
         switch storage {
         case .text(let data): return data.flatMap { String(data: $0, encoding: .ascii) }.flatMap { I.init($0) }
         case .binary(let binary):
-            guard let value = binary.storage else {
-                return nil
-            }
-
             func safeCast<J>(_ j: J) throws -> I where J: FixedWidthInteger {
                 guard j >= I.min else {
                     throw MySQLError(identifier: "intMin", reason: "Value \(j) too small for \(I.self).", source: .capture())
@@ -188,7 +188,7 @@ public struct MySQLData: Equatable {
                 return I(j)
             }
 
-            switch value {
+            switch binary.storage {
             case .integer1(let int8): return try safeCast(int8)
             case .integer2(let int16): return try safeCast(int16)
             case .integer4(let int32): return try safeCast(int32)
@@ -221,11 +221,7 @@ public struct MySQLData: Equatable {
             .flatMap { Float80($0) }
             .flatMap { F.init($0) }
         case .binary(let binary):
-            guard let value = binary.storage else {
-                return nil
-            }
-
-            switch value {
+            switch binary.storage {
             case .integer1(let int8): return F(int8)
             case .integer2(let int16): return F(int16)
             case .integer4(let int32): return F(int32)
@@ -250,7 +246,25 @@ public struct MySQLData: Equatable {
     }
 
     /// MYSQL_TYPE_NULL null value (binary).
-    public static let null = MySQLData(storage: .binary(.init(type: .MYSQL_TYPE_NULL, isUnsigned: false, storage: nil)))
+    public static let null = MySQLData(storage: .binary(.init(type: .MYSQL_TYPE_NULL, isUnsigned: false, storage: .null)))
+}
+
+extension MySQLData: ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) {
+        self.init(string: value)
+    }
+}
+
+extension MySQLData: ExpressibleByIntegerLiteral {
+    public init(integerLiteral value: Int) {
+        self.init(integer: value)
+    }
+}
+
+extension MySQLData: ExpressibleByBooleanLiteral {
+    public init(booleanLiteral value: Bool) {
+        self.init(integer: value ? UInt8(1) : 0)
+    }
 }
 
 
@@ -275,11 +289,6 @@ public struct MySQLText: MySQLDataConvertible {
     }
 }
 
-enum MySQLDataStorage: Equatable {
-    case text(Data?)
-    case binary(MySQLBinaryData)
-}
-
 extension MySQLData: CustomStringConvertible {
     /// See `CustomStringConvertible.description`
     public var description: String {
@@ -291,18 +300,15 @@ extension MySQLData: CustomStringConvertible {
                 return "<null>"
             }
         case .binary(let binary):
-            if let data = binary.storage {
-                switch data {
-                case .string(let data):
-                    switch binary.type {
-                    case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING:
-                        return String(data: data, encoding: .utf8).flatMap { "string(\"\($0)\")" } ?? "<non-utf8 string (\(data.count))>"
-                    default: return "data(0x\(data.hexEncodedString()))"
-                    }
-                default: return "\(data)"
+            switch binary.storage {
+            case .string(let data):
+                switch binary.type {
+                case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING:
+                    return String(data: data, encoding: .utf8).flatMap { "string(\"\($0)\")" } ?? "<non-utf8 string (\(data.count))>"
+                default: return "data(0x\(data.hexEncodedString()))"
                 }
-            } else {
-                return "<null>"
+            case .null: return "null"
+            default: return "\(data)"
             }
         }
     }
@@ -412,7 +418,7 @@ extension OptionalType {
             }
             return try convertible.convertToMySQLData()
         } else {
-            let binary = MySQLBinaryData(type: .MYSQL_TYPE_NULL, isUnsigned: false, storage: nil)
+            let binary = MySQLBinaryData(type: .MYSQL_TYPE_NULL, isUnsigned: false, storage: .null)
             return MySQLData(storage: .binary(binary))
         }
     }
@@ -623,10 +629,7 @@ extension Date: MySQLDataConvertible {
         let time: MySQLTime
         switch mysqlData.storage {
         case .binary(let binary):
-            guard let storage = binary.storage else {
-                throw MySQLError(identifier: "timeNull", reason: "Cannot parse MySQLTime from null.", source: .capture())
-            }
-            switch storage {
+            switch binary.storage {
             case .time(let _time): time = _time
             default: throw MySQLError(identifier: "timeBinary", reason: "Parsing MySQLTime from \(binary) is not supported.", source: .capture())
             }

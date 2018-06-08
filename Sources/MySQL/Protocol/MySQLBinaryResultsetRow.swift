@@ -17,9 +17,9 @@ struct MySQLBinaryResultsetRow {
         let nullBitmap = try bytes.requireResultSetNullBitmap(count: columns.count, source: .capture())
         var values: [MySQLBinaryData] = []
         for (i, column) in columns.enumerated() {
-            let storage: MySQLBinaryDataStorage?
+            let storage: MySQLBinaryDataStorage
             if nullBitmap.isNull(at: i) {
-                storage = nil
+                storage = .null
             } else {
                 switch column.columnType {
                 case .MYSQL_TYPE_STRING,

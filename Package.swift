@@ -22,6 +22,9 @@ let package = Package(
         // Event-driven network application framework for high performance protocol servers & clients, non-blocking.
         .package(url: "https://github.com/apple/swift-nio.git", from: "1.0.0"),
 
+        // Bindings to OpenSSL-compatible libraries for TLS support in SwiftNIO
+        .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "1.0.0"),
+
     ],
     targets: [
         .target(name: "MySQL", dependencies: [

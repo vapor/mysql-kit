@@ -53,9 +53,9 @@ extension MySQLColumnDefinition41 {
 
 extension Dictionary where Key == MySQLColumn {
     /// Accesses the _first_ value from this dictionary with a matching field name.
-    public func firstValue(forColumn columnName: String) -> Value? {
+    public func firstValue(forColumn columnName: String, inTable table: String? = nil) -> Value? {
         for (field, value) in self {
-            if field.name == columnName {
+            if (table == nil || field.table == nil || field.table == table) && field.name == columnName {
                 return value
             }
         }

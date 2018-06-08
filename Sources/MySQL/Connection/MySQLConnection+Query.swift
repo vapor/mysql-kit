@@ -8,9 +8,9 @@ extension MySQLConnection {
     ///     - string: The query string to run. Any values should be represented by `?`.
     ///     - parameters: An array of parameters to bind. The count _must_ equal the number of `?` in the query string.
     /// - returns: A future containing the resulting rows.
-    public func query(_ string: String, _ parameters: [MySQLDataConvertible]) -> Future<[[MySQLColumn: MySQLData]]> {
+    public func query(_ query: MySQLQuery) -> Future<[[MySQLColumn: MySQLData]]> {
         var rows: [[MySQLColumn: MySQLData]] = []
-        return self.query(string, parameters) { row in
+        return self.query(query) { row in
             rows.append(row)
         }.map(to: [[MySQLColumn: MySQLData]].self) {
             return rows
@@ -27,12 +27,9 @@ extension MySQLConnection {
     ///     - parameters: An array of parameters to bind. The count _must_ equal the number of `?` in the query string.
     ///     - onRow: Handles each row as it is received from the server.
     /// - returns: A future that will complete when the query is finished.
-    public func query(_ string: String, _ parameters: [MySQLDataConvertible], onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
-        return _query(string, parameters, onRow: onRow)
-    }
-
-    /// Private, non-sync query.
-    private func _query(_ string: String, _ parameters: [MySQLDataConvertible], onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
+    public func query(_ query: MySQLQuery, onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
+        var binds: [MySQLData] = []
+        let string = MySQLSerializer().serialize(query, &binds)
         let comPrepare = MySQLComStmtPrepare(query: string)
         var ok: MySQLComStmtPrepareOK?
         var columns: [MySQLColumnDefinition41] = []
@@ -59,9 +56,8 @@ extension MySQLConnection {
             let comExecute = try MySQLComStmtExecute(
                 statementID: ok.statementID,
                 flags: 0x00, // which flags?
-                values: parameters.map { param in
-                    let storage = try param.convertToMySQLData().storage
-                    switch storage {
+                values: binds.map { data in
+                    switch data.storage {
                     case .binary(let binary): return binary
                     case .text: throw MySQLError(identifier: "binaryData", reason: "Binary data required.", source: .capture())
                     }
