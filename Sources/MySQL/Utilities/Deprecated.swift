@@ -7,6 +7,6 @@ extension MySQLConnection {
         on worker: Worker,
         onError: @escaping (Error) -> ()
     ) throws -> Future<MySQLConnection> {
-        return try connect(config: .init(hostname: hostname, port: port), on: worker, onError: onError)
+        return connect(config: .init(hostname: hostname, port: port), on: worker, onError: onError)
     }
 }

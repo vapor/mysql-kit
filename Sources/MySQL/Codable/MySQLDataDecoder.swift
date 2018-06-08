@@ -43,7 +43,6 @@ struct MySQLDataDecoder {
                 default: throw MySQLError(identifier: "json", reason: "Could not decode JSON.", source: .capture())
                 }
             case .text(let data): json = data ?? Data()
-            default: throw MySQLError(identifier: "json", reason: "Could not decode JSON.", source: .capture())
             }
             let unwrapper = try JSONDecoder().decode(DecoderUnwrapper.self, from: json)
             return unwrapper.decoder

@@ -221,11 +221,11 @@ class MySQLTests: XCTestCase {
         
         try conn.create(table: Galaxy.self)
             .column(for: \.id, .bigint(nil, unsigned: false, zerofill: false), .notNull, .primaryKey(autoIncrement: true))
-            .column(for: \.name, .varchar(64), .notNull)
+            .column(for: \.name, .varchar(64, nil, nil), .notNull)
             .run().wait()
         try conn.create(table: Planet.self)
             .column(for: \.id, .bigint(nil, unsigned: false, zerofill: false), .notNull, .primaryKey(autoIncrement: true))
-            .column(for: \.name, .varchar(64), .notNull)
+            .column(for: \.name, .varchar(64, nil, nil), .notNull)
             .column(for: \.galaxyID, .bigint(nil, unsigned: false, zerofill: false), .notNull)
             .foreignKey(from: \.galaxyID, to: \Galaxy.id)
             .run().wait()
