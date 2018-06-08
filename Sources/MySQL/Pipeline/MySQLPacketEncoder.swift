@@ -7,10 +7,10 @@ final class MySQLPacketEncoder: MessageToByteEncoder {
     typealias OutboundIn = MySQLPacket
 
     /// Information about this connection.
-    var session: MySQLConnectionSession
+    var session: MySQLPacketState
 
     /// Creates a new `MySQLPacketDecoder`
-    init(session: MySQLConnectionSession) {
+    init(session: MySQLPacketState) {
         self.session = session
     }
 
@@ -21,8 +21,7 @@ final class MySQLPacketEncoder: MessageToByteEncoder {
     ///     - data: The data to encode into a `ByteBuffer`.
     ///     - out: The `ByteBuffer` into which we want to encode.
     func encode(ctx: ChannelHandlerContext, data message: MySQLPacket, out: inout ByteBuffer) throws {
-        VERBOSE("MySQLPacketEncoder.encode(ctx: \(ctx), data: \(message), out: \(out))")
-
+        // print("➡️ \(message)")
         let writeOffset = out.writerIndex
         out.write(bytes: [0x00, 0x00, 0x00, 0x00]) // save room for length
         switch message {
@@ -39,7 +38,15 @@ final class MySQLPacketEncoder: MessageToByteEncoder {
             session.resetSequenceID()
             try comExecute.serialize(into: &out)
             session.connectionState = .statement(.waitingExecute)
-        default: throw MySQLError(identifier: "encode", reason: "Unsupported packet: \(message)", source: .capture())
+        case .quit:
+            session.resetSequenceID()
+            out.write(integer: 1, as: UInt8.self)
+        case .sslRequest(let sslRequest):
+            sslRequest.serialize(into: &out)
+        case .plaintextPassword(let string):
+            out.write(string: string)
+            out.write(integer: Byte(0))
+        default: throw MySQLError(identifier: "encodePacket", reason: "Unexpected packet.", source: .capture())
         }
         let bytesWritten = out.writerIndex - writeOffset - 4
         out.set(integer: Byte(bytesWritten & 0xFF), at: writeOffset)

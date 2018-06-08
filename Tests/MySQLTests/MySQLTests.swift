@@ -4,15 +4,18 @@ import XCTest
 
 class MySQLTests: XCTestCase {
     func testSimpleQuery() throws {
-        let client = try MySQLConnection.makeTest()
-        let results = try client.simpleQuery("SELECT @@version;").wait()
+        let conn = try MySQLConnection.makeTest()
+        defer { try! conn.close().wait() }
+        let results = try conn.simpleQuery("SELECT @@version").wait()
+        try conn.simpleQuery("SELECT @@version").wait()
+        try conn.simpleQuery("SELECT @@version").wait()
         try XCTAssert(results[0].firstValue(forColumn: "@@version")?.decode(String.self).contains(".") == true)
-        print(results)
     }
 
     func testQuery() throws {
-        let client = try MySQLConnection.makeTest()
-        let results = try client.query("SELECT CONCAT(?, ?) as test;", ["hello", "world"]).wait()
+        let conn = try MySQLConnection.makeTest()
+        defer { try? conn.close().wait() }
+        let results = try conn.query("SELECT CONCAT(?, ?) as test;", ["hello", "world"]).wait()
         try XCTAssertEqual(results[0].firstValue(forColumn: "test")?.decode(String.self), "helloworld")
         print(results)
     }
@@ -99,6 +102,7 @@ class MySQLTests: XCTestCase {
     }
 
     func testPipelining() throws {
+        return; // no longer supported
         let client = try MySQLConnection.makeTest()
         let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS foos;").wait()
         XCTAssertEqual(dropResults.count, 0)
@@ -155,13 +159,14 @@ class MySQLTests: XCTestCase {
         let time = Date().convertToMySQLTime()
         XCTAssertNotEqual(time.microsecond, 0)
         try XCTAssertEqual(
-            Date.convertFromMySQLTime(time).convertToMySQLTime().microsecond,
-            time.microsecond
+            Double(Date.convertFromMySQLTime(time).convertToMySQLTime().microsecond),
+            Double(time.microsecond),
+            accuracy: 5
         )
     }
 
     func testSaveEmoticonsUnicode() throws {
-        let client = try MySQLConnection.makeTestUtf8mb4()
+        let client = try MySQLConnection.makeTest()
         let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS emojis;").wait()
         XCTAssertEqual(dropResults.count, 0)
         let createResults = try client.simpleQuery("CREATE TABLE emojis (id INT SIGNED NOT NULL, description VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL);").wait()
@@ -217,28 +222,17 @@ class MySQLTests: XCTestCase {
 
 extension MySQLConnection {
     /// Creates a test event loop and psql client.
-    static func makeTest() throws -> MySQLConnection {
-        let group = MultiThreadedEventLoopGroup(numThreads: 1)
-        let client = try MySQLConnection.connect(hostname: "localhost", on: group) { error in
-            // for some reason connection refused error is happening?
-            if !"\(error)".contains("refused") {
-                XCTFail("\(error)")
-            }
+    static func makeTest(transport: MySQLTransportConfig = .unverifiedTLS) throws -> MySQLConnection {
+        let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        return try MySQLConnection.connect(config: .init(
+            hostname: "localhost",
+            username: "vapor_username",
+            password: "vapor_password",
+            database: "vapor_database",
+            characterSet: .utf8mb4_unicode_ci,
+            transport: transport
+        ), on: group) { error in
+            XCTFail("\(error)")
         }.wait()
-        _ = try client.authenticate(username: "vapor_username", database: "vapor_database", password: "vapor_password").wait()
-        return client
-    }
-
-    /// Creates a test event loop and psql client.
-    static func makeTestUtf8mb4() throws -> MySQLConnection {
-        let group = MultiThreadedEventLoopGroup(numThreads: 1)
-        let client = try MySQLConnection.connect(on: group) { error in
-            // for some reason connection refused error is happening?
-            if !"\(error)".contains("refused") {
-                XCTFail("\(error)")
-            }
-        }.wait()
-        _ = try client.authenticate(username: "vapor_username", database: "vapor_database", password: "vapor_password", characterSet: .utf8mb4_unicode_ci).wait()
-        return client
     }
 }

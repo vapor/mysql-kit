@@ -1,14 +1,18 @@
 enum MySQLPacket {
-    case handshakev10(MySQLHandshakeV10)
-    case handshakeResponse41(MySQLHandshakeResponse41)
-    case ok(MySQLOKPacket)
-    case comQuery(MySQLComQuery)
+    case binaryResultsetRow(MySQLBinaryResultsetRow)
     case columnDefinition41(MySQLColumnDefinition41)
-    case resultSetRow(MySQLResultSetRow)
-    case eof(MySQLEOFPacket)
+    case comQuery(MySQLComQuery)
+    case comStmtExecute(MySQLComStmtExecute)
     case comStmtPrepare(MySQLComStmtPrepare)
     case comStmtPrepareOK(MySQLComStmtPrepareOK)
-    case comStmtExecute(MySQLComStmtExecute)
-    case binaryResultsetRow(MySQLBinaryResultsetRow)
+    case eof(MySQLEOFPacket)
     case err(MySQLErrorPacket)
+    case fullAuthenticationRequest
+    case handshakev10(HandshakeV10)
+    case handshakeResponse41(HandshakeResponse41)
+    case ok(OK)
+    case plaintextPassword(String)
+    case quit
+    case resultSetRow(MySQLResultSetRow)
+    case sslRequest(SSLRequest)
 }

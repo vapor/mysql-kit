@@ -69,6 +69,11 @@ public struct MySQLCharacterSet: Equatable {
     /// * Id: 224
     /// * Value: 0x00e0
     public static var utf8mb4_unicode_ci: MySQLCharacterSet = 0x00e0
+    
+    /// Serializes the `MySQLCharacterSet` into a buffer.
+    func serialize(into buffer: inout ByteBuffer) {
+        buffer.write(integer: UInt8(raw & 0xFF), endianness: .little)
+    }
 }
 
 extension MySQLCharacterSet: CustomStringConvertible {
