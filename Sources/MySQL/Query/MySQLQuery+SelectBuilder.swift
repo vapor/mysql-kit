@@ -1,5 +1,5 @@
 extension MySQLQuery {
-    public final class SelectBuilder: SQLitePredicateBuilder {
+    public final class SelectBuilder: MySQLPredicateBuilder {
         public var select: Select
         public var predicate: MySQLQuery.Expression? {
             get { return select.predicate }
@@ -30,14 +30,14 @@ extension MySQLQuery {
         }
         
         public func from<Table>(_ table: Table.Type) -> Self
-            where Table: SQLiteTable
+            where Table: MySQLTable
         {
-            select.tables.append(.table(.init(stringLiteral: Table.sqliteTableName)))
+            select.tables.append(.table(.init(stringLiteral: Table.mysqlTableName)))
             return self
         }
         
         public func join<Table>(_ table: Table.Type, on expr: Expression) -> Self
-            where Table: SQLiteTable
+            where Table: MySQLTable
         {
             switch select.tables.count {
             case 0: fatalError("Must select from a atable before joining.")
@@ -48,7 +48,7 @@ extension MySQLQuery {
                         MySQLQuery.JoinClause.Join.init(
                             natural: false,
                             .inner,
-                            table: .init(stringLiteral: Table.sqliteTableName),
+                            table: .init(stringLiteral: Table.mysqlTableName),
                             constraint: .condition(expr)
                         )
                     ]
@@ -61,7 +61,7 @@ extension MySQLQuery {
         public func run<D>(decoding type: D.Type) -> Future<[D]>
             where D: Decodable
         {
-            return run { try SQLiteRowDecoder().decode(D.self, from: $0) }
+            return run { try MySQLRowDecoder().decode(D.self, from: $0) }
         }
         
         public func run<T>(_ convert: @escaping ([MySQLColumn: MySQLData]) throws -> (T)) -> Future<[T]> {
@@ -76,17 +76,17 @@ extension MySQLQuery {
 }
 
 extension Dictionary where Key == MySQLColumn, Value == MySQLData {
-    public func decode<Table>(_ type: Table.Type) throws -> Table where Table: SQLiteTable {
-        return try decode(Table.self, from: Table.sqliteTableName)
+    public func decode<Table>(_ type: Table.Type) throws -> Table where Table: MySQLTable {
+        return try decode(Table.self, from: Table.mysqlTableName)
     }
     
     public func decode<D>(_ type: D.Type, from table: String) throws -> D where D: Decodable {
-        return try SQLiteRowDecoder().decode(D.self, from: self, table: table)
+        return try MySQLRowDecoder().decode(D.self, from: self, table: table)
     }
 }
 
 public func ==<Table, Value>(_ lhs: KeyPath<Table, Value>, _ rhs: Value) throws -> MySQLQuery.Expression
-    where Table: SQLiteTable, Value: Encodable
+    where Table: MySQLTable, Value: Encodable
 {
     return try .binary(.column(lhs.qualifiedColumnName), .equal, .bind(rhs))
 }
@@ -94,35 +94,35 @@ public func ==<Table, Value>(_ lhs: KeyPath<Table, Value>, _ rhs: Value) throws 
 public func ==<TableA, ValueA, TableB, ValueB>(
     _ lhs: KeyPath<TableA, ValueA>, _ rhs: KeyPath<TableB, ValueB>
 ) -> MySQLQuery.Expression
-    where TableA: SQLiteTable, ValueA: Encodable, TableB: SQLiteTable, ValueB: Encodable
+    where TableA: MySQLTable, ValueA: Encodable, TableB: MySQLTable, ValueB: Encodable
 {
     return .binary(.column(lhs.qualifiedColumnName), .equal, .column(rhs.qualifiedColumnName))
 }
 
 public func !=<Table, Value>(_ lhs: KeyPath<Table, Value>, _ rhs: Value) throws -> MySQLQuery.Expression
-    where Table: SQLiteTable, Value: Encodable
+    where Table: MySQLTable, Value: Encodable
 {
     return try .binary(.column(lhs.qualifiedColumnName), .notEqual, .bind(rhs))
 }
 
-public protocol SQLiteTable: Codable, Reflectable {
-    static var sqliteTableName: String { get }
+public protocol MySQLTable: Codable, Reflectable {
+    static var mysqlTableName: String { get }
 }
 
-extension KeyPath where Root: SQLiteTable {
+extension KeyPath where Root: MySQLTable {
     public var qualifiedColumnName: MySQLQuery.QualifiedColumnName {
         guard let property = try! Root.reflectProperty(forKey: self) else {
             fatalError("Could not reflect property of type \(Value.self) on \(Root.self): \(self)")
         }
         return .init(
-            table: Root.sqliteTableName,
+            table: Root.mysqlTableName,
             name: .init(property.path[0])
         )
     }
 }
 
-extension SQLiteTable {
-    public static var sqliteTableName: String {
+extension MySQLTable {
+    public static var mysqlTableName: String {
         return "\(Self.self)"
     }
 }

@@ -8,8 +8,8 @@ struct MySQLQueryExpressionEncoder {
     func encode<E>(_ value: E) throws -> MySQLQuery.Expression
         where E: Encodable
     {
-        if let sqlite = value as? MySQLQueryExpressionRepresentable {
-            return sqlite.MySQLQueryExpression
+        if let mysql = value as? MySQLQueryExpressionRepresentable {
+            return mysql.MySQLQueryExpression
         } else if let value = value as? MySQLDataConvertible {
             return try .data(value.convertToMySQLData())
         } else {
@@ -64,8 +64,8 @@ struct MySQLQueryExpressionEncoder {
         }
         
         mutating func encode<T>(_ value: T) throws where T : Encodable {
-            if let sqlite = value as? MySQLQueryExpressionRepresentable {
-                encoder.data = sqlite.MySQLQueryExpression
+            if let mysql = value as? MySQLQueryExpressionRepresentable {
+                encoder.data = mysql.MySQLQueryExpression
                 return
             } else if let convertible = value as? MySQLDataConvertible {
                 encoder.data = try .data(convertible.convertToMySQLData())

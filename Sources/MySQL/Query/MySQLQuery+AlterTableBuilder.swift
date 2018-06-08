@@ -20,7 +20,7 @@ extension MySQLQuery {
             _ typeName: TypeName? = nil,
             _ constraints: MySQLQuery.ColumnConstraint...
         ) -> Self
-            where Table: SQLiteTable
+            where Table: MySQLTable
         {
             alter.value = .addColumn(.init(
                 name: keyPath.qualifiedColumnName.name,
@@ -38,8 +38,8 @@ extension MySQLQuery {
 
 extension MySQLConnection {
     public func alter<Table>(table: Table.Type) -> MySQLQuery.AlterTableBuilder
-        where Table: SQLiteTable
+        where Table: MySQLTable
     {
-        return .init(table: .init(stringLiteral: Table.sqliteTableName), on: self)
+        return .init(table: .init(stringLiteral: Table.mysqlTableName), on: self)
     }
 }

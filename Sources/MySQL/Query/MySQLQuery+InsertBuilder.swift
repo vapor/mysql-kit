@@ -41,8 +41,16 @@ extension MySQLQuery {
             where E: Encodable
         {
             let values = try values.map { try MySQLQueryEncoder().encode($0) }
-            insert.columns = values[0].keys.map { ColumnName.init($0) }
-            insert.values = .values(values.map { .init($0.values) })
+            if insert.columns.isEmpty {
+                insert.columns = values[0].keys.map { ColumnName.init($0) }
+            }
+            let newValues: [[Expression]] = values.map { .init($0.values) }
+            switch insert.values {
+            case .defaults, .select:
+                insert.values = .values(newValues)
+            case .values(let existing):
+                insert.values = .values(existing + newValues)
+            }
             return self
         }
         
@@ -54,8 +62,8 @@ extension MySQLQuery {
 
 extension MySQLConnection {
     public func insert<Table>(into table: Table.Type) -> MySQLQuery.InsertBuilder
-        where Table: SQLiteTable
+        where Table: MySQLTable
     {
-        return .init(table: .init(stringLiteral: Table.sqliteTableName), on: self)
+        return .init(table: .init(stringLiteral: Table.mysqlTableName), on: self)
     }
 }

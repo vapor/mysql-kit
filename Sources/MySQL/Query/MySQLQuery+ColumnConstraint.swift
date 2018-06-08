@@ -12,22 +12,6 @@ extension MySQLQuery {
             return .init(.default(expression))
         }
         
-        public static func foreignKey<Table, Value>(
-            to keyPath: KeyPath<Table, Value>
-        ) -> ColumnConstraint
-            where Table: SQLiteTable
-        {
-            let fk = ForeignKeyReference.init(
-                foreignTable: .init(name: Table.sqliteTableName),
-                foreignColumns: [keyPath.qualifiedColumnName.name],
-                onDelete: nil,
-                onUpdate: nil,
-                match: nil,
-                deferrence: nil
-            )
-            return .init(.foreignKey(fk))
-        }
-        
         public struct PrimaryKey {
             public var direction: Direction?
             public var conflictResolution: ConflictResolution?
@@ -65,7 +49,6 @@ extension MySQLQuery {
             case check(Expression)
             case `default`(Expression)
             case collate(String)
-            case foreignKey(ForeignKeyReference)
         }
         public var name: String?
         public var value: Value
@@ -101,7 +84,7 @@ extension MySQLSerializer {
                 sql.append(serialize(conflictResolution))
             }
             if primaryKey.autoIncrement {
-                sql.append("AUTOINCREMENT")
+                sql.append("AUTO_INCREMENT")
             }
         case .nullability(let nullability):
             if !nullability.allowNull {
@@ -127,8 +110,6 @@ extension MySQLSerializer {
         case .collate(let name):
             sql.append("COLLATE")
             sql.append(name)
-        case .foreignKey(let reference):
-            sql.append(serialize(reference))
         }
         return sql.joined(separator: " ")
     }

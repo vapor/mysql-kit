@@ -1,5 +1,5 @@
 extension MySQLQuery {
-    public final class UpdateBuilder: SQLitePredicateBuilder {
+    public final class UpdateBuilder: MySQLPredicateBuilder {
         public var update: Update
         public let connection: MySQLConnection
         public var predicate: MySQLQuery.Expression? {
@@ -36,8 +36,8 @@ extension MySQLQuery {
 
 extension MySQLConnection {
     public func update<Table>(_ table: Table.Type) -> MySQLQuery.UpdateBuilder
-        where Table: SQLiteTable
+        where Table: MySQLTable
     {
-        return .init(table: .init(table: .init(stringLiteral: Table.sqliteTableName)), on: self)
+        return .init(table: .init(table: .init(stringLiteral: Table.mysqlTableName)), on: self)
     }
 }

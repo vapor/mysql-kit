@@ -19,7 +19,7 @@ extension MySQLQuery {
         
         public var name: String?
         public var value: Value
-        public init (name: String? = nil, value: Value) {
+        public init (name: String? = nil, _ value: Value) {
             self.name = name
             self.value = value
         }

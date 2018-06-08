@@ -12,12 +12,12 @@ struct MySQLSerializer {
     }
 }
 
-public protocol SQLitePredicateBuilder: class {
+public protocol MySQLPredicateBuilder: class {
     var connection: MySQLConnection { get }
     var predicate: MySQLQuery.Expression? { get set }
 }
 
-extension SQLitePredicateBuilder {
+extension MySQLPredicateBuilder {
     public func `where`(_ expressions: MySQLQuery.Expression...) -> Self {
         for expression in expressions {
             self.predicate &= expression
@@ -33,7 +33,7 @@ extension SQLitePredicateBuilder {
         return self
     }
     
-    public func `where`(group: (SQLitePredicateBuilder) throws -> ()) rethrows -> Self {
+    public func `where`(group: (MySQLPredicateBuilder) throws -> ()) rethrows -> Self {
         let builder = MySQLQuery.SelectBuilder(on: connection)
         try group(builder)
         switch (self.predicate, builder.select.predicate) {

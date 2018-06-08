@@ -10,6 +10,12 @@ extension MySQLConnection {
             return ok.lastInsertID
         }
         
+        public func lastInsertID<I>(as type: I.Type = I.self) -> I?
+            where I: FixedWidthInteger
+        {
+            return lastInsertID.flatMap(numericCast)
+        }
+        
         init(_ ok: MySQLPacket.OK) {
             self.ok = ok
         }

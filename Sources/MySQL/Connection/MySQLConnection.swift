@@ -76,7 +76,13 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
         let promise = eventLoop.newPromise(Void.self)
         currentSend = promise
         
-        handler.state = .callback(promise, onResponse)
+        handler.state = .callback(promise) { packet in
+            switch packet {
+            case .ok(let ok): self.lastMetadata = .init(ok)
+            default: break
+            }
+            return try onResponse(packet)
+        }
         for message in messages {
             // if any writes fail, we need to fail the current send promise
             let writePromise = eventLoop.newPromise(Void.self)

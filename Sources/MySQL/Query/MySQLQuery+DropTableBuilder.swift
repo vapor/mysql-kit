@@ -22,8 +22,8 @@ extension MySQLQuery {
 
 extension MySQLConnection {
     public func drop<Table>(table: Table.Type) -> MySQLQuery.DropTableBuilder
-        where Table: SQLiteTable
+        where Table: MySQLTable
     {
-        return .init(table: .init(stringLiteral: Table.sqliteTableName), on: self)
+        return .init(table: .init(stringLiteral: Table.mysqlTableName), on: self)
     }
 }

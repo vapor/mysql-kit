@@ -1,5 +1,5 @@
 extension MySQLQuery {
-    public final class DeleteBuilder: SQLitePredicateBuilder {
+    public final class DeleteBuilder: MySQLPredicateBuilder {
         public var delete: Delete
         public let connection: MySQLConnection
         public var predicate: MySQLQuery.Expression? {
@@ -20,8 +20,8 @@ extension MySQLQuery {
 
 extension MySQLConnection {
     public func delete<Table>(from table: Table.Type) -> MySQLQuery.DeleteBuilder
-        where Table: SQLiteTable
+        where Table: MySQLTable
     {
-        return .init(table: .init(table: .init(stringLiteral: Table.sqliteTableName)), on: self)
+        return .init(table: .init(table: .init(stringLiteral: Table.mysqlTableName)), on: self)
     }
 }

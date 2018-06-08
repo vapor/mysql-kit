@@ -30,6 +30,7 @@ extension MySQLConnection {
     public func query(_ query: MySQLQuery, onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
         var binds: [MySQLData] = []
         let string = MySQLSerializer().serialize(query, &binds)
+        logger?.record(query: string, values: binds.map { $0.description })
         let comPrepare = MySQLComStmtPrepare(query: string)
         var ok: MySQLComStmtPrepareOK?
         var columns: [MySQLColumnDefinition41] = []

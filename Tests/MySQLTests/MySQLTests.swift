@@ -209,6 +209,45 @@ class MySQLTests: XCTestCase {
             sleep(1)
         }
     }
+    
+    func testInsertMany() throws {
+        let conn = try MySQLConnection.makeTest()
+        
+        try conn.drop(table: Planet.self).ifExists()
+            .run().wait()
+        try conn.drop(table: Galaxy.self).ifExists()
+            .run().wait()
+        
+        try conn.create(table: Galaxy.self)
+            .column(for: \.id, .bigint(nil, unsigned: false, zerofill: false), .notNull, .primaryKey(autoIncrement: true))
+            .column(for: \.name, .varchar(64), .notNull)
+            .run().wait()
+        try conn.create(table: Planet.self)
+            .column(for: \.id, .bigint(nil, unsigned: false, zerofill: false), .notNull, .primaryKey(autoIncrement: true))
+            .column(for: \.name, .varchar(64), .notNull)
+            .column(for: \.galaxyID, .bigint(nil, unsigned: false, zerofill: false), .notNull)
+            .foreignKey(from: \.galaxyID, to: \Galaxy.id)
+            .run().wait()
+        
+        var milkyWay = Galaxy(name: "Milky Way")
+        try conn.insert(into: Galaxy.self).value(milkyWay)
+            .run().wait()
+        milkyWay.id = conn.lastMetadata?.lastInsertID()
+        guard let milkyWayID = milkyWay.id else {
+            XCTFail("No ID returned")
+            return
+        }
+        
+        try conn.insert(into: Planet.self)
+            .value(Planet(name: "Earth", galaxyID: milkyWayID))
+            .run().wait()
+        
+        try conn.insert(into: Planet.self)
+            .value(Planet(name: "Venus", galaxyID: milkyWayID))
+            .value(Planet(name: "Mars", galaxyID: milkyWayID))
+            .run().wait()
+        
+    }
 
     static let allTests = [
         ("testSimpleQuery", testSimpleQuery),
@@ -227,7 +266,7 @@ extension MySQLConnection {
     /// Creates a test event loop and psql client.
     static func makeTest(transport: MySQLTransportConfig = .unverifiedTLS) throws -> MySQLConnection {
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        return try MySQLConnection.connect(config: .init(
+        let conn =  try MySQLConnection.connect(config: .init(
             hostname: "localhost",
             username: "vapor_username",
             password: "vapor_password",
@@ -237,5 +276,28 @@ extension MySQLConnection {
         ), on: group) { error in
             XCTFail("\(error)")
         }.wait()
+        conn.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
+        return conn
+    }
+}
+
+struct Planet: MySQLTable {
+    var id: Int?
+    var name: String
+    var galaxyID: Int
+    
+    init(id: Int? = nil, name: String, galaxyID: Int) {
+        self.id = id
+        self.name = name
+        self.galaxyID = galaxyID
+    }
+}
+
+struct Galaxy: MySQLTable {
+    var id: Int?
+    var name: String
+    init(id: Int? = nil, name: String) {
+        self.id = id
+        self.name = name
     }
 }

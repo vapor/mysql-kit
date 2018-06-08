@@ -1,4 +1,4 @@
-struct SQLiteRowDecoder {
+struct MySQLRowDecoder {
     init() { }
     
     func decode<D>(_ type: D.Type, from row: [MySQLColumn: MySQLData], table: String? = nil) throws -> D
