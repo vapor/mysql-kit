@@ -147,8 +147,7 @@ extension MySQLQuery {
 }
 
 // FIXME: add collate
-public struct MySQLCollate: CustomStringConvertible {
-    
+public struct MySQLCollate: CustomStringConvertible { 
     public var description: String {
         return ""
     }

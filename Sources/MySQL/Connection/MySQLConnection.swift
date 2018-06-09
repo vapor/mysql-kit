@@ -4,6 +4,9 @@ import NIOOpenSSL
 
 /// A MySQL frontend client.
 public final class MySQLConnection: BasicWorker, DatabaseConnection {
+    /// See `DatabaseConnection`.
+    public typealias Database = MySQLDatabase
+    
     /// See `Worker`.
     public var eventLoop: EventLoop {
         return channel.eventLoop
@@ -99,12 +102,22 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
         return promise.futureResult
     }
     
+    /// See `DatabaseConnectable`.
+    public func close() {
+        self.close(done: nil)
+    }
+    
     /// Closes this client.
-    public func close() -> Future<Void> {
+    public func close(done promise: Promise<Void>?) {
         assert(currentSend == nil, "Cannot close while sending.")
         self.isClosing = true
-        return send([.quit]) { packet in
+        let done = send([.quit]) { packet in
             return true
+        }
+        if let promise = promise {
+            done.cascade(promise: promise)
+        } else {
+            // potentially warn about closing without waiting
         }
     }
 }
