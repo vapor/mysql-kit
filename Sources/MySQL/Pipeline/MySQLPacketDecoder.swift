@@ -31,6 +31,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
     /// - returns: `DecodingState.continue` if we should continue calling this method or `DecodingState.needMoreData` if it should be called
     //             again once more data is present in the `ByteBuffer`.
     func decode(ctx: ChannelHandlerContext, buffer: inout ByteBuffer) throws -> DecodingState {
+        // print("\(#function) \(session.handshakeState)")
         switch session.handshakeState {
         case .waiting: return try decodeHandshake(ctx: ctx, buffer: &buffer)
         case .complete(let capabilities):

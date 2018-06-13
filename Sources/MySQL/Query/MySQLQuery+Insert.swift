@@ -7,13 +7,11 @@ extension MySQLQuery {
         }
         
         public struct UpsertClause {
-            public enum Action {
-                case nothing
-                case update(SetValues)
-            }
+            public var values: SetValues
             
-            public var indexedColumns: IndexedColumns?
-            public var action: Action
+            public init(values: SetValues) {
+                self.values = values
+            }
         }
         
         public var with: WithClause?
@@ -50,7 +48,6 @@ extension MySQLSerializer {
         }
         sql.append("INSERT")
         if let conflictResolution = insert.conflictResolution {
-            sql.append("OR")
             sql.append(serialize(conflictResolution))
         }
         sql.append("INTO")
@@ -78,23 +75,8 @@ extension MySQLSerializer {
     
     func serialize(_ upsert: MySQLQuery.Insert.UpsertClause, _ binds: inout [MySQLData]) -> String {
         var sql: [String] = []
-        sql.append("ON CONFLICT")
-        if let indexed = upsert.indexedColumns {
-            sql.append(serialize(indexed, &binds))
-        }
-        sql.append("DO")
-        sql.append(serialize(upsert.action, &binds))
-        return sql.joined(separator: " ")
-    }
-    
-    func serialize(_ action: MySQLQuery.Insert.UpsertClause.Action, _ binds: inout [MySQLData]) -> String {
-        var sql: [String] = []
-        switch action {
-        case .nothing: sql.append("NOTHING")
-        case .update(let setValues):
-            sql.append("UPDATE")
-            sql.append(serialize(setValues, &binds))
-        }
+        sql.append("ON DUPLICATE KEY UPDATE")
+        sql.append(serialize(upsert.values, &binds))
         return sql.joined(separator: " ")
     }
 }

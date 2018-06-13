@@ -32,6 +32,7 @@ extension MySQLSerializer {
             sql.append(serialize(conflictResolution))
         }
         sql.append(serialize(update.table))
+        sql.append("SET")
         sql.append(serialize(update.values, &binds))
         if let predicate = update.predicate {
             sql.append("WHERE")

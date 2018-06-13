@@ -34,7 +34,7 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
     // MARK: Private
     
     private func handlePacket(ctx: ChannelHandlerContext, packet: MySQLPacket) throws {
-        //print("✅ \(packet)")
+        // print("✅ \(packet) \(state)")
         switch state {
         case .nascent:
             switch packet {
@@ -44,9 +44,9 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
                 case .tls(let tlsConfig): try writeSSLRequest(ctx: ctx, using: tlsConfig, handshake: handshake)
                 }
             case .ok:
+                state = .waiting
                 readyForQuery?.succeed()
                 self.readyForQuery = nil
-                state = .waiting
             case .fullAuthenticationRequest:
                 guard config.transport.isTLS else {
                     throw MySQLError(identifier: "fullAuthRequired", reason: "Full authentication not supported over insecure connections.", source: .capture())
@@ -69,9 +69,13 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
         case .callback(let promise, let callback):
             do {
                 if try callback(packet) {
+                    state = .waiting
                     promise.succeed()
+                } else {
+                    // continue parsing
                 }
             } catch {
+                state = .waiting
                 promise.fail(error: error)
             }
         }

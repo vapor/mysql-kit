@@ -2,6 +2,11 @@ extension MySQLQuery {
     public struct IndexedColumns {
         public var columns: [IndexedColumn]
         public var predicate: Expression?
+        
+        public init(columns: [IndexedColumn], predicate: Expression? = nil) {
+            self.columns = columns
+            self.predicate = predicate
+        }
     }
     
     

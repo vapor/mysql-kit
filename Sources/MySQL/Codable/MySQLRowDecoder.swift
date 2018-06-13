@@ -59,10 +59,7 @@ struct MySQLRowDecoder {
             guard let data = row.firstValue(forColumn: key.stringValue, inTable: table) else {
                 return true
             }
-            switch data {
-            case .null: return true
-            default: return false
-            }
+            return data.isNull
         }
         
         func decode<T>(_ type: T.Type, forKey key: Key) throws -> T where T : Decodable {

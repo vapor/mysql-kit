@@ -308,7 +308,7 @@ extension MySQLData: CustomStringConvertible {
                 default: return "data(0x\(data.hexEncodedString()))"
                 }
             case .null: return "null"
-            default: return "\(data)"
+            default: return "\(binary.storage)"
             }
         }
     }

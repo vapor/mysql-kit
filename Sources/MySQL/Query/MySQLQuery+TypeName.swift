@@ -143,6 +143,14 @@ extension MySQLQuery {
         /// The maximum supported length of an individual SET element is M <= 255 and (M x w) <= 1020, where M is the element literal length and
         /// w is the number of bytes required for the maximum-length character in the character set.
         case set([String], MySQLCharacterSet?, MySQLCollate?)
+        
+        /// JSON
+        
+        /// MySQL supports a native JSON data type defined by RFC 7159 that enables efficient access to data in JSON
+        /// (JavaScript Object Notation) documents.
+        ///
+        /// https://dev.mysql.com/doc/refman/8.0/en/json.html
+        case json
     }
 }
 
@@ -299,6 +307,7 @@ extension MySQLSerializer {
                 sql.append(collate.description)
             }
             return sql.joined(separator: " ")
+        case .json: return "JSON"
         }
     }
 }

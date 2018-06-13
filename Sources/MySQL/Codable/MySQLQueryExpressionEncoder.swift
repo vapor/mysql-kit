@@ -18,8 +18,7 @@ struct MySQLQueryExpressionEncoder {
                 try value.encode(to: encoder)
                 return encoder.data!
             } catch is _DoJSONError {
-                let json = try JSONEncoder().encode(value)
-                return .data(.init(data: json))
+                return try .data(.init(json: value))
             }
         }
     }

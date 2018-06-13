@@ -23,7 +23,6 @@ extension MySQLQuery {
 extension MySQLSerializer {
     func serialize(_ update: MySQLQuery.SetValues, _ binds: inout [MySQLData]) -> String {
         var sql: [String] = []
-        sql.append("SET")
         sql.append(update.columns.map { serialize($0, &binds) }.joined(separator: ", "))
         if let predicate = update.predicate {
             sql.append("WHERE")
