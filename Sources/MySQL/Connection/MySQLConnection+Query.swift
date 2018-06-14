@@ -64,8 +64,9 @@ extension MySQLConnection {
                     }
                 }
             )
+            let comClose = MySQLPacket.ComStmtClose(statementID: ok.statementID)
             var columns: [MySQLColumnDefinition41] = []
-            return self.send([.comStmtExecute(comExecute)]) { message in
+            return self.send([.comStmtExecute(comExecute), .comStmtClose(comClose)]) { message in
                 switch message {
                 case .columnDefinition41(let col):
                     columns.append(col)

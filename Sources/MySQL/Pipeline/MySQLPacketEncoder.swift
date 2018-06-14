@@ -39,6 +39,9 @@ final class MySQLPacketEncoder: MessageToByteEncoder {
             session.resetSequenceID()
             try comExecute.serialize(into: &out)
             session.connectionState = .statement(.waitingExecute)
+        case .comStmtClose(let comClose):
+            session.resetSequenceID()
+            try comClose.serialize(into: &out)
         case .quit:
             session.resetSequenceID()
             out.write(integer: 1, as: UInt8.self)
