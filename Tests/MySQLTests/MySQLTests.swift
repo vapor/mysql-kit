@@ -234,6 +234,16 @@ class MySQLTests: XCTestCase {
             .value(Planet(name: "Mars", galaxyID: milkyWayID))
             .run().wait()
     }
+
+    func testURLParsing() throws {
+        let databaseURL = "mysql://username:password@hostname.com:3306/database"
+        let config = try MySQLDatabaseConfig(url: databaseURL)
+        XCTAssertEqual(config.hostname, "hostname.com")
+        XCTAssertEqual(config.port, 3306)
+        XCTAssertEqual(config.username, "username")
+        XCTAssertEqual(config.password, "password")
+        XCTAssertEqual(config.database, "database")
+    }
     
     /// https://github.com/vapor/mysql/issues/164
     func testPreparedStatementOverload() throws {
@@ -256,6 +266,8 @@ class MySQLTests: XCTestCase {
         ("testTimePrecision", testTimePrecision),
         ("testSaveEmoticonsUnicode", testSaveEmoticonsUnicode),
         ("testStringCharacterSet", testStringCharacterSet),
+        ("testDisconnect", testDisconnect),
+        ("testURLParsing", testURLParsing),
         ("testInsertMany", testInsertMany),
         ("testPreparedStatementOverload", testPreparedStatementOverload),
     ]

@@ -48,4 +48,31 @@ public struct MySQLDatabaseConfig {
         self.characterSet = characterSet
         self.transport = transport
     }
+
+    /// Creates a `MySQLDatabaseConfig` frome a connection string.
+    public init(url urlString: String, capabilities: MySQLCapabilities = .default, characterSet: MySQLCharacterSet = .utf8_general_ci) throws {
+        guard
+            let url = URL(string: urlString),
+            let hostname = url.host,
+            let port = url.port,
+            let username = url.user,
+            let database = url.databaseName
+        else {
+            throw MySQLError(
+                identifier: "Bad Connection String",
+                reason: "Host could not be parsed",
+                possibleCauses: ["Foundation URL is unable to parse the provided connection string"],
+                suggestedFixes: ["Check the connection string being passed"],
+                source: .capture()
+            )
+        }
+
+        self.hostname = hostname
+        self.port = port
+        self.username = username
+        self.database = database
+        self.password = url.password
+        self.capabilities = capabilities
+        self.characterSet = characterSet
+    }
 }
