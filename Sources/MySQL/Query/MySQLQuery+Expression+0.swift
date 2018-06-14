@@ -97,8 +97,8 @@ extension MySQLQuery {
 }
 
 extension MySQLQuery.Expression {
-    public static func bind<E>(_ value: E) throws -> MySQLQuery.Expression where E: Encodable {
-        return try MySQLQueryExpressionEncoder().encode(value)
+    public static func bind<E>(_ value: E) -> MySQLQuery.Expression where E: Encodable {
+        return MySQLQueryExpressionEncoder().encode(value)
     }
 }
 

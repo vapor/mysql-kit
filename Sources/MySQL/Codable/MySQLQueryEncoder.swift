@@ -44,13 +44,13 @@ public struct MySQLQueryEncoder {
             encoder.row[key.stringValue] = .literal(.null)
         }
         
-        mutating func encode<T>(_ encodable: T, forKey key: Key) throws where T : Encodable {
-            encoder.row[key.stringValue] = try MySQLQueryExpressionEncoder().encode(encodable)
+        mutating func encode<T>(_ encodable: T, forKey key: Key) where T : Encodable {
+            encoder.row[key.stringValue] = MySQLQueryExpressionEncoder().encode(encodable)
         }
         
         mutating func _encodeIfPresent<T>(_ value: T?, forKey key: Key) throws where T : Encodable {
             if let value = value {
-                try encode(value, forKey: key)
+                encode(value, forKey: key)
             } else {
                 try encodeNil(forKey: key)
             }

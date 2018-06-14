@@ -85,10 +85,10 @@ extension Dictionary where Key == MySQLColumn, Value == MySQLData {
     }
 }
 
-public func ==<Table, Value>(_ lhs: KeyPath<Table, Value>, _ rhs: Value) throws -> MySQLQuery.Expression
+public func ==<Table, Value>(_ lhs: KeyPath<Table, Value>, _ rhs: Value) -> MySQLQuery.Expression
     where Table: MySQLTable, Value: Encodable
 {
-    return try .binary(.column(lhs.qualifiedColumnName), .equal, .bind(rhs))
+    return .binary(.column(lhs.qualifiedColumnName), .equal, .bind(rhs))
 }
 
 public func ==<TableA, ValueA, TableB, ValueB>(
@@ -99,10 +99,10 @@ public func ==<TableA, ValueA, TableB, ValueB>(
     return .binary(.column(lhs.qualifiedColumnName), .equal, .column(rhs.qualifiedColumnName))
 }
 
-public func !=<Table, Value>(_ lhs: KeyPath<Table, Value>, _ rhs: Value) throws -> MySQLQuery.Expression
+public func !=<Table, Value>(_ lhs: KeyPath<Table, Value>, _ rhs: Value) -> MySQLQuery.Expression
     where Table: MySQLTable, Value: Encodable
 {
-    return try .binary(.column(lhs.qualifiedColumnName), .notEqual, .bind(rhs))
+    return .binary(.column(lhs.qualifiedColumnName), .notEqual, .bind(rhs))
 }
 
 public protocol MySQLTable: Codable, Reflectable {

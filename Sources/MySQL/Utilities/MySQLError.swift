@@ -32,6 +32,10 @@ public struct MySQLError: Debuggable {
     }
 }
 
+func ERROR(_ string: @autoclosure () -> (String)) {
+    print("[ERROR] [MySQL] \(string())")
+}
+
 func VERBOSE(_ string: @autoclosure () -> (String)) {
     #if VERBOSE
     print("[VERBOSE] [MySQL] \(string())")

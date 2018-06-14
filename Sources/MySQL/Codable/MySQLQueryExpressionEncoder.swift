@@ -5,20 +5,23 @@ public protocol MySQLQueryExpressionRepresentable {
 struct MySQLQueryExpressionEncoder {
     init() { }
     
-    func encode<E>(_ value: E) throws -> MySQLQuery.Expression
+    func encode<E>(_ value: E) -> MySQLQuery.Expression
         where E: Encodable
     {
         if let mysql = value as? MySQLQueryExpressionRepresentable {
             return mysql.MySQLQueryExpression
         } else if let value = value as? MySQLDataConvertible {
-            return try .data(value.convertToMySQLData())
+            return .data(value.convertToMySQLData())
         } else {
             let encoder = _Encoder()
             do {
                 try value.encode(to: encoder)
                 return encoder.data!
             } catch is _DoJSONError {
-                return try .data(.init(json: value))
+                return .data(.init(json: value))
+            } catch {
+                ERROR("Could not encode \(E.self) to MySQLQuery.Expression: \(error)")
+                return .literal(.null)
             }
         }
     }
@@ -67,7 +70,7 @@ struct MySQLQueryExpressionEncoder {
                 encoder.data = mysql.MySQLQueryExpression
                 return
             } else if let convertible = value as? MySQLDataConvertible {
-                encoder.data = try .data(convertible.convertToMySQLData())
+                encoder.data = .data(convertible.convertToMySQLData())
                 return
             }
             try value.encode(to: encoder)
