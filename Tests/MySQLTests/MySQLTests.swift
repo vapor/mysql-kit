@@ -245,7 +245,15 @@ class MySQLTests: XCTestCase {
             .value(Planet(name: "Venus", galaxyID: milkyWayID))
             .value(Planet(name: "Mars", galaxyID: milkyWayID))
             .run().wait()
-        
+    }
+    
+    /// https://github.com/vapor/mysql/issues/164
+    func testPreparedStatementOverload() throws {
+        let conn = try MySQLConnection.makeTest()
+        for _ in 1...17_000 {
+            conn.logger = nil
+            _ = try conn.query(.raw("SELECT @@version", [])).wait()
+        }
     }
 
     static let allTests = [
@@ -258,6 +266,7 @@ class MySQLTests: XCTestCase {
         ("testSaveEmoticonsUnicode", testSaveEmoticonsUnicode),
         ("testStringCharacterSet", testStringCharacterSet),
         ("testInsertMany", testInsertMany),
+        ("testPreparedStatementOverload", testPreparedStatementOverload),
     ]
 }
 
