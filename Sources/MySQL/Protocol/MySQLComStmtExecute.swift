@@ -36,8 +36,9 @@ struct MySQLComStmtExecute {
             var nullBitmap = MySQLNullBitmap.comExecuteBitmap(count: values.count)
 
             for (i, value) in values.enumerated() {
-                if value.storage == nil {
-                    nullBitmap.setNull(at: i)
+                switch value.storage {
+                case .null: nullBitmap.setNull(at: i)
+                default: break
                 }
             }
             buffer.write(bytes: nullBitmap.bytes)
@@ -58,35 +59,34 @@ struct MySQLComStmtExecute {
 
             /// set values
             for value in values {
-                if let data = value.storage {
-                    switch data {
-                    case .integer1(let int1): buffer.write(integer: int1, endianness: .little)
-                    case .integer2(let int2): buffer.write(integer: int2, endianness: .little)
-                    case .integer4(let int4): buffer.write(integer: int4, endianness: .little)
-                    case .integer8(let int8): buffer.write(integer: int8, endianness: .little)
-                    case .uinteger1(let uint1): buffer.write(integer: uint1, endianness: .little)
-                    case .uinteger2(let uint2): buffer.write(integer: uint2, endianness: .little)
-                    case .uinteger4(let uint4): buffer.write(integer: uint4, endianness: .little)
-                    case .uinteger8(let uint8): buffer.write(integer: uint8, endianness: .little)
-                    case .float4(let float4): buffer.write(floatingPoint: float4)
-                    case .float8(let float8): buffer.write(floatingPoint: float8)
-                    case .string(let data):
-                        /// larger than 2^24 not yet supported
-                        guard data.count < 16_777_216 else {
-                            throw MySQLError(identifier: "dataTooLarge", reason: "Data must be <= 16MB", source: .capture())
-                        }
-                        buffer.write(lengthEncoded: numericCast(data.count))
-                        buffer.write(bytes: data)
-                    case .time(let time):
-                        buffer.write(integer: Byte(11), endianness: .little)
-                        buffer.write(integer: time.year, endianness: .little)
-                        buffer.write(integer: time.month, endianness: .little)
-                        buffer.write(integer: time.day, endianness: .little)
-                        buffer.write(integer: time.hour, endianness: .little)
-                        buffer.write(integer: time.minute, endianness: .little)
-                        buffer.write(integer: time.second, endianness: .little)
-                        buffer.write(integer: time.microsecond, endianness: .little)
+                switch value.storage {
+                case .integer1(let int1): buffer.write(integer: int1, endianness: .little)
+                case .integer2(let int2): buffer.write(integer: int2, endianness: .little)
+                case .integer4(let int4): buffer.write(integer: int4, endianness: .little)
+                case .integer8(let int8): buffer.write(integer: int8, endianness: .little)
+                case .uinteger1(let uint1): buffer.write(integer: uint1, endianness: .little)
+                case .uinteger2(let uint2): buffer.write(integer: uint2, endianness: .little)
+                case .uinteger4(let uint4): buffer.write(integer: uint4, endianness: .little)
+                case .uinteger8(let uint8): buffer.write(integer: uint8, endianness: .little)
+                case .float4(let float4): buffer.write(floatingPoint: float4)
+                case .float8(let float8): buffer.write(floatingPoint: float8)
+                case .string(let data):
+                    /// larger than 2^24 not yet supported
+                    guard data.count < 16_777_216 else {
+                        throw MySQLError(identifier: "dataTooLarge", reason: "Data must be <= 16MB", source: .capture())
                     }
+                    buffer.write(lengthEncoded: numericCast(data.count))
+                    buffer.write(bytes: data)
+                case .time(let time):
+                    buffer.write(integer: Byte(11), endianness: .little)
+                    buffer.write(integer: time.year, endianness: .little)
+                    buffer.write(integer: time.month, endianness: .little)
+                    buffer.write(integer: time.day, endianness: .little)
+                    buffer.write(integer: time.hour, endianness: .little)
+                    buffer.write(integer: time.minute, endianness: .little)
+                    buffer.write(integer: time.second, endianness: .little)
+                    buffer.write(integer: time.microsecond, endianness: .little)
+                case .null: break
                 }
             }
         }

@@ -13,7 +13,7 @@ struct MySQLBinaryData: Equatable {
     var isUnsigned: Bool
 
     /// The value's optional data.
-    var storage: MySQLBinaryDataStorage?
+    var storage: MySQLBinaryDataStorage
 }
 
 /// 14.7.3 Binary Protocol Value
@@ -55,4 +55,7 @@ enum MySQLBinaryDataStorage: Equatable {
 
     /// MYSQL_TIME
     case time(MySQLTime)
+    
+    /// MYSQL_TYPE_NULL
+    case null
 }

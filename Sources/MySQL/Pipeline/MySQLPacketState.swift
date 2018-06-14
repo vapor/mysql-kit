@@ -1,7 +1,7 @@
 import Bits
 
 /// Represents information about a single MySQL connection.
-final class MySQLConnectionSession {
+final class MySQLPacketState {
     /// The state of this connection.
     var handshakeState: MySQLHandshakeState
 

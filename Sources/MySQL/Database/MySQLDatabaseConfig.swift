@@ -24,10 +24,21 @@ public struct MySQLDatabaseConfig {
     public let capabilities: MySQLCapabilities
 
     /// Character set. Default utf8_general_ci
-    let characterSet: MySQLCharacterSet
+    public let characterSet: MySQLCharacterSet
+    
+    public let transport: MySQLTransportConfig
 
     /// Creates a new `MySQLDatabaseConfig`.
-    public init(hostname: String = "127.0.0.1", port: Int = 3306, username: String, password: String? = nil, database: String, capabilities: MySQLCapabilities = .default, characterSet: MySQLCharacterSet = .utf8_general_ci) {
+    public init(
+        hostname: String = "127.0.0.1",
+        port: Int = 3306,
+        username: String = "vapor",
+        password: String? = nil,
+        database: String = "vapor",
+        capabilities: MySQLCapabilities = .default,
+        characterSet: MySQLCharacterSet = .utf8mb4_unicode_ci,
+        transport: MySQLTransportConfig = .cleartext
+    ) {
         self.hostname = hostname
         self.port = port
         self.username = username
@@ -35,5 +46,26 @@ public struct MySQLDatabaseConfig {
         self.password = password
         self.capabilities = capabilities
         self.characterSet = characterSet
+        self.transport = transport
+    }
+
+    /// Creates a `MySQLDatabaseConfig` frome a connection string.
+    public init?(
+        url urlString: String,
+        capabilities: MySQLCapabilities = .default,
+        characterSet: MySQLCharacterSet = .utf8mb4_unicode_ci,
+        transport: MySQLTransportConfig = .cleartext
+    ) throws {
+        guard let url = URL(string: urlString) else { return nil }
+        self.init(
+            hostname: url.host ?? "127.0.0.1",
+            port: url.port ?? 3306,
+            username: url.user ?? "vapor",
+            password: url.password,
+            database: url.databaseName ?? "vapor",
+            capabilities: capabilities,
+            characterSet: characterSet,
+            transport: transport
+        )
     }
 }

@@ -10,10 +10,10 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
     var cumulationBuffer: ByteBuffer?
 
     /// Information about this connection.
-    var session: MySQLConnectionSession
+    var session: MySQLPacketState
 
     /// Creates a new `MySQLPacketDecoder`
-    init(session: MySQLConnectionSession) {
+    init(session: MySQLPacketState) {
         self.session = session
     }
 
@@ -31,14 +31,17 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
     /// - returns: `DecodingState.continue` if we should continue calling this method or `DecodingState.needMoreData` if it should be called
     //             again once more data is present in the `ByteBuffer`.
     func decode(ctx: ChannelHandlerContext, buffer: inout ByteBuffer) throws -> DecodingState {
-        VERBOSE("MySQLPacketDecoder.decode(ctx: \(ctx), buffer: \(buffer)")
+        // print("\(#function) \(session.handshakeState)")
         switch session.handshakeState {
-        case .waiting: return try decodeHandshake(ctx:ctx, buffer: &buffer)
+        case .waiting: return try decodeHandshake(ctx: ctx, buffer: &buffer)
         case .complete(let capabilities):
             switch session.connectionState {
-            case .none: return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
-            case .text(let textState): return try decodeTextProtocol(ctx: ctx, buffer: &buffer, textState: textState, capabilities: capabilities)
-            case .statement(let statementState): return try decodeStatementProtocol(ctx: ctx, buffer: &buffer, statementState: statementState, capabilities: capabilities)
+            case .none:
+                return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
+            case .text(let textState):
+                return try decodeTextProtocol(ctx: ctx, buffer: &buffer, textState: textState, capabilities: capabilities)
+            case .statement(let statementState):
+                return try decodeStatementProtocol(ctx: ctx, buffer: &buffer, statementState: statementState, capabilities: capabilities)
             }
         }
     }
@@ -48,10 +51,21 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         let packet: MySQLPacket
         let length = try buffer.requireInteger(endianness: .little, as: Int32.self, source: .capture())
         assert(length > 0)
-        let handshake = try MySQLHandshakeV10(bytes: &buffer)
-        packet = .handshakev10(handshake)
-        session.handshakeState = .complete(handshake.capabilities)
-        session.incrementSequenceID()
+        
+        guard let next: Byte = buffer.peekInteger() else {
+            throw MySQLError(identifier: "peekHandshake", reason: "Could not peek at handshake type.", source: .capture())
+        }
+        if next == 0xFF {
+            // parse error message, ignoring capabilities since the server has not supplied
+            // any information about that yet
+            let err = try MySQLErrorPacket(bytes: &buffer, capabilities: .init(), length: numericCast(length))
+            packet = .err(err)
+        } else {
+            let handshake = try MySQLPacket.HandshakeV10(bytes: &buffer)
+            packet = .handshakev10(handshake)
+            session.handshakeState = .complete(handshake.capabilities)
+            session.incrementSequenceID()
+        }
         ctx.fireChannelRead(wrapInboundOut(packet))
         return .continue
     }
@@ -68,12 +82,12 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         let packet: MySQLPacket
         if next == 0x00 && length >= 7 {
             // parse OK packet
-            let ok = try MySQLOKPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
+            let ok = try MySQLPacket.OK(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
             packet = .ok(ok)
         } else if next == 0xFE && length < 9 {
             if capabilities.contains(.CLIENT_DEPRECATE_EOF) {
                 // parse EOF packet
-                let eof = try MySQLOKPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
+                let eof = try MySQLPacket.OK(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
                 packet = .ok(eof)
             } else {
                 // parse EOF packet
@@ -84,6 +98,21 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             // parse error message
             let err = try MySQLErrorPacket(bytes: &buffer, capabilities: capabilities, length: numericCast(length))
             packet = .err(err)
+        } else if next == 0x01, let second = buffer.peekInteger(skipping: 1, as: Byte.self) {
+            // caching_sha2_password specific stuff
+            switch second {
+            case 0x03:
+                // auth complete
+                buffer.moveReaderIndex(forwardBy: 2)
+                // decode the OK packet
+                return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
+            case 0x04:
+                // more data needed to complete auth
+                buffer.moveReaderIndex(forwardBy: 2)
+                packet = .fullAuthenticationRequest
+            default:
+                throw MySQLError(identifier: "basicPacket", reason: "Unrecognized basic packet.", source: .capture())
+            }
         } else {
             throw MySQLError(identifier: "basicPacket", reason: "Unrecognized basic packet.", source: .capture())
         }
@@ -136,13 +165,13 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
             let column = try MySQLColumnDefinition41(bytes: &buffer)
             session.incrementSequenceID()
-            ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
             remaining -= 1
             if remaining == 0 {
                 session.connectionState = .text(.rows(columnCount: columnCount, remaining: columnCount))
             } else {
                 session.connectionState = .text(.columns(columnCount: columnCount, remaining: remaining))
             }
+            ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
         case .rows(let columnCount, var remaining):
             if columnCount == remaining {
                 // we are on a new set of results, check packet length again
@@ -152,7 +181,6 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
 
             let result = try MySQLResultSetRow(bytes: &buffer)
-            ctx.fireChannelRead(wrapInboundOut(.resultSetRow(result)))
             remaining -= 1
             if remaining == 0 {
                 if buffer.peekInteger(as: Byte.self, skipping: 4) == 0xFE {
@@ -163,6 +191,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             } else {
                 session.connectionState = .text(.rows(columnCount: columnCount, remaining: remaining))
             }
+            ctx.fireChannelRead(wrapInboundOut(.resultSetRow(result)))
         }
         return .continue
     }
@@ -185,7 +214,6 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
             let ok = try MySQLComStmtPrepareOK(bytes: &buffer)
             session.incrementSequenceID()
-            ctx.fireChannelRead(wrapInboundOut(.comStmtPrepareOK(ok)))
             if ok.numParams > 0 {
                 session.connectionState = .statement(.params(ok: ok, remaining: numericCast(ok.numParams)))
             } else if ok.numColumns > 0 {
@@ -193,6 +221,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             } else {
                 session.connectionState = .statement(.columnsDone)
             }
+            ctx.fireChannelRead(wrapInboundOut(.comStmtPrepareOK(ok)))
         case .params(let ok, var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
                 return .needMoreData
@@ -200,14 +229,13 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
 
             let column = try MySQLColumnDefinition41(bytes: &buffer)
             session.incrementSequenceID()
-            ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
-
             remaining -= 1
             if remaining == 0 {
                 session.connectionState = .statement(.paramsDone(ok: ok))
             } else {
                 session.connectionState = .statement(.params(ok: ok, remaining: remaining))
             }
+            ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
         case .paramsDone(let ok):
             if ok.numColumns > 0 {
                 session.connectionState = .statement(.columns(remaining: numericCast(ok.numColumns)))
@@ -225,7 +253,6 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
 
             let column = try MySQLColumnDefinition41(bytes: &buffer)
             session.incrementSequenceID()
-            ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
 
             remaining -= 1
             if remaining == 0 {
@@ -233,6 +260,8 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             } else {
                 session.connectionState = .statement(.columns(remaining: remaining))
             }
+            
+            ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
         case .columnsDone:
             if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
                 return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
@@ -260,13 +289,13 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             let column = try MySQLColumnDefinition41(bytes: &buffer)
             columns.append(column)
             session.incrementSequenceID()
-            ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
             remaining -= 1
             if remaining == 0 {
                 session.connectionState = .statement(.rowColumnsDone(columns: columns))
             } else {
                 session.connectionState = .statement(.rowColumns(columns: columns, remaining: remaining))
             }
+            ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
         case .rowColumnsDone(let columns):
             if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
                 let result = try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
