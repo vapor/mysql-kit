@@ -51,10 +51,21 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         let packet: MySQLPacket
         let length = try buffer.requireInteger(endianness: .little, as: Int32.self, source: .capture())
         assert(length > 0)
-        let handshake = try MySQLPacket.HandshakeV10(bytes: &buffer)
-        packet = .handshakev10(handshake)
-        session.handshakeState = .complete(handshake.capabilities)
-        session.incrementSequenceID()
+        
+        guard let next: Byte = buffer.peekInteger() else {
+            throw MySQLError(identifier: "peekHandshake", reason: "Could not peek at handshake type.", source: .capture())
+        }
+        if next == 0xFF {
+            // parse error message, ignoring capabilities since the server has not supplied
+            // any information about that yet
+            let err = try MySQLErrorPacket(bytes: &buffer, capabilities: .init(), length: numericCast(length))
+            packet = .err(err)
+        } else {
+            let handshake = try MySQLPacket.HandshakeV10(bytes: &buffer)
+            packet = .handshakev10(handshake)
+            session.handshakeState = .complete(handshake.capabilities)
+            session.incrementSequenceID()
+        }
         ctx.fireChannelRead(wrapInboundOut(packet))
         return .continue
     }
