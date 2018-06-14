@@ -5,6 +5,7 @@ import XCTest
 class MySQLTests: XCTestCase {
     func testSimpleQuery() throws {
         let conn = try MySQLConnection.makeTest()
+        defer { conn.close(done: nil) }
         let results = try conn.simpleQuery("SELECT @@version").wait()
         _ = try conn.simpleQuery("SELECT @@version").wait()
         _ = try conn.simpleQuery("SELECT @@version").wait()
@@ -13,6 +14,7 @@ class MySQLTests: XCTestCase {
 
     func testQuery() throws {
         let conn = try MySQLConnection.makeTest()
+        defer { conn.close(done: nil) }
         let results = try conn.query(.raw("SELECT CONCAT(?, ?) as test;", [
             "hello".convertToMySQLData(),
             "world".convertToMySQLData()
@@ -23,6 +25,7 @@ class MySQLTests: XCTestCase {
 
     func testInsert() throws {
         let client = try MySQLConnection.makeTest()
+        defer { client.close(done: nil) }
         let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS foos;").wait()
         XCTAssertEqual(dropResults.count, 0)
         let createResults = try client.simpleQuery("CREATE TABLE foos (id INT SIGNED, name VARCHAR(64));").wait()
@@ -50,7 +53,7 @@ class MySQLTests: XCTestCase {
             init<T>(_ name: String, _ columnType: String, _ value: T) where T: MySQLDataConvertible & Equatable {
                 self.name = name
                 self.columnType = columnType
-                data = try! value.convertToMySQLData()
+                data = value.convertToMySQLData()
                 self.match = { data, file, line in
                     if let data = data {
                         let t = try T.convertFromMySQLData(data)
@@ -78,6 +81,7 @@ class MySQLTests: XCTestCase {
         ]
 
         let client = try MySQLConnection.makeTest()
+        defer { client.close(done: nil) }
         /// create table
         let columns = tests.map { test in
             return "`\(test.name)` \(test.columnType)"
@@ -102,28 +106,10 @@ class MySQLTests: XCTestCase {
         }
     }
 
-//    func testPipelining() throws {
-//        return; // no longer supported
-//        let client = try MySQLConnection.makeTest()
-//        let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS foos;").wait()
-//        XCTAssertEqual(dropResults.count, 0)
-//        let createResults = try client.simpleQuery("CREATE TABLE foos (id INT SIGNED, name VARCHAR(64));").wait()
-//        XCTAssertEqual(createResults.count, 0)
-//        let results = try [
-//            client.query(.raw("INSERT INTO foos VALUES (?, ?);", [1, "vapor1"])),
-//            client.query(.raw("INSERT INTO foos VALUES (?, ?);", [2, "vapor2"])),
-//            client.query(.raw("INSERT INTO foos VALUES (?, ?);", [3, "vapor2"])),
-//        ].flatten(on: client.eventLoop).wait()
-//        print(results)
-//
-//        let selectResults = try client.simpleQuery("SELECT * FROM foos;").wait()
-//        XCTAssertEqual(selectResults.count, 3)
-//        print(selectResults)
-//    }
-
     func testLargeValues() throws {
         func testSize(_ size: Int) throws {
             let client = try MySQLConnection.makeTest()
+            defer { client.close(done: nil) }
             client.logger = nil // the output will be too big
             let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS foos;").wait()
             XCTAssertEqual(dropResults.count, 0)
@@ -169,6 +155,7 @@ class MySQLTests: XCTestCase {
 
     func testSaveEmoticonsUnicode() throws {
         let client = try MySQLConnection.makeTest()
+        defer { client.close(done: nil) }
         let dropResults = try client.simpleQuery("DROP TABLE IF EXISTS emojis;").wait()
         XCTAssertEqual(dropResults.count, 0)
         let createResults = try client.simpleQuery("CREATE TABLE emojis (id INT SIGNED NOT NULL, description VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL);").wait()
@@ -211,6 +198,7 @@ class MySQLTests: XCTestCase {
     
     func testInsertMany() throws {
         let conn = try MySQLConnection.makeTest()
+        defer { conn.close(done: nil) }
         
         try conn.drop(table: Planet.self).ifExists()
             .run().wait()
@@ -251,13 +239,14 @@ class MySQLTests: XCTestCase {
     func testPreparedStatementOverload() throws {
         #if os(Linux) // slow test, only run on CI
         let conn = try MySQLConnection.makeTest()
+        defer { conn.close(done: nil) }
         for _ in 1...17_000 {
             conn.logger = nil
             _ = try conn.query(.raw("SELECT @@version", [])).wait()
         }
         #endif
     }
-
+    
     static let allTests = [
         ("testSimpleQuery", testSimpleQuery),
         ("testQuery", testQuery),
