@@ -16,6 +16,6 @@ struct MySQLComQuery {
         /// command_id (1) -- 0x03 COM_QUERY
         buffer.write(integer: Byte(0x03))
         /// eof-terminated
-        buffer.write(string: query)
+        buffer.write(string: .init(query))
     }
 }

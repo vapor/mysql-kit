@@ -57,7 +57,26 @@ jobs:
   8.0-linux:
     docker:
       - image: codevapor/swift:4.1
-      - image: mysql:8.0.3
+      - image: mysql:8.0
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: vapor_database
+          # MYSQL_ROOT_HOST: %
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+    steps:
+      - checkout
+      - run: 
+          name: Compile code
+          command: swift build
+      - run: 
+          name: Run unit tests
+          command: swift test -Xswiftc -DSSL_TESTS
+
+  mariadb-10.3-linux:
+    docker:
+      - image: codevapor/swift:4.1
+      - image: mariadb:10.3
         environment:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: vapor_database
@@ -73,7 +92,6 @@ jobs:
           name: Run unit tests
           command: swift test
 
-
   8.0-linux-fluent:
     docker:
       - image: codevapor/swift:4.1
@@ -86,7 +104,7 @@ jobs:
     steps:
       - run:
           name: Clone Fluent MySQL
-          command: git clone -b dbkit-gm https://github.com/vapor/fluent-mysql.git
+          command: git clone -b gm https://github.com/vapor/fluent-mysql.git
           working_directory: ~/
       - run:
           name: Switch Fluent MySQL to this MySQL revision
@@ -112,10 +130,11 @@ workflows:
   tests:
     jobs:
      # - macos
-      - 5.5-linux
+     # - 5.5-linux
       - 5.7-linux
       - 8.0-linux
       - 8.0-linux-fluent
+      - mariadb-10.3-linux
       - linux-release
 
   nightly:

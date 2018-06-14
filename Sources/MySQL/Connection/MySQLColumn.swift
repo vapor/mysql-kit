@@ -2,7 +2,7 @@
 public struct MySQLColumn: Hashable {
     /// See `Hashable.hashValue`
     public var hashValue: Int {
-        return ((table ?? "_") + "." + name).hashValue
+        return (table?.hashValue ?? 0) &+ name.hashValue
     }
 
     /// See `Equatable.==`
@@ -15,9 +15,23 @@ public struct MySQLColumn: Hashable {
 
     /// The column's name.
     public var name: String
+
+    /// Creates a new `MySQLColumn`.
+    public init(table: String? = nil, name: String) {
+        self.table = table
+        self.name = name
+    }
+}
+
+extension MySQLColumn: ExpressibleByStringLiteral {
+    /// See `ExpressibleByStringLiteral`.
+    public init(stringLiteral value: String) {
+        self.init(name: value)
+    }
 }
 
 extension MySQLColumn: CustomStringConvertible {
+    /// See `CustomStringConvertible`.
     public var description: String {
         if let table = table {
             return "\(table)(\(name))"
@@ -39,9 +53,9 @@ extension MySQLColumnDefinition41 {
 
 extension Dictionary where Key == MySQLColumn {
     /// Accesses the _first_ value from this dictionary with a matching field name.
-    public func firstValue(forColumn columnName: String) -> Value? {
+    public func firstValue(forColumn columnName: String, inTable table: String? = nil) -> Value? {
         for (field, value) in self {
-            if field.name == columnName {
+            if (table == nil || field.table == nil || field.table == table) && field.name == columnName {
                 return value
             }
         }
