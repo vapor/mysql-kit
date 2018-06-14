@@ -186,15 +186,20 @@ class MySQLTests: XCTestCase {
         XCTAssertNil(MySQLCharacterSet(string: characterSet))
     }
 
-//    func testDisconnect() throws {
-//        return;
-//        let client = try MySQLConnection.makeTest()
-//        while true {
-//            let version = try client.simpleQuery("SELECT @@version").wait()
-//            print(version)
-//            sleep(1)
-//        }
-//    }
+    func testDisconnect() throws {
+        /*
+         uncomment to test disconnect
+         SHOW PROCESSLIST
+         KILL <pid>
+         
+        let client = try MySQLConnection.makeTest()
+        while true {
+            let version = try client.simpleQuery("SELECT @@version").wait()
+            print(version)
+            sleep(1)
+        }
+        */
+    }
     
     func testInsertMany() throws {
         let conn = try MySQLConnection.makeTest()
@@ -237,7 +242,7 @@ class MySQLTests: XCTestCase {
 
     func testURLParsing() throws {
         let databaseURL = "mysql://username:password@hostname.com:3306/database"
-        let config = try MySQLDatabaseConfig(url: databaseURL)
+        let config = try MySQLDatabaseConfig(url: databaseURL)!
         XCTAssertEqual(config.hostname, "hostname.com")
         XCTAssertEqual(config.port, 3306)
         XCTAssertEqual(config.username, "username")
