@@ -43,7 +43,7 @@ extension MySQLQuery {
         
         public enum SubsetExpression {
             case subSelect(Select)
-            case expressions([Expression])
+            case expression(Expression)
             case table(QualifiedTableName)
             case tableFunction(schemaName: String?, Function)
         }
@@ -135,8 +135,31 @@ extension MySQLSerializer {
             return "(" + exprs.map { serialize($0, &binds) }.joined(separator: ", ") + ")"
         case .function(let function):
             return serialize(function, &binds)
-        case .subset(let expr, let op, let subset):
-            return serialize(expr, &binds) + " " + serialize(op) + " " + serialize(subset, &binds)
+        case .subset(let lhs, let op, let subset):
+            switch subset {
+            case .expression(let expr):
+                switch expr {
+                case .expressions(let exprs):
+                    switch exprs.count {
+                    case 0:
+                        switch op {
+                        case .in: return "0"
+                        case .notIn: return "1"
+                        }
+                    case 1:
+                        let binary: MySQLQuery.Expression.BinaryOperator
+                        switch op {
+                        case .in: binary = .equal
+                        case .notIn: binary = .notEqual
+                        }
+                        return serialize(MySQLQuery.Expression.binary(lhs, binary, exprs[0]), &binds)
+                    default: break
+                    }
+                default: break
+                }
+            default: break
+            }
+            return serialize(lhs, &binds) + " " + serialize(op) + " " + serialize(subset, &binds)
         default: return "\(expr)"
         }
     }
@@ -150,7 +173,7 @@ extension MySQLSerializer {
     
     func serialize(_ subset: MySQLQuery.Expression.SubsetExpression, _ binds: inout [MySQLData]) -> String {
         switch subset {
-        case .expressions(let exprs): return exprs.map { serialize($0, &binds) }.joined(separator: ", ")
+        case .expression(let expr): return serialize(expr, &binds)
         case .subSelect(let select): return serialize(select, &binds)
         case .table(let table): return serialize(table)
         case .tableFunction(let schema, let function):
