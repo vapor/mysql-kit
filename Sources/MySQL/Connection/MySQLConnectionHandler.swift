@@ -59,6 +59,10 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
                     self.readyForQuery = nil
                 }
                 ctx.writeAndFlush(wrapOutboundOut(packet), promise: writePromise)
+            case .err(let err):
+                let error = err.makeError(source: .capture())
+                readyForQuery?.fail(error: error)
+                self.readyForQuery = nil
             default: fatalError("Unsupported packet during connect: \(packet)")
             }
         case .waiting:

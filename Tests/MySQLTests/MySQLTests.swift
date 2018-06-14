@@ -249,11 +249,13 @@ class MySQLTests: XCTestCase {
     
     /// https://github.com/vapor/mysql/issues/164
     func testPreparedStatementOverload() throws {
+        #if os(Linux) // slow test, only run on CI
         let conn = try MySQLConnection.makeTest()
         for _ in 1...17_000 {
             conn.logger = nil
             _ = try conn.query(.raw("SELECT @@version", [])).wait()
         }
+        #endif
     }
 
     static let allTests = [
@@ -272,7 +274,13 @@ class MySQLTests: XCTestCase {
 
 extension MySQLConnection {
     /// Creates a test event loop and psql client.
-    static func makeTest(transport: MySQLTransportConfig = .unverifiedTLS) throws -> MySQLConnection {
+    static func makeTest() throws -> MySQLConnection {
+        let transport: MySQLTransportConfig
+        #if SSL_TESTS
+        transport = .unverifiedTLS
+        #else
+        transport = .cleartext
+        #endif
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         let conn =  try MySQLConnection.connect(config: .init(
             hostname: "localhost",

@@ -36,7 +36,7 @@ public struct MySQLDatabaseConfig {
         password: String? = nil,
         database: String = "vapor",
         capabilities: MySQLCapabilities = .default,
-        characterSet: MySQLCharacterSet = .utf8_general_ci,
+        characterSet: MySQLCharacterSet = .utf8mb4_unicode_ci,
         transport: MySQLTransportConfig = .cleartext
     ) {
         self.hostname = hostname
