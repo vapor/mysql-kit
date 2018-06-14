@@ -1,11 +1,16 @@
 extension MySQLQuery {
     public struct QualifiedColumnName {
-        public var schema: String?
         public var table: String?
         public var name: ColumnName
+        public var readable: String {
+            if let table = table {
+                return table + "." + name.string
+            } else {
+                return name.string
+            }
+        }
         
-        public init(schema: String? = nil, table: String? = nil, name: ColumnName) {
-            self.schema = schema
+        public init(table: String? = nil, name: ColumnName) {
             self.table = table
             self.name = name
         }
@@ -37,12 +42,10 @@ extension MySQLSerializer {
     }
     
     func serialize(_ column: MySQLQuery.QualifiedColumnName) -> String {
-        switch (column.schema, column.table) {
-        case (.some(let schema), .some(let table)):
-            return escapeString(schema) + "." + escapeString(table) + "." + serialize(column.name)
-        case (.none, .some(let table)):
+        switch column.table {
+        case .some(let table):
             return escapeString(table) + "." + serialize(column.name)
-        default:
+        case .none:
             return serialize(column.name)
         }
     }
