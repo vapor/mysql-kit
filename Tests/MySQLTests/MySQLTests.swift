@@ -19,6 +19,7 @@ class MySQLTests: XCTestCase {
             "hello".convertToMySQLData(),
             "world".convertToMySQLData()
         ])).wait()
+        print(results)
         try XCTAssertEqual(results[0].firstValue(forColumn: "test")?.decode(String.self), "helloworld")
         print(results)
     }

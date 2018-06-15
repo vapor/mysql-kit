@@ -198,6 +198,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
 
     /// Statement Protocol (Prepared Query)
     func decodeStatementProtocol(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, statementState: MySQLStatementProtocolState, capabilities: MySQLCapabilities) throws -> DecodingState {
+        print(statementState)
         switch statementState {
         case .waitingPrepare:
             // check for error packet
@@ -232,6 +233,13 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             remaining -= 1
             if remaining == 0 {
                 session.connectionState = .statement(.paramsDone(ok: ok))
+                if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
+                    let res = try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
+                    switch res {
+                    case .needMoreData: return .needMoreData
+                    default: break
+                    }
+                }
             } else {
                 session.connectionState = .statement(.params(ok: ok, remaining: remaining))
             }
@@ -241,10 +249,6 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
                 session.connectionState = .statement(.columns(remaining: numericCast(ok.numColumns)))
             } else {
                 session.connectionState = .statement(.columnsDone)
-            }
-
-            if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
-                return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
             }
         case .columns(var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
@@ -257,15 +261,19 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             remaining -= 1
             if remaining == 0 {
                 session.connectionState = .statement(.columnsDone)
+                if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
+                    let res = try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
+                    switch res {
+                    case .needMoreData: return .needMoreData
+                    default: break
+                    }
+                }
             } else {
                 session.connectionState = .statement(.columns(remaining: remaining))
             }
             
             ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
-        case .columnsDone:
-            if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
-                return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
-            }
+        case .columnsDone: break
         case .waitingExecute:
             // check for error or OK packet
             let peek = buffer.peekInteger(as: Byte.self, skipping: 4)

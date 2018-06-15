@@ -12,7 +12,7 @@ extension MySQLConnection {
         var rows: [[MySQLColumn: MySQLData]] = []
         return self.query(query) { row in
             rows.append(row)
-        }.map(to: [[MySQLColumn: MySQLData]].self) {
+        }.map {
             return rows
         }
     }
@@ -66,7 +66,7 @@ extension MySQLConnection {
             )
             let comClose = MySQLPacket.ComStmtClose(statementID: ok.statementID)
             var columns: [MySQLColumnDefinition41] = []
-            return self.send([.comStmtExecute(comExecute), .comStmtClose(comClose)]) { message in
+            return self.send([.comStmtExecute(comExecute)]) { message in
                 switch message {
                 case .columnDefinition41(let col):
                     columns.append(col)
