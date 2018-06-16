@@ -67,15 +67,16 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
 
     /// Sends `MySQLPacket` to the server.
     internal func send(_ messages: [MySQLPacket], onResponse: @escaping (MySQLPacket) throws -> Bool) -> Future<Void> {
+        // if the connection is closed, fail immidiately
+        guard !isClosed else {
+            return eventLoop.newFailedFuture(error: closeError)
+        }
+        
         // if currentSend is not nil, previous send has not completed
         assert(currentSend == nil, "Attempting to call `send(...)` again before previous invocation has completed.")
         switch handler.state {
         case .waiting: break
         default: assertionFailure("Attempting to call `send(...)` while handler is still: \(handler.state).")
-        }
-        // if the connection is closed, fail immidiately
-        guard !isClosed else {
-            return eventLoop.newFailedFuture(error: closeError)
         }
         
         // create a new promise and store it

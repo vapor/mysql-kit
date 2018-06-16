@@ -1,21 +1,6 @@
 version: 2
 
 jobs:
-
-
-  macos:
-    macos:
-      xcode: "9.2"
-    steps:
-      - run: brew install mysql
-      - run: brew services start mysql
-      - run: sleep 3 && mysqladmin -uroot create test
-      - checkout
-      - run: swift build
-      - run: echo "CREATE DATABASE vapor_test" | mysql -uroot
-      # - run: swift build -c release
-      - run: swift test
-
   5.5-linux:
     docker:
       - image: codevapor/swift:4.1
@@ -34,7 +19,24 @@ jobs:
       - run: 
           name: Run unit tests
           command: swift test
-
+  5.6-linux:
+    docker:
+      - image: codevapor/swift:4.1
+      - image: mysql:5.6
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: vapor_database
+          # MYSQL_ROOT_HOST: %
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+    steps:
+      - checkout
+      - run: 
+          name: Compile code
+          command: swift build
+      - run: 
+          name: Run unit tests
+          command: swift test
   5.7-linux:
     docker:
       - image: codevapor/swift:4.1
@@ -53,7 +55,6 @@ jobs:
       - run: 
           name: Run unit tests
           command: swift test
-
   8.0-linux:
     docker:
       - image: codevapor/swift:4.1
@@ -72,7 +73,6 @@ jobs:
       - run: 
           name: Run unit tests
           command: swift test -Xswiftc -DSSL_TESTS
-
   mariadb-10.3-linux:
     docker:
       - image: codevapor/swift:4.1
@@ -91,7 +91,6 @@ jobs:
       - run: 
           name: Run unit tests
           command: swift test
-
   8.0-linux-fluent:
     docker:
       - image: codevapor/swift:4.1
@@ -104,7 +103,7 @@ jobs:
     steps:
       - run:
           name: Clone Fluent MySQL
-          command: git clone -b gm https://github.com/vapor/fluent-mysql.git
+          command: git clone -b master https://github.com/vapor/fluent-mysql.git
           working_directory: ~/
       - run:
           name: Switch Fluent MySQL to this MySQL revision
@@ -114,7 +113,6 @@ jobs:
           name: Run Fluent MySQL unit tests
           command: swift test
           working_directory: ~/fluent-mysql
-
   linux-release:
     docker:
       - image: codevapor/swift:4.1
@@ -123,20 +121,17 @@ jobs:
       - run: 
           name: Compile code with optimizations
           command: swift build -c release
-
-
 workflows:
   version: 2
   tests:
     jobs:
-     # - macos
-     # - 5.5-linux
+      - 5.5-linux
+      - 5.6-linux
       - 5.7-linux
       - 8.0-linux
       - 8.0-linux-fluent
       - mariadb-10.3-linux
       - linux-release
-
   nightly:
     triggers:
       - schedule:
@@ -144,8 +139,6 @@ workflows:
           filters:
             branches:
               only:
-                - master
-                
+                - master 
     jobs:
       - 8.0-linux
-      # - macos

@@ -12,7 +12,7 @@ extension MySQLConnection {
         var rows: [[MySQLColumn: MySQLData]] = []
         return self.query(query) { row in
             rows.append(row)
-        }.map(to: [[MySQLColumn: MySQLData]].self) {
+        }.map {
             return rows
         }
     }

@@ -149,8 +149,16 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
     }
     
     func errorCaught(ctx: ChannelHandlerContext, error: Error) {
-        readyForQuery?.fail(error: error)
-        readyForQuery = nil
+        switch state {
+        case .nascent:
+            readyForQuery?.fail(error: error)
+            readyForQuery = nil
+        case .callback(let promise, _):
+            self.state = .waiting
+            promise.fail(error: error)
+        case .waiting:
+            ERROR("Error while waiting: \(error).")
+        }
     }
     
     /// Ask the server if it supports SSL and adds a new OpenSSLClientHandler to pipeline if it does
