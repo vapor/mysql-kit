@@ -40,6 +40,8 @@ extension MySQLQuery {
         public var tables: [TableOrSubquery]
         public var predicate: Expression?
         public var orderBy: [OrderBy]
+        public var limit: Int?
+        public var offset: Int?
         
         public init(
             with: WithClause? = nil,
@@ -47,7 +49,9 @@ extension MySQLQuery {
             columns: [ResultColumn] = [],
             tables: [TableOrSubquery] = [],
             predicate: Expression? = nil,
-            orderBy: [OrderBy] = []
+            orderBy: [OrderBy] = [],
+            limit: Int? = nil,
+            offset: Int? = nil
         ) {
             self.with = with
             self.distinct = distinct
@@ -55,6 +59,8 @@ extension MySQLQuery {
             self.tables = tables
             self.predicate = predicate
             self.orderBy = orderBy
+            self.limit = limit
+            self.offset = offset
         }
     }
 }
@@ -81,6 +87,14 @@ extension MySQLSerializer {
         if !select.orderBy.isEmpty {
             sql.append("ORDER BY")
             sql.append(select.orderBy.map { serialize($0, &binds) }.joined(separator: ", "))
+        }
+        if let limit = select.limit {
+            sql.append("LIMIT")
+            sql.append(String(describing: limit))
+        }
+        if let offset = select.offset {
+            sql.append("OFFSET")
+            sql.append(String(describing: offset))
         }
         return sql.joined(separator: " ")
     }
