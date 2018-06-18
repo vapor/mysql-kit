@@ -198,6 +198,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
 
     /// Statement Protocol (Prepared Query)
     func decodeStatementProtocol(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, statementState: MySQLStatementProtocolState, capabilities: MySQLCapabilities) throws -> DecodingState {
+        print(statementState)
         switch statementState {
         case .waitingPrepare:
             // check for error packet
@@ -231,12 +232,18 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             session.incrementSequenceID()
             remaining -= 1
             if remaining == 0 {
-                session.connectionState = .statement(.paramsDone(ok: ok))
+                if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
+                    session.connectionState = .statement(.paramsDone(ok: ok, lastColumn: column))
+                } else {
+                    // no eof, we can fire off column now
+                    session.connectionState = .statement(.paramsDone(ok: ok, lastColumn: nil))
+                    ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
+                }
             } else {
                 session.connectionState = .statement(.params(ok: ok, remaining: remaining))
+                ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
             }
-            ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
-        case .paramsDone(let ok):
+        case .paramsDone(let ok, let lastColumn):
             if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
                 let res = try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
                 switch res {
@@ -250,6 +257,10 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
                 session.connectionState = .statement(.columns(remaining: numericCast(ok.numColumns)))
             } else {
                 session.connectionState = .statement(.columnsDone(lastColumn: nil))
+            }
+            
+            if let column = lastColumn {
+                ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
             }
         case .columns(var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
