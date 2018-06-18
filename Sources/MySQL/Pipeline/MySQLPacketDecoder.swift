@@ -219,7 +219,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             } else if ok.numColumns > 0 {
                 session.connectionState = .statement(.columns(remaining: numericCast(ok.numColumns)))
             } else {
-                session.connectionState = .statement(.columnsDone)
+                session.connectionState = .statement(.columnsDone(lastColumn: nil))
             }
             ctx.fireChannelRead(wrapInboundOut(.comStmtPrepareOK(ok)))
         case .params(let ok, var remaining):
@@ -232,22 +232,24 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             remaining -= 1
             if remaining == 0 {
                 session.connectionState = .statement(.paramsDone(ok: ok))
-                if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
-                    let res = try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
-                    switch res {
-                    case .needMoreData: return .needMoreData
-                    default: break
-                    }
-                }
             } else {
                 session.connectionState = .statement(.params(ok: ok, remaining: remaining))
             }
             ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
         case .paramsDone(let ok):
+            if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
+                let res = try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
+                switch res {
+                case .needMoreData:
+                    return .needMoreData
+                default: break
+                }
+            }
+
             if ok.numColumns > 0 {
                 session.connectionState = .statement(.columns(remaining: numericCast(ok.numColumns)))
             } else {
-                session.connectionState = .statement(.columnsDone)
+                session.connectionState = .statement(.columnsDone(lastColumn: nil))
             }
         case .columns(var remaining):
             guard let _ = try buffer.checkPacketLength(source: .capture()) else {
@@ -259,20 +261,36 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
 
             remaining -= 1
             if remaining == 0 {
-                session.connectionState = .statement(.columnsDone)
                 if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
+                    // If EOF is not deprecated, don't proceed until full EOF is read
                     let res = try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
                     switch res {
-                    case .needMoreData: return .needMoreData
+                    case .needMoreData:
+                        // Defer firing the read event until the EOF is read
+                        session.connectionState = .statement(.columnsDone(lastColumn: column))
+                        return .needMoreData
                     default: break
                     }
                 }
             } else {
                 session.connectionState = .statement(.columns(remaining: remaining))
             }
-            
             ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
-        case .columnsDone: break
+        case .columnsDone(let lastCol):
+            guard let lastCol = lastCol else {
+                // No pending column means there's no pending EOF to read
+                break
+            }
+            if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
+                // If EOF is not deprecated, don't proceed until full EOF is read
+                let res = try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
+                switch res {
+                case .needMoreData:
+                    return .needMoreData
+                default: break
+                }
+            }
+            ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(lastCol)))
         case .waitingExecute:
             // check for error or OK packet
             let peek = buffer.peekInteger(as: Byte.self, skipping: 4)

@@ -76,7 +76,7 @@ enum MySQLStatementProtocolState {
     case paramsDone(ok: MySQLComStmtPrepareOK)
     /// If num_columns > 0 more packets will follow:
     case columns(remaining: Int)
-    case columnsDone
+    case columnsDone(lastColumn: MySQLColumnDefinition41?)
 
     case waitingExecute
     case rowColumns(columns: [MySQLColumnDefinition41], remaining: Int)
