@@ -198,7 +198,6 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
 
     /// Statement Protocol (Prepared Query)
     func decodeStatementProtocol(ctx: ChannelHandlerContext, buffer: inout ByteBuffer, statementState: MySQLStatementProtocolState, capabilities: MySQLCapabilities) throws -> DecodingState {
-        print(statementState)
         switch statementState {
         case .waitingPrepare:
             // check for error packet

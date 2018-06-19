@@ -7,7 +7,7 @@ import Foundation
 /// https://dev.mysql.com/doc/internals/en/binary-protocol-value.html
 struct MySQLBinaryData: Equatable {
     /// This value's column type
-    var type: MySQLDataType
+    var type: MySQLBinaryDataType
 
     /// If `true`, this value is unsigned.
     var isUnsigned: Bool

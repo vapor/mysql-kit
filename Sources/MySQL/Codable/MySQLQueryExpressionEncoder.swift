@@ -1,27 +1,28 @@
-public protocol MySQLQueryExpressionRepresentable {
-    var MySQLQueryExpression: MySQLQuery.Expression { get }
-}
-
-struct MySQLQueryExpressionEncoder {
+struct MySQLDataEncoder {
     init() { }
     
-    func encode<E>(_ value: E) -> MySQLQuery.Expression
-        where E: Encodable
-    {
-        if let mysql = value as? MySQLQueryExpressionRepresentable {
-            return mysql.MySQLQueryExpression
-        } else if let value = value as? MySQLDataConvertible {
-            return .data(value.convertToMySQLData())
+    func encode(_ value: Encodable) -> MySQLData {
+        if let value = value as? MySQLDataConvertible {
+            return value.convertToMySQLData()
         } else {
             let encoder = _Encoder()
             do {
                 try value.encode(to: encoder)
                 return encoder.data!
             } catch is _DoJSONError {
-                return .data(.init(json: value))
+                struct AnyEncodable: Encodable {
+                    let encodable: Encodable
+                    init(_ encodable: Encodable) {
+                        self.encodable = encodable
+                    }
+                    func encode(to encoder: Encoder) throws {
+                        try encodable.encode(to: encoder)
+                    }
+                }
+                return .init(json: AnyEncodable(value))
             } catch {
-                ERROR("Could not encode \(E.self) to MySQLQuery.Expression: \(error)")
-                return .literal(.null)
+                ERROR("Could not encode \(type(of: value)) to MySQLData: \(error)")
+                return .null
             }
         }
     }
@@ -31,7 +32,7 @@ struct MySQLQueryExpressionEncoder {
     private final class _Encoder: Encoder {
         let codingPath: [CodingKey] = []
         let userInfo: [CodingUserInfoKey: Any] = [:]
-        var data: MySQLQuery.Expression?
+        var data: MySQLData?
         
         init() {
             self.data = nil
@@ -62,15 +63,12 @@ struct MySQLQueryExpressionEncoder {
         }
         
         mutating func encodeNil() throws {
-            encoder.data = .literal(.null)
+            encoder.data = .null
         }
         
         mutating func encode<T>(_ value: T) throws where T : Encodable {
-            if let mysql = value as? MySQLQueryExpressionRepresentable {
-                encoder.data = mysql.MySQLQueryExpression
-                return
-            } else if let convertible = value as? MySQLDataConvertible {
-                encoder.data = .data(convertible.convertToMySQLData())
+            if let convertible = value as? MySQLDataConvertible {
+                encoder.data = convertible.convertToMySQLData()
                 return
             }
             try value.encode(to: encoder)

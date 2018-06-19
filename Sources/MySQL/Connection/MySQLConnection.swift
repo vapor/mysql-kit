@@ -3,7 +3,7 @@ import NIO
 import NIOOpenSSL
 
 /// A MySQL frontend client.
-public final class MySQLConnection: BasicWorker, DatabaseConnection {
+public final class MySQLConnection: BasicWorker, DatabaseConnection, DatabaseQueryable, SQLConnection {
     /// See `DatabaseConnection`.
     public typealias Database = MySQLDatabase
     
@@ -64,6 +64,12 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection {
             }
         }
     }
+    
+    /// See `SQLConnection`.
+    public func decode<D>(_ type: D.Type, from row: [MySQLColumn : MySQLData], table: GenericSQLTableIdentifier<MySQLIdentifier>?) throws -> D where D : Decodable {
+        return try MySQLRowDecoder().decode(D.self, from: row, table: table?.identifier.string)
+    }
+    
 
     /// Sends `MySQLPacket` to the server.
     internal func send(_ messages: [MySQLPacket], onResponse: @escaping (MySQLPacket) throws -> Bool) -> Future<Void> {

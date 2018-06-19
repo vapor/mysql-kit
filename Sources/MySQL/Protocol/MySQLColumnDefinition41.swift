@@ -52,7 +52,7 @@ struct MySQLColumnDefinition41 {
     var columnLength: UInt32
 
     /// column_type (1) -- type of the column as defined in Column Type
-    var columnType: MySQLDataType
+    var columnType: MySQLBinaryDataType
 
     /// flags (2) -- flags
     var flags: MySQLColumnFlags

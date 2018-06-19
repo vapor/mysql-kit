@@ -1,8 +1,15 @@
 import Async
 @testable import MySQL
+import SQLBenchmark
 import XCTest
 
 class MySQLTests: XCTestCase {
+    func testBenchmark() throws {
+        let conn = try MySQLConnection.makeTest()
+        let benchmarker = SQLBenchmarker(on: conn)
+        try benchmarker.run()
+    }
+    
     func testSimpleQuery() throws {
         let conn = try MySQLConnection.makeTest()
         defer { conn.close(done: nil) }
@@ -15,10 +22,7 @@ class MySQLTests: XCTestCase {
     func testQuery() throws {
         let conn = try MySQLConnection.makeTest()
         defer { conn.close(done: nil) }
-        let results = try conn.query(.raw("SELECT CONCAT(?, ?) as test;", [
-            "hello".convertToMySQLData(),
-            "world".convertToMySQLData()
-        ])).wait()
+        let results = try conn.raw("SELECT CONCAT(?, ?) as test;").bind("hello").bind("world").all().wait()
         print(results)
         try XCTAssertEqual(results[0].firstValue(forColumn: "test")?.decode(String.self), "helloworld")
         print(results)
@@ -31,16 +35,16 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(dropResults.count, 0)
         let createResults = try client.simpleQuery("CREATE TABLE foos (id INT SIGNED, name VARCHAR(64));").wait()
         XCTAssertEqual(createResults.count, 0)
-        let insertResults = try client.query(.raw("INSERT INTO foos VALUES (?, ?);", [-1, "vapor"])).wait()
+        let insertResults = try client.raw("INSERT INTO foos VALUES (?, ?);").bind(-1).bind("vapor").all().wait()
         XCTAssertEqual(insertResults.count, 0)
-        let selectResults = try client.query(.raw("SELECT * FROM foos WHERE name = ?;", ["vapor"])).wait()
+        let selectResults = try client.raw("SELECT * FROM foos WHERE name = ?;").bind("vapor").all().wait()
         XCTAssertEqual(selectResults.count, 1)
         print(selectResults)
         try XCTAssertEqual(selectResults[0].firstValue(forColumn: "id")?.decode(Int.self), -1)
         try XCTAssertEqual(selectResults[0].firstValue(forColumn: "name")?.decode(String.self), "vapor")
 
         // test double parameterized query
-        let selectResults2 = try client.query(.raw("SELECT * FROM foos WHERE name = ?;", ["vapor"])).wait()
+        let selectResults2 = try client.raw("SELECT * FROM foos WHERE name = ?;").bind("vapor").all().wait()
         XCTAssertEqual(selectResults2.count, 1)
     }
 
@@ -94,11 +98,11 @@ class MySQLTests: XCTestCase {
 
         /// insert data
         let placeholders = tests.map { _ in "?" }.joined(separator: ", ")
-        let insertResults = try client.query(.raw("INSERT INTO kitchen_sink VALUES (\(placeholders));", tests.map { $0.data })).wait()
+        let insertResults = try client.raw("INSERT INTO kitchen_sink VALUES (\(placeholders));").binds(tests.map { $0.data }).all().wait()
         XCTAssertEqual(insertResults.count, 0)
 
         // select data
-        let selectResults = try client.query(.raw("SELECT * FROM kitchen_sink WHERE name = ?;", ["vapor"])).wait()
+        let selectResults = try client.raw("SELECT * FROM kitchen_sink WHERE name = ?;").bind("vapor").all().wait()
         XCTAssertEqual(selectResults.count, 1)
         print(selectResults)
 
@@ -118,7 +122,7 @@ class MySQLTests: XCTestCase {
 
             let bigName = String(repeating: "v", count: size)
             XCTAssertEqual(createResults.count, 0)
-            _ = try client.query(.raw("INSERT INTO foos VALUES (?, ?);", [1, bigName.convertToMySQLData()])).wait()
+            _ = try client.raw("INSERT INTO foos VALUES (?, ?);").bind(1).bind(bigName).all().wait()
             let selectResults = try client.simpleQuery("SELECT * FROM foos;").wait()
             XCTAssertEqual(selectResults.count, 1)
             if let value = selectResults.first?.firstValue(forColumn: "name") {
@@ -161,16 +165,16 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(dropResults.count, 0)
         let createResults = try client.simpleQuery("CREATE TABLE emojis (id INT SIGNED NOT NULL, description VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL);").wait()
         XCTAssertEqual(createResults.count, 0)
-        let insertResults = try client.query(.raw("INSERT INTO emojis VALUES (?, ?);", [1, "🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"])).wait()
+        let insertResults = try client.raw("INSERT INTO emojis VALUES (?, ?);").binds([1, "🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"]).all().wait()
         XCTAssertEqual(insertResults.count, 0)
-        let selectResults = try client.query(.raw("SELECT * FROM emojis WHERE description = ?;", ["🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"])).wait()
+        let selectResults = try client.raw("SELECT * FROM emojis WHERE description = ?;").binds(["🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"]).all().wait()
         XCTAssertEqual(selectResults.count, 1)
         print(selectResults)
         try XCTAssertEqual(selectResults[0].firstValue(forColumn: "id")?.decode(Int.self), 1)
         try XCTAssertEqual(selectResults[0].firstValue(forColumn: "description")?.decode(String.self), "🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔")
 
         // test double parameterized query
-        let selectResults2 = try client.query(.raw("SELECT * FROM emojis WHERE description = ?;", ["🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"])).wait()
+        let selectResults2 = try client.raw("SELECT * FROM emojis WHERE description = ?;").binds(["🇧🇷 🔸 🎶 🆙 〽️ ❤️ 🎁 🕹 🚁 🚴‍♀️ 🌶 🌈 🐎 🤔"]).all().wait()
         XCTAssertEqual(selectResults2.count, 1)
     }
 
@@ -212,14 +216,13 @@ class MySQLTests: XCTestCase {
             .run().wait()
         
         try conn.create(table: Galaxy.self)
-            .column(for: \.id, .bigint(nil, unsigned: false, zerofill: false), .notNull, .primaryKey(autoIncrement: true))
-            .column(for: \.name, .varchar(64, nil, nil), .notNull)
+            .column(for: \Galaxy.id, type: .bigint(nil, unsigned: false, zerofill: false), .notNull, .primaryKey(default: .autoIncrement))
+            .column(for: \Galaxy.name, type: .varchar(64, nil, nil), .notNull)
             .run().wait()
         try conn.create(table: Planet.self)
-            .column(for: \.id, .bigint(nil, unsigned: false, zerofill: false), .notNull, .primaryKey(autoIncrement: true))
-            .column(for: \.name, .varchar(64, nil, nil), .notNull)
-            .column(for: \.galaxyID, .bigint(nil, unsigned: false, zerofill: false), .notNull)
-            .foreignKey(from: \.galaxyID, to: \Galaxy.id)
+            .column(for: \Planet.id, type: .bigint(nil, unsigned: false, zerofill: false), .notNull, .primaryKey(default: .autoIncrement))
+            .column(for: \Planet.name, type: .varchar(64, nil, nil), .notNull)
+            .column(for: \Planet.galaxyID, type: .bigint(nil, unsigned: false, zerofill: false), .notNull, .references(\Galaxy.id))
             .run().wait()
         
         var milkyWay = Galaxy(name: "Milky Way")
@@ -264,6 +267,7 @@ class MySQLTests: XCTestCase {
     }
     
     static let allTests = [
+        ("testBenchmark", testBenchmark),
         ("testSimpleQuery", testSimpleQuery),
         ("testQuery", testQuery),
         ("testInsert", testInsert),
