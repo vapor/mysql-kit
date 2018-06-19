@@ -17,7 +17,7 @@ public struct MySQLInsert: SQLInsert {
     public typealias Upsert = MySQLUpsert
     
     /// If `true`, the query will be an `INSERT IGNORE`.
-    var ignore: Bool
+    public var ignore: Bool
     
     /// Table to insert into.
     public var table: TableIdentifier
