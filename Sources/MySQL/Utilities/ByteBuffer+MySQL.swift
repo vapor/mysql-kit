@@ -46,7 +46,6 @@ extension ByteBuffer {
 
     public mutating func requireLengthEncodedInteger(source: @autoclosure () -> (SourceLocation)) throws -> UInt64 {
         guard let int = readLengthEncodedInteger() else {
-            fatalError()
             throw MySQLError(identifier: "lengthEncodedInt", reason: "Could not parse length encoded integer.", source: source())
         }
         return int
