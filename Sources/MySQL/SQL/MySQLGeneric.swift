@@ -58,7 +58,7 @@ public typealias MySQLGroupBy = GenericSQLGroupBy<MySQLExpression>
 
 /// See `SQLQuery`.
 public typealias MySQLInsert = GenericSQLInsert<
-    MySQLTableIdentifier, MySQLColumnIdentifier, MySQLExpression
+    MySQLTableIdentifier, MySQLColumnIdentifier, MySQLExpression, MySQLUpsert
 >
 
 /// See `SQLQuery`.
