@@ -24,6 +24,9 @@ let package = Package(
 
         // Bindings to OpenSSL-compatible libraries for TLS support in SwiftNIO
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "1.0.0"),
+        
+        // *️⃣ Build SQL queries in Swift. Extensible, protocol-based design that supports DQL, DML, and DDL.
+        .package(url: "https://github.com/vapor/sql.git", from: "1.0.0"),
 
     ],
     targets: [
