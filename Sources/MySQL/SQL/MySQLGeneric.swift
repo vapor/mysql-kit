@@ -70,7 +70,7 @@ public typealias MySQLJoin = GenericSQLJoin<
 public typealias MySQLJoinMethod = GenericSQLJoinMethod
 
 /// See `SQLQuery`.
-public typealias MySQLLiteral = GenericSQLLiteral<MySQLDefaultLiteral>
+public typealias MySQLLiteral = GenericSQLLiteral<MySQLDefaultLiteral, MySQLBoolLiteral>
 
 /// See `SQLQuery`.
 public typealias MySQLOrderBy = GenericSQLOrderBy<MySQLExpression, MySQLDirection>
