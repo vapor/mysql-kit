@@ -27,7 +27,7 @@ public struct MySQLBind: SQLBind {
         case .expression(let expr): return expr.serialize(&binds)
         case .encodable(let value):
             binds.append(value)
-            return "$\(binds.count)"
+            return "?"
         }
     }
 }

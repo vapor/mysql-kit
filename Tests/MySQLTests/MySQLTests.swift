@@ -210,10 +210,12 @@ class MySQLTests: XCTestCase {
         let conn = try MySQLConnection.makeTest()
         defer { conn.close(done: nil) }
         
-        try conn.drop(table: Planet.self).ifExists()
-            .run().wait()
-        try conn.drop(table: Galaxy.self).ifExists()
-            .run().wait()
+        defer {
+            try? conn.drop(table: Planet.self).ifExists()
+                .run().wait()
+            try? conn.drop(table: Galaxy.self).ifExists()
+                .run().wait()
+        }
         
         try conn.create(table: Galaxy.self)
             .column(for: \Galaxy.id, type: .bigint(nil, unsigned: false, zerofill: false), .notNull, .primaryKey(default: .autoIncrement))
