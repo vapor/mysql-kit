@@ -57,11 +57,6 @@ public typealias MySQLForeignKey = GenericSQLForeignKey<
 public typealias MySQLGroupBy = GenericSQLGroupBy<MySQLExpression>
 
 /// See `SQLQuery`.
-public typealias MySQLInsert = GenericSQLInsert<
-    MySQLTableIdentifier, MySQLColumnIdentifier, MySQLExpression, MySQLUpsert
->
-
-/// See `SQLQuery`.
 public typealias MySQLJoin = GenericSQLJoin<
     MySQLJoinMethod, MySQLTableIdentifier, MySQLExpression
 >
