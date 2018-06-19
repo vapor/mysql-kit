@@ -263,7 +263,7 @@ class MySQLTests: XCTestCase {
         defer { conn.close(done: nil) }
         for _ in 1...17_000 {
             conn.logger = nil
-            _ = try conn.query(.raw("SELECT @@version", [])).wait()
+            _ = try conn.raw("SELECT @@version").all().wait()
         }
         #endif
     }
