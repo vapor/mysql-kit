@@ -1,7 +1,7 @@
 import Core
 
 /// Represents row data for a single MySQL column.
-public struct MySQLData: Equatable {
+public struct MySQLData: Equatable, Encodable {
     
     internal enum Storage: Equatable {
         case text(Data?)
@@ -65,7 +65,7 @@ public struct MySQLData: Equatable {
 
     /// Creates a new `MySQLData` from a `FixedWidthInteger`.
     public init<I>(integer: I?) where I: FixedWidthInteger {
-        let type: MySQLDataType
+        let type: MySQLBinaryDataType
         switch I.bitWidth {
         case 8: type = .MYSQL_TYPE_TINY
         case 16: type = .MYSQL_TYPE_SHORT
@@ -102,7 +102,7 @@ public struct MySQLData: Equatable {
 
     /// Creates a new `MySQLData` from `BinaryFloatingPoint`.
     public init<F>(float: F?) where F: BinaryFloatingPoint {
-        let type: MySQLDataType
+        let type: MySQLBinaryDataType
         let bitWidth = F.exponentBitCount + F.significandBitCount + 1
         switch bitWidth {
         case 32: type = .MYSQL_TYPE_FLOAT
@@ -128,7 +128,7 @@ public struct MySQLData: Equatable {
     }
 
     /// This value's data type
-    public var type: MySQLDataType {
+    internal var type: MySQLBinaryDataType {
         switch storage {
         case .text: return .MYSQL_TYPE_VARCHAR
         case .binary(let binary): return binary.type
@@ -249,6 +249,35 @@ public struct MySQLData: Equatable {
                 default: return nil // TODO: support more
                 }
             default: return nil
+            }
+        }
+    }
+    
+    /// See `Encodable`.
+    public func encode(to encoder: Encoder) throws {
+        var single = encoder.singleValueContainer()
+        switch storage {
+        case .binary(let binary):
+            switch binary.storage {
+            case .float4(let value): try single.encode(value)
+            case .float8(let value): try single.encode(value)
+            case .integer1(let value): try single.encode(value)
+            case .integer2(let value): try single.encode(value)
+            case .integer4(let value): try single.encode(value)
+            case .integer8(let value): try single.encode(value)
+            case .uinteger1(let value): try single.encode(value)
+            case .uinteger2(let value): try single.encode(value)
+            case .uinteger4(let value): try single.encode(value)
+            case .uinteger8(let value): try single.encode(value)
+            case .null: try single.encodeNil()
+            case .string(let data): try single.encode(data)
+            case .time(let time): try single.encode(Date.convertFromMySQLTime(time))
+            }
+        case .text(let data):
+            if let data = data {
+                try single.encode(data)
+            } else {
+                try single.encodeNil()
             }
         }
     }

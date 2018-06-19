@@ -1,7 +1,7 @@
 import Bits
 
 /// Table 14.4 Column Types
-public struct MySQLDataType: Equatable {
+internal struct MySQLBinaryDataType: Equatable {
     /// The raw byte.
     public let raw: Byte
 
@@ -11,106 +11,106 @@ public struct MySQLDataType: Equatable {
     }
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_DECIMAL
-    public static let MYSQL_TYPE_DECIMAL: MySQLDataType = 0x00
+    public static let MYSQL_TYPE_DECIMAL: MySQLBinaryDataType = 0x00
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_TINY
-    public static let MYSQL_TYPE_TINY: MySQLDataType = 0x01
+    public static let MYSQL_TYPE_TINY: MySQLBinaryDataType = 0x01
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_SHORT
-    public static let MYSQL_TYPE_SHORT: MySQLDataType = 0x02
+    public static let MYSQL_TYPE_SHORT: MySQLBinaryDataType = 0x02
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_LONG
-    public static let MYSQL_TYPE_LONG: MySQLDataType = 0x03
+    public static let MYSQL_TYPE_LONG: MySQLBinaryDataType = 0x03
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_FLOAT
-    public static let MYSQL_TYPE_FLOAT: MySQLDataType = 0x04
+    public static let MYSQL_TYPE_FLOAT: MySQLBinaryDataType = 0x04
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_DOUBLE
-    public static let MYSQL_TYPE_DOUBLE: MySQLDataType = 0x05
+    public static let MYSQL_TYPE_DOUBLE: MySQLBinaryDataType = 0x05
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_NULL
-    public static let MYSQL_TYPE_NULL: MySQLDataType = 0x06
+    public static let MYSQL_TYPE_NULL: MySQLBinaryDataType = 0x06
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_TIMESTAMP
-    public static let MYSQL_TYPE_TIMESTAMP: MySQLDataType = 0x07
+    public static let MYSQL_TYPE_TIMESTAMP: MySQLBinaryDataType = 0x07
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_LONGLONG
-    public static let MYSQL_TYPE_LONGLONG: MySQLDataType = 0x08
+    public static let MYSQL_TYPE_LONGLONG: MySQLBinaryDataType = 0x08
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_INT24
-    public static let MYSQL_TYPE_INT24: MySQLDataType = 0x09
+    public static let MYSQL_TYPE_INT24: MySQLBinaryDataType = 0x09
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_DATE
-    public static let MYSQL_TYPE_DATE: MySQLDataType = 0x0a
+    public static let MYSQL_TYPE_DATE: MySQLBinaryDataType = 0x0a
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_TIME
-    public static let MYSQL_TYPE_TIME: MySQLDataType = 0x0b
+    public static let MYSQL_TYPE_TIME: MySQLBinaryDataType = 0x0b
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_DATETIME
-    public static let MYSQL_TYPE_DATETIME: MySQLDataType = 0x0c
+    public static let MYSQL_TYPE_DATETIME: MySQLBinaryDataType = 0x0c
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_YEAR
-    public static let MYSQL_TYPE_YEAR: MySQLDataType = 0x0d
+    public static let MYSQL_TYPE_YEAR: MySQLBinaryDataType = 0x0d
 
     /// see Protocol::MYSQL_TYPE_DATE
-    public static let MYSQL_TYPE_NEWDATE: MySQLDataType = 0x0e
+    public static let MYSQL_TYPE_NEWDATE: MySQLBinaryDataType = 0x0e
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_VARCHAR
-    public static let MYSQL_TYPE_VARCHAR: MySQLDataType = 0x0f
+    public static let MYSQL_TYPE_VARCHAR: MySQLBinaryDataType = 0x0f
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_BIT
-    public static let MYSQL_TYPE_BIT: MySQLDataType = 0x10
+    public static let MYSQL_TYPE_BIT: MySQLBinaryDataType = 0x10
 
     /// see Protocol::MYSQL_TYPE_TIMESTAMP
-    public static let MYSQL_TYPE_TIMESTAMP2: MySQLDataType = 0x11
+    public static let MYSQL_TYPE_TIMESTAMP2: MySQLBinaryDataType = 0x11
 
     /// see Protocol::MYSQL_TYPE_DATETIME
-    public static let MYSQL_TYPE_DATETIME2: MySQLDataType = 0x12
+    public static let MYSQL_TYPE_DATETIME2: MySQLBinaryDataType = 0x12
 
     /// see Protocol::MYSQL_TYPE_TIME
-    public static let MYSQL_TYPE_TIME2: MySQLDataType = 0x13
+    public static let MYSQL_TYPE_TIME2: MySQLBinaryDataType = 0x13
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_JSON
-    public static let MYSQL_TYPE_JSON: MySQLDataType = 0xf5
+    public static let MYSQL_TYPE_JSON: MySQLBinaryDataType = 0xf5
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_NEWDECIMAL
-    public static let MYSQL_TYPE_NEWDECIMAL: MySQLDataType = 0xf6
+    public static let MYSQL_TYPE_NEWDECIMAL: MySQLBinaryDataType = 0xf6
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_ENUM
-    public static let MYSQL_TYPE_ENUM: MySQLDataType = 0xf7
+    public static let MYSQL_TYPE_ENUM: MySQLBinaryDataType = 0xf7
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_SET
-    public static let MYSQL_TYPE_SET: MySQLDataType = 0xf8
+    public static let MYSQL_TYPE_SET: MySQLBinaryDataType = 0xf8
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_TINY_BLOB
-    public static let MYSQL_TYPE_TINY_BLOB: MySQLDataType = 0xf9
+    public static let MYSQL_TYPE_TINY_BLOB: MySQLBinaryDataType = 0xf9
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_MEDIUM_BLOB
-    public static let MYSQL_TYPE_MEDIUM_BLOB: MySQLDataType = 0xfa
+    public static let MYSQL_TYPE_MEDIUM_BLOB: MySQLBinaryDataType = 0xfa
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_LONG_BLOB
-    public static let MYSQL_TYPE_LONG_BLOB: MySQLDataType = 0xfb
+    public static let MYSQL_TYPE_LONG_BLOB: MySQLBinaryDataType = 0xfb
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_BLOB
-    public static let MYSQL_TYPE_BLOB: MySQLDataType = 0xfc
+    public static let MYSQL_TYPE_BLOB: MySQLBinaryDataType = 0xfc
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_VAR_STRING
-    public static let MYSQL_TYPE_VAR_STRING: MySQLDataType = 0xfd
+    public static let MYSQL_TYPE_VAR_STRING: MySQLBinaryDataType = 0xfd
 
     /// Implemented by ProtocolBinary::MYSQL_TYPE_STRING
-    public static let MYSQL_TYPE_STRING: MySQLDataType = 0xfe
+    public static let MYSQL_TYPE_STRING: MySQLBinaryDataType = 0xfe
 
-    public static let MYSQL_TYPE_GEOMETRY: MySQLDataType = 0xff
+    public static let MYSQL_TYPE_GEOMETRY: MySQLBinaryDataType = 0xff
 }
 
-extension MySQLDataType: ExpressibleByIntegerLiteral {
+extension MySQLBinaryDataType: ExpressibleByIntegerLiteral {
     /// See `ExpressibleByIntegerLiteral.init(integerLiteral:)`
     public init(integerLiteral value: Byte) {
         self.raw = value
     }
 }
 
-extension MySQLDataType: CustomStringConvertible {
+extension MySQLBinaryDataType: CustomStringConvertible {
     public var description: String {
         switch self {
         case .MYSQL_TYPE_DECIMAL: return "MYSQL_TYPE_DECIMAL"

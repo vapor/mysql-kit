@@ -7,30 +7,13 @@ extension MySQLConnection {
     /// - parameters:
     ///     - string: The query string to run. Any values should be represented by `?`.
     ///     - parameters: An array of parameters to bind. The count _must_ equal the number of `?` in the query string.
-    /// - returns: A future containing the resulting rows.
-    public func query(_ query: MySQLQuery) -> Future<[[MySQLColumn: MySQLData]]> {
-        var rows: [[MySQLColumn: MySQLData]] = []
-        return self.query(query) { row in
-            rows.append(row)
-        }.map {
-            return rows
-        }
-    }
-
-    /// Sends a parameterized (a.k.a, prepared or statement protocol query) to the server.
-    /// The connection must be authenticated usign `.authenticate(...)` first.
-    ///
-    /// See `.simpleQuery(...)` for the non-parameterized version.
-    ///
-    /// - parameters:
-    ///     - string: The query string to run. Any values should be represented by `?`.
-    ///     - parameters: An array of parameters to bind. The count _must_ equal the number of `?` in the query string.
     ///     - onRow: Handles each row as it is received from the server.
     /// - returns: A future that will complete when the query is finished.
-    public func query(_ query: MySQLQuery, onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
-        var binds: [MySQLData] = []
-        let string = MySQLSerializer().serialize(query, &binds)
-        logger?.record(query: string, values: binds.map { $0.description })
+    public func query(_ query: MySQLQuery, _ onRow: @escaping ([MySQLColumn: MySQLData]) throws -> ()) -> Future<Void> {
+        var binds: [Encodable] = []
+        let string = query.serialize(&binds)
+        let params = binds.map { MySQLDataEncoder().encode($0) }
+        logger?.record(query: string, values: params.map { $0.description })
         let comPrepare = MySQLComStmtPrepare(query: string)
         var ok: MySQLComStmtPrepareOK?
         var columns: [MySQLColumnDefinition41] = []
@@ -57,7 +40,7 @@ extension MySQLConnection {
             let comExecute = try MySQLComStmtExecute(
                 statementID: ok.statementID,
                 flags: 0x00, // which flags?
-                values: binds.map { data in
+                values: params.map { data in
                     switch data.storage {
                     case .binary(let binary): return binary
                     case .text: throw MySQLError(identifier: "binaryData", reason: "Binary data required.", source: .capture())
