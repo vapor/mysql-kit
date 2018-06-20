@@ -268,6 +268,18 @@ class MySQLTests: XCTestCase {
         #endif
     }
     
+    func testColumnAfter() throws {
+        let conn = try MySQLConnection.makeTest()
+        
+        let builder = conn.alter(table: Galaxy.self)
+            .column(for: \Galaxy.name)
+            .order(\Galaxy.name, after: \Galaxy.id)
+        
+        var binds: [Encodable] = []
+        let sql = builder.query.serialize(&binds)
+        XCTAssertEqual(sql, "ALTER TABLE `Galaxy` ADD COLUMN `name` VARCHAR(255) NOT NULL AFTER `id`")
+    }
+    
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testSimpleQuery", testSimpleQuery),
@@ -282,6 +294,7 @@ class MySQLTests: XCTestCase {
         ("testURLParsing", testURLParsing),
         ("testInsertMany", testInsertMany),
         ("testPreparedStatementOverload", testPreparedStatementOverload),
+        ("testColumnAfter", testColumnAfter),
     ]
 }
 
