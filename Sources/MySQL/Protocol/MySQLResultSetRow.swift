@@ -13,14 +13,14 @@ struct MySQLResultSetRow {
     /// Parses a `MySQLResultSetRow` from the `ByteBuffer`.
     init(bytes: inout ByteBuffer) throws {
         guard let peek: Byte = bytes.peekInteger() else {
-            throw MySQLError(identifier: "peekRow", reason: "Could not peek row length.", source: .capture())
+            throw MySQLError(identifier: "peekRow", reason: "Could not peek row length.")
         }
 
         switch peek {
         case 0xFB:
             value = nil
         default:
-            value = try bytes.requireLengthEncodedData(source: .capture())
+            value = try bytes.requireLengthEncodedData()
         }
     }
 }

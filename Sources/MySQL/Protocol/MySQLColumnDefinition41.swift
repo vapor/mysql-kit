@@ -66,22 +66,22 @@ struct MySQLColumnDefinition41 {
 
     /// Parses a `MySQLColumnDefinition41` from the `ByteBuffer`.
     init(bytes: inout ByteBuffer) throws {
-        catalog = try bytes.requireLengthEncodedString(source: .capture())
-        schema = try bytes.requireLengthEncodedString(source: .capture())
-        table = try bytes.requireLengthEncodedString(source: .capture())
-        orgTable = try bytes.requireLengthEncodedString(source: .capture())
-        name = try bytes.requireLengthEncodedString(source: .capture())
-        orgName = try bytes.requireLengthEncodedString(source: .capture())
+        catalog = try bytes.requireLengthEncodedString()
+        schema = try bytes.requireLengthEncodedString()
+        table = try bytes.requireLengthEncodedString()
+        orgTable = try bytes.requireLengthEncodedString()
+        name = try bytes.requireLengthEncodedString()
+        orgName = try bytes.requireLengthEncodedString()
         /// next_length (lenenc_int) -- length of the following fields (always 0x0c)
-        let fixedLength = try bytes.requireLengthEncodedInteger(source: .capture())
+        let fixedLength = try bytes.requireLengthEncodedInteger()
         assert(fixedLength == 0x0C, "invalid fixed length: \(fixedLength)")
-        characterSet = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
-        columnLength = try bytes.requireInteger(endianness: .little, source: .capture())
-        columnType = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
-        flags = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
-        decimals = try bytes.requireInteger(endianness: .little, source: .capture())
+        characterSet = try .init(raw: bytes.requireInteger(endianness: .little))
+        columnLength = try bytes.requireInteger(endianness: .little)
+        columnType = try .init(raw: bytes.requireInteger(endianness: .little))
+        flags = try .init(raw: bytes.requireInteger(endianness: .little))
+        decimals = try bytes.requireInteger(endianness: .little)
         /// 2              filler [00] [00]
-        let filler = try bytes.requireInteger(endianness: .little, as: UInt16.self, source: .capture())
+        let filler = try bytes.requireInteger(endianness: .little, as: UInt16.self)
         assert(filler == 0x0000)
 
         /// FIXME: check if `if command was COM_FIELD_LIST {` for default values

@@ -5,62 +5,62 @@ import Foundation
 /// MARK: Assert
 
 extension ByteBuffer {
-    public mutating func requireInteger<T>(endianness: Endianness = .big, as type: T.Type = T.self, source: @autoclosure () -> (SourceLocation)) throws -> T
+    public mutating func requireInteger<T>(endianness: Endianness = .big, as type: T.Type = T.self) throws -> T
         where T: FixedWidthInteger
     {
         guard let int = readInteger(endianness: endianness, as: T.self) else {
-            throw MySQLError(identifier: "integer", reason: "Could not parse \(T.self).", source: source())
+            throw MySQLError(identifier: "integer", reason: "Could not parse \(T.self).")
         }
         return int
     }
 
-    public mutating func requireFloatingPoint<T>(as type: T.Type = T.self, source: @autoclosure () -> (SourceLocation)) throws -> T
+    public mutating func requireFloatingPoint<T>(as type: T.Type = T.self) throws -> T
         where T: BinaryFloatingPoint
     {
         guard let float = readFloatingPoint(as: T.self) else {
-            throw MySQLError(identifier: "floatingPoint", reason: "Could not parse \(T.self).", source: source())
+            throw MySQLError(identifier: "floatingPoint", reason: "Could not parse \(T.self).")
         }
         return float
     }
 
-    public mutating func requireNullTerminatedString(source: @autoclosure () -> (SourceLocation)) throws -> String {
+    public mutating func requireNullTerminatedString() throws -> String {
         guard let string = readNullTerminatedString() else {
-            throw MySQLError(identifier: "nullTerminatedString", reason: "Could not parse null terminated string.", source: source())
+            throw MySQLError(identifier: "nullTerminatedString", reason: "Could not parse null terminated string.")
         }
         return string
     }
 
-    public mutating func requireString(length: Int, source: @autoclosure () -> (SourceLocation)) throws -> String {
+    public mutating func requireString(length: Int) throws -> String {
         guard let string = readString(length: length) else {
-            throw MySQLError(identifier: "string", reason: "Could not parse \(length) character string.", source: source())
+            throw MySQLError(identifier: "string", reason: "Could not parse \(length) character string.")
         }
         return string
     }
 
-    public mutating func requireBytes(length: Int, source: @autoclosure () -> (SourceLocation)) throws -> [UInt8] {
+    public mutating func requireBytes(length: Int) throws -> [UInt8] {
         guard let bytes = readBytes(length: length) else {
-            throw MySQLError(identifier: "bytes", reason: "Could not parse \(length) bytes.", source: source())
+            throw MySQLError(identifier: "bytes", reason: "Could not parse \(length) bytes.")
         }
         return bytes
     }
 
-    public mutating func requireLengthEncodedInteger(source: @autoclosure () -> (SourceLocation)) throws -> UInt64 {
+    public mutating func requireLengthEncodedInteger() throws -> UInt64 {
         guard let int = readLengthEncodedInteger() else {
-            throw MySQLError(identifier: "lengthEncodedInt", reason: "Could not parse length encoded integer.", source: source())
+            throw MySQLError(identifier: "lengthEncodedInt", reason: "Could not parse length encoded integer.")
         }
         return int
     }
 
-    public mutating func requireLengthEncodedString(source: @autoclosure () -> (SourceLocation)) throws -> String {
+    public mutating func requireLengthEncodedString() throws -> String {
         guard let string = readLengthEncodedString() else {
-            throw MySQLError(identifier: "lengthEncodedString", reason: "Could not parse length encoded string.", source: source())
+            throw MySQLError(identifier: "lengthEncodedString", reason: "Could not parse length encoded string.")
         }
         return string
     }
 
-    public mutating func requireLengthEncodedData(source: @autoclosure () -> (SourceLocation)) throws -> Data {
+    public mutating func requireLengthEncodedData() throws -> Data {
         guard let data = readLengthEncodedData() else {
-            throw MySQLError(identifier: "lengthEncodedData", reason: "Could not parse length encoded data.", source: source())
+            throw MySQLError(identifier: "lengthEncodedData", reason: "Could not parse length encoded data.")
         }
         return data
     }
@@ -79,14 +79,14 @@ extension ByteBuffer {
 
 extension ByteBuffer {
     /// Returns packet length if there are enough readable bytes.
-    mutating func checkPacketLength(source: @autoclosure () -> (SourceLocation)) throws -> Int32? {
+    mutating func checkPacketLength() throws -> Int32? {
         // erase sequence id so we can easily parse 4 byte integer
         set(integer: Byte(0), at: readerIndex + 3)
         guard let length = peekInteger(endianness: .little, as: Int32.self) else {
             return nil
         }
         if readableBytes >= length + 4 /* must be enough bytes to read length too */ {
-            return try requireInteger(endianness: .little, source: source)
+            return try requireInteger(endianness: .little)
         } else {
             return nil
         }

@@ -49,7 +49,7 @@ extension MySQLConnection {
                 }
                 return false
             case .ok, .eof: return true
-            default: throw MySQLError(identifier: "simpleQuery", reason: "Unsupported message encountered during simple query: \(message).", source: .capture())
+            default: throw MySQLError(identifier: "simpleQuery", reason: "Unsupported message encountered during simple query: \(message).")
             }
         }
     }

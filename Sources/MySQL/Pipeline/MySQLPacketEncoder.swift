@@ -50,7 +50,7 @@ final class MySQLPacketEncoder: MessageToByteEncoder {
         case .plaintextPassword(let string):
             out.write(string: string)
             out.write(integer: Byte(0))
-        default: throw MySQLError(identifier: "encodePacket", reason: "Unexpected packet.", source: .capture())
+        default: throw MySQLError(identifier: "encodePacket", reason: "Unexpected packet.")
         }
         let bytesWritten = out.writerIndex - writeOffset - 4
         out.set(integer: Byte(bytesWritten & 0xFF), at: writeOffset)

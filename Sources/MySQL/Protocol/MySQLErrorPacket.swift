@@ -23,25 +23,30 @@ struct MySQLErrorPacket {
     init(bytes: inout ByteBuffer, capabilities: MySQLCapabilities, length: Int) throws {
         let startIndex = bytes.readerIndex
 
-        let header = try bytes.requireInteger(endianness: .little, as: Byte.self, source: .capture())
+        let header = try bytes.requireInteger(endianness: .little, as: Byte.self)
         switch header {
         case 0xFF: break
-        default: throw MySQLError(identifier: "errPacketHeader", reason: "Invalid ERR packet header: \(header)", source: .capture())
+        default: throw MySQLError(identifier: "errPacketHeader", reason: "Invalid ERR packet header: \(header)")
         }
 
-        errorCode = try bytes.requireInteger(endianness: .little, source: .capture())
+        errorCode = try bytes.requireInteger(endianness: .little)
         if capabilities.contains(.CLIENT_PROTOCOL_41) {
-            sqlStateMarker = try bytes.requireString(length: 1, source: .capture())
-            sqlState = try bytes.requireString(length: 5, source: .capture())
+            sqlStateMarker = try bytes.requireString(length: 1)
+            sqlState = try bytes.requireString(length: 5)
         }
 
-        errorMessage = try bytes.requireString(length: length - (bytes.readerIndex - startIndex), source: .capture())
+        errorMessage = try bytes.requireString(length: length - (bytes.readerIndex - startIndex))
     }
 }
 
 extension MySQLErrorPacket {
     /// Convert this `MySQLErrorPacket` to a `MySQLError`
-    func makeError(source: SourceLocation) -> MySQLError {
-        return MySQLError(identifier: "server (\(errorCode))", reason: errorMessage, source: source)
+    func makeError(
+        file: String = #file,
+        function: String = #function,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> MySQLError {
+        return MySQLError(identifier: "server (\(errorCode))", reason: errorMessage, file: file, function: function, line: line, column: column)
     }
 }

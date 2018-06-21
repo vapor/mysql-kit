@@ -33,7 +33,7 @@ extension MySQLConnection {
             case .ok, .eof:
                 // ignore ok and eof
                 return false
-            default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).", source: .capture())
+            default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).")
             }
         }.flatMap {
             let ok = ok!
@@ -43,7 +43,7 @@ extension MySQLConnection {
                 values: params.map { data in
                     switch data.storage {
                     case .binary(let binary): return binary
-                    case .text: throw MySQLError(identifier: "binaryData", reason: "Binary data required.", source: .capture())
+                    case .text: throw MySQLError(identifier: "binaryData", reason: "Binary data required.")
                     }
                 }
             )
@@ -65,7 +65,7 @@ extension MySQLConnection {
                 case .ok, .eof:
                     // rows are done
                     return true
-                default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).", source: .capture())
+                default: throw MySQLError(identifier: "query", reason: "Unsupported message encountered during prepared query: \(message).")
                 }
             }
         }

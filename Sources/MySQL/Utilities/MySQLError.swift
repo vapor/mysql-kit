@@ -6,10 +6,11 @@ public struct MySQLError: Debuggable {
     public static let readableName = "MySQL Error"
     public let identifier: String
     public var reason: String
-    public var sourceLocation: SourceLocation?
-    public var stackTrace: [String]
     public var possibleCauses: [String]
     public var suggestedFixes: [String]
+    public var documentationLinks: [String]
+    public var sourceLocation: SourceLocation?
+    public var stackTrace: [String]
 
     /// Create a new TCP error.
     public init(
@@ -17,18 +18,29 @@ public struct MySQLError: Debuggable {
         reason: String,
         possibleCauses: [String] = [],
         suggestedFixes: [String] = [],
-        source: SourceLocation
+        documentationLinks: [String] = [],
+        file: String = #file,
+        function: String = #function,
+        line: UInt = #line,
+        column: UInt = #column
     ) {
         self.identifier = identifier
         self.reason = reason
-        self.sourceLocation = source
-        self.stackTrace = MySQLError.makeStackTrace()
         self.possibleCauses = possibleCauses
         self.suggestedFixes = suggestedFixes
+        self.documentationLinks = documentationLinks
+        self.sourceLocation = .init(file: file, function: function, line: line, column: column, range: nil)
+        self.stackTrace = MySQLError.makeStackTrace()
     }
 
-    public static func parse(_ identifier: String, source: SourceLocation) -> MySQLError {
-        return MySQLError(identifier: "parse.\(identifier)", reason: "Could not parse MySQL packet.", source: source)
+    public static func parse(
+        _ identifier: String,
+        file: String = #file,
+        function: String = #function,
+        line: UInt = #line,
+        column: UInt = #column
+    ) -> MySQLError {
+        return MySQLError(identifier: "parse.\(identifier)", reason: "Could not parse MySQL packet.", file: file, function: function, line: line, column: column)
     }
 }
 

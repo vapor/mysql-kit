@@ -20,19 +20,19 @@ struct MySQLComStmtPrepareOK {
 
     /// Parses a `MySQLComStmtPrepareOK` from the `ByteBuffer`.
     init(bytes: inout ByteBuffer) throws {
-        let status = try bytes.requireInteger(as: Byte.self, source: .capture())
+        let status = try bytes.requireInteger(as: Byte.self)
         guard status == 0x00 else {
-            throw MySQLError(identifier: "prepareStatus", reason: "Prepare response has invalid status", source: .capture())
+            throw MySQLError(identifier: "prepareStatus", reason: "Prepare response has invalid status")
         }
 
-        statementID = try bytes.requireInteger(endianness: .little, source: .capture())
-        numColumns = try bytes.requireInteger(endianness: .little, source: .capture())
-        numParams = try bytes.requireInteger(endianness: .little, source: .capture())
+        statementID = try bytes.requireInteger(endianness: .little)
+        numColumns = try bytes.requireInteger(endianness: .little)
+        numParams = try bytes.requireInteger(endianness: .little)
 
         /// reserved_1 (1) -- [00] filler
-        let reserved_1 = try bytes.requireInteger(as: Byte.self, source: .capture())
+        let reserved_1 = try bytes.requireInteger(as: Byte.self)
         assert(reserved_1 == 0x00)
 
-        warningCount = try bytes.requireInteger(endianness: .little, source: .capture())
+        warningCount = try bytes.requireInteger(endianness: .little)
     }
 }

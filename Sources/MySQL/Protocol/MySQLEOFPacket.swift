@@ -15,15 +15,15 @@ struct MySQLEOFPacket {
 
     /// Parses a `MySQLEOFPacket` from the `ByteBuffer`.
     init(bytes: inout ByteBuffer, capabilities: MySQLCapabilities) throws {
-        let header = try bytes.requireInteger(endianness: .little, as: Byte.self, source: .capture())
+        let header = try bytes.requireInteger(endianness: .little, as: Byte.self)
         switch header {
         case 0xFE: break
-        default: throw MySQLError(identifier: "eofPacketHeader", reason: "Invalid EOF packet header: \(header)", source: .capture())
+        default: throw MySQLError(identifier: "eofPacketHeader", reason: "Invalid EOF packet header: \(header)")
         }
 
         if capabilities.contains(.CLIENT_PROTOCOL_41) {
-            warningsCount = try bytes.requireInteger(endianness: .little, source: .capture())
-            statusFlags = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
+            warningsCount = try bytes.requireInteger(endianness: .little)
+            statusFlags = try .init(raw: bytes.requireInteger(endianness: .little))
         } else {
             statusFlags = .init(raw: 0)
         }

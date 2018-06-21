@@ -186,11 +186,11 @@ public struct MySQLData: Equatable, Encodable {
         case .binary(let binary):
             func safeCast<J>(_ j: J) throws -> I where J: FixedWidthInteger {
                 guard j >= I.min else {
-                    throw MySQLError(identifier: "intMin", reason: "Value \(j) too small for \(I.self).", source: .capture())
+                    throw MySQLError(identifier: "intMin", reason: "Value \(j) too small for \(I.self).")
                 }
 
                 guard j <= I.max else {
-                    throw MySQLError(identifier: "intMax", reason: "Value \(j) too big for \(I.self).", source: .capture())
+                    throw MySQLError(identifier: "intMax", reason: "Value \(j) too big for \(I.self).")
                 }
 
                 return I(j)
@@ -395,7 +395,7 @@ extension String: MySQLDataConvertible {
     /// See `MySQLDataConvertible.convertFromMySQLData()`
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> String {
         guard let string = mysqlData.string() else {
-            throw MySQLError(identifier: "string", reason: "Cannot decode String from MySQLData: \(mysqlData).", source: .capture())
+            throw MySQLError(identifier: "string", reason: "Cannot decode String from MySQLData: \(mysqlData).")
         }
         return string
     }
@@ -410,10 +410,10 @@ extension Decimal: MySQLDataConvertible {
     /// See `MySQLDataConvertible.convertFromMySQLData()`
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Decimal {
         guard let string = mysqlData.string() else {
-            throw MySQLError(identifier: "decimal", reason: "Cannot decode String from MySQLData: \(mysqlData).", source: .capture())
+            throw MySQLError(identifier: "decimal", reason: "Cannot decode String from MySQLData: \(mysqlData).")
         }
         guard let decimal = Decimal(string: string) else {
-            throw MySQLError(identifier: "decimal", reason: "Cannot decode Decimal from String: \(string).", source: .capture())
+            throw MySQLError(identifier: "decimal", reason: "Cannot decode Decimal from String: \(string).")
         }
         return decimal
     }
@@ -428,7 +428,7 @@ extension FixedWidthInteger {
     /// See `MySQLDataConvertible.convertFromMySQLData()`
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Self {
         guard let int = try mysqlData.integer(Self.self) else {
-            throw MySQLError(identifier: "int", reason: "Cannot decode Int from MySQLData: \(mysqlData).", source: .capture())
+            throw MySQLError(identifier: "int", reason: "Cannot decode Int from MySQLData: \(mysqlData).")
         }
 
         return int
@@ -466,7 +466,7 @@ extension OptionalType {
             return makeOptionalType(nil)
         } else {
             guard let convertibleType = WrappedType.self as? MySQLDataConvertible.Type else {
-                throw MySQLError(identifier: "wrapped", reason: "Could not convert \(WrappedType.self) to MySQLData", source: .capture())
+                throw MySQLError(identifier: "wrapped", reason: "Could not convert \(WrappedType.self) to MySQLData")
             }
             let wrapped = try convertibleType.convertFromMySQLData(mysqlData) as! WrappedType
             return makeOptionalType(wrapped)
@@ -486,13 +486,13 @@ extension Bool: MySQLDataConvertible {
     /// See `MySQLDataConvertible.convertFromMySQLData()`
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Bool {
         guard let int = try mysqlData.integer(UInt8.self) else {
-            throw MySQLError(identifier: "bool", reason: "Could not parse bool from: \(mysqlData)", source: .capture())
+            throw MySQLError(identifier: "bool", reason: "Could not parse bool from: \(mysqlData)")
         }
 
         switch int {
         case 1: return true
         case 0: return false
-        default: throw MySQLError(identifier: "bool", reason: "Invalid bool: \(int)", source: .capture())
+        default: throw MySQLError(identifier: "bool", reason: "Invalid bool: \(int)")
         }
     }
 }
@@ -506,7 +506,7 @@ extension BinaryFloatingPoint {
     /// See `MySQLDataConvertible.convertFromMySQLData()`
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Self {
         guard let int = mysqlData.float(Self.self) else {
-            throw MySQLError(identifier: "float", reason: "Cannot decode Float from MySQLData: \(mysqlData).", source: .capture())
+            throw MySQLError(identifier: "float", reason: "Cannot decode Float from MySQLData: \(mysqlData).")
         }
 
         return int
@@ -528,7 +528,7 @@ extension UUID: MySQLDataConvertible {
     /// See `MySQLDataConvertible.convertFromMySQLData()`
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> UUID {
         guard let data = mysqlData.data() else {
-            throw MySQLError(identifier: "uuid", reason: "Could not parse UUID from: \(mysqlData)", source: .capture())
+            throw MySQLError(identifier: "uuid", reason: "Could not parse UUID from: \(mysqlData)")
         }
         return .convertFromData(data)
     }
@@ -617,7 +617,7 @@ extension Date {
             yearForWeekOfYear: nil
         )
         guard let date = comps.date else {
-            throw MySQLError(identifier: "date", reason: "Could not parse Date from: \(time)", source: .capture())
+            throw MySQLError(identifier: "date", reason: "Could not parse Date from: \(time)")
         }
         
         /// For some reason comps.nanosecond is `nil` on linux :(
@@ -668,9 +668,9 @@ extension Date: MySQLDataConvertible {
         case .binary(let binary):
             switch binary.storage {
             case .time(let _time): time = _time
-            default: throw MySQLError(identifier: "timeBinary", reason: "Parsing MySQLTime from \(binary) is not supported.", source: .capture())
+            default: throw MySQLError(identifier: "timeBinary", reason: "Parsing MySQLTime from \(binary) is not supported.")
             }
-        case .text: throw MySQLError(identifier: "timeText", reason: "Parsing MySQLTime from text is not supported.", source: .capture())
+        case .text: throw MySQLError(identifier: "timeText", reason: "Parsing MySQLTime from text is not supported.")
         }
 
         return try .convertFromMySQLTime(time)

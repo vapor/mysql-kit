@@ -40,7 +40,7 @@ struct MySQLDataDecoder {
             case .binary(let binary):
                 switch binary.storage {
                 case .string(let data): json = data
-                default: throw MySQLError(identifier: "json", reason: "Could not decode JSON.", source: .capture())
+                default: throw MySQLError(identifier: "json", reason: "Could not decode JSON.")
                 }
             case .text(let data): json = data ?? Data()
             }

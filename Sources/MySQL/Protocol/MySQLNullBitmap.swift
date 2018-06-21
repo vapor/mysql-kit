@@ -61,9 +61,9 @@ struct MySQLNullBitmap {
 
 extension ByteBuffer {
     /// Reads a `MySQLNullBitmap` for binary result sets from the `ByteBuffer`.
-    mutating func requireResultSetNullBitmap(count: Int, source: @autoclosure () -> (SourceLocation)) throws -> MySQLNullBitmap {
+    mutating func requireResultSetNullBitmap(count: Int) throws -> MySQLNullBitmap {
         return try MySQLNullBitmap.binaryResultSetBitmap(
-            bytes: requireBytes(length: (count + 7 + 2) / 8, source: source)
+            bytes: requireBytes(length: (count + 7 + 2) / 8)
         )
     }
 }

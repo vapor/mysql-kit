@@ -34,7 +34,7 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
     // MARK: Private
     
     private func handlePacket(ctx: ChannelHandlerContext, packet: MySQLPacket) throws {
-        // print("✅ \(packet) \(state)")
+        print("✅ \(packet) \(state)")
         switch state {
         case .nascent:
             switch packet {
@@ -49,7 +49,21 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
                 self.readyForQuery = nil
             case .fullAuthenticationRequest:
                 guard config.transport.isTLS else {
-                    throw MySQLError(identifier: "fullAuthRequired", reason: "Full authentication not supported over insecure connections.", source: .capture())
+                    throw MySQLError(
+                        identifier: "fullAuthRequired",
+                        reason: "Full authentication not supported over insecure connections.",
+                        possibleCauses: [
+                            "Using 'caching_sha2_password' auth plugin (default in MySQL >= 8.0.4) over an insecure (no SSL) connection."
+                        ],
+                        suggestedFixes: [
+                            "Use a secure MySQLTransportConfig option in your MySQLDatabaseConfig.",
+                            "Use a MySQL auth plugin that does not require full authentication (like 'mysql_native_password').",
+                            "Use MySQL < 8.0.4."
+                        ],
+                        documentationLinks: [
+                            "https://mysqlserverteam.com/mysql-8-0-4-new-default-authentication-plugin-caching_sha2_password/"
+                        ]
+                    )
                 }
                 let packet: MySQLPacket = .plaintextPassword(config.password!)
                 // if auth write fail, we need to fail the rfq promise
@@ -60,7 +74,7 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
                 }
                 ctx.writeAndFlush(wrapOutboundOut(packet), promise: writePromise)
             case .err(let err):
-                let error = err.makeError(source: .capture())
+                let error = err.makeError()
                 readyForQuery?.fail(error: error)
                 self.readyForQuery = nil
             default: fatalError("Unsupported packet during connect: \(packet)")
@@ -91,13 +105,13 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
         switch authPlugin {
         case "mysql_native_password":
             guard handshake.capabilities.contains(.CLIENT_SECURE_CONNECTION) else {
-                throw MySQLError(identifier: "authproto", reason: "Pre-4.1 auth protocol is not supported or safe.", source: .capture())
+                throw MySQLError(identifier: "authproto", reason: "Pre-4.1 auth protocol is not supported or safe.")
             }
             guard let password = config.password else {
-                throw MySQLError(identifier: "password", reason: "Password required for auth plugin.", source: .capture())
+                throw MySQLError(identifier: "password", reason: "Password required for auth plugin.")
             }
             guard handshake.authPluginData.count >= 20 else {
-                throw MySQLError(identifier: "salt", reason: "Server-supplied salt too short.", source: .capture())
+                throw MySQLError(identifier: "salt", reason: "Server-supplied salt too short.")
             }
             let salt = Data(handshake.authPluginData[..<20])
             let passwordHash = try SHA1.hash(password)
@@ -109,7 +123,7 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
             authResponse = hash
         case "caching_sha2_password":
             guard let password = config.password else {
-                throw MySQLError(identifier: "password", reason: "Password required for auth plugin.", source: .capture())
+                throw MySQLError(identifier: "password", reason: "Password required for auth plugin.")
             }
             
             // XOR(SHA256(PASSWORD), SHA256(SHA256(SHA256(PASSWORD)), seed_bytes))
@@ -128,7 +142,7 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
             let hash2xsalt = try SHA256.hash(hash2x + handshake.authPluginData)
             hash.xor(hash2xsalt)
             authResponse = hash
-        default: throw MySQLError(identifier: "authPlugin", reason: "Unsupported auth plugin: '\(authPlugin)'.", source: .capture())
+        default: throw MySQLError(identifier: "authPlugin", reason: "Unsupported auth plugin: '\(authPlugin)'.")
         }
         let response = MySQLPacket.HandshakeResponse41(
             capabilities: config.capabilities,
