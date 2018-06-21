@@ -1,4 +1,11 @@
-public struct MySQLDataType: SQLDataType {
+public struct MySQLDataType: SQLDataType, Equatable {
+    /// See `Equatable`.
+    public static func == (lhs: MySQLDataType, rhs: MySQLDataType) -> Bool {
+        // FIXME: more performant compare available once Swift has better equatable enum support
+        var binds: [Encodable] = []
+        return lhs.serialize(&binds) == rhs.serialize(&binds)
+    }
+    
     /// See `SQLDataType`.
     public static func dataType(appropriateFor type: Any.Type) -> MySQLDataType? {
         guard let type = type as? MySQLDataTypeStaticRepresentable.Type else {
@@ -506,36 +513,7 @@ public struct MySQLDataType: SQLDataType {
         /// https://dev.mysql.com/doc/refman/8.0/en/json.html
         case json
     }
-}
-
-// FIXME: add collate
-public struct MySQLCollate: CustomStringConvertible, Equatable {
-    public var description: String {
-        return ""
-    }
-}
-
-/// An optional fsp value in the range from 0 to 6 may be given to specify fractional seconds precision.
-/// A value of 0 signifies that there is no fractional part. If omitted, the default precision is 0.
-public struct MySQLFractionalSecondsPrecision: Equatable, ExpressibleByIntegerLiteral {
-    public let value: UInt8
     
-    public init?(_ value: UInt8) {
-        switch value {
-        case 0...6: self.value = value
-        default: return nil
-        }
-    }
-    
-    public init(integerLiteral value: UInt8) {
-        guard let fsp = MySQLFractionalSecondsPrecision(value) else {
-            fatalError("Invalid FSP value.")
-        }
-        self = fsp
-    }
-}
-
-extension MySQLDataType {
     /// See `SQLSerializable`.
     public func serialize(_ binds: inout [Encodable]) -> String {
         func _int(_ name: String, _ m: Int?, _ unsigned: Bool = false, _ zerofill: Bool = false) -> String {
