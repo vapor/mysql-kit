@@ -22,7 +22,7 @@ public typealias MySQLColumnIdentifier = GenericSQLColumnIdentifier<
 >
 
 /// See `SQLQuery`.
-public typealias MySQLConflictResolution = GenericSQLConflictResolution
+public typealias MySQLForeignKeyAction = GenericSQLForeignKeyAction
 
 /// See `SQLQuery`
 public typealias MySQLCreateTable = GenericSQLCreateTable<
@@ -50,7 +50,7 @@ public typealias MySQLExpression = GenericSQLExpression<
 
 /// See `SQLQuery`.
 public typealias MySQLForeignKey = GenericSQLForeignKey<
-    MySQLTableIdentifier, MySQLIdentifier, MySQLConflictResolution
+    MySQLTableIdentifier, MySQLIdentifier, MySQLForeignKeyAction
 >
 
 /// See `SQLQuery`.
