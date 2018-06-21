@@ -35,64 +35,64 @@ extension MySQLPacket {
 
         /// Parses a `MySQLHandshakeV10` from the `ByteBuffer`.
         init(bytes: inout ByteBuffer) throws {
-            let protocolVersion = try bytes.requireInteger(endianness: .little, as: Byte.self, source: .capture())
+            let protocolVersion = try bytes.requireInteger(endianness: .little, as: Byte.self)
             self.protocolVersion = protocolVersion
             guard protocolVersion == 0x0a else {
-                throw MySQLError(identifier: "protocolVersion", reason: "Invalid protocol verison: \(protocolVersion)", source: .capture())
+                throw MySQLError(identifier: "protocolVersion", reason: "Invalid protocol verison: \(protocolVersion)")
             }
             
-            self.serverVersion = try bytes.requireNullTerminatedString(source: .capture())
-            self.connectionID = try bytes.requireInteger(endianness: .little, source: .capture())
-            let authPluginDataPart1 = try bytes.requireBytes(length: 8, source: .capture())
-            let filler_1 = try bytes.requireInteger(as: Byte.self, source: .capture())
+            self.serverVersion = try bytes.requireNullTerminatedString()
+            self.connectionID = try bytes.requireInteger(endianness: .little)
+            let authPluginDataPart1 = try bytes.requireBytes(length: 8)
+            let filler_1 = try bytes.requireInteger(as: Byte.self)
             // filler_1 (1) -- 0x00
             assert(filler_1 == 0x00)
             // capability_flag_1 (2) -- lower 2 bytes of the Protocol::CapabilityFlags (optional)
-            let capabilityFlag1 = try bytes.requireInteger(endianness: .little, as: UInt16.self, source: .capture())
+            let capabilityFlag1 = try bytes.requireInteger(endianness: .little, as: UInt16.self)
 
             if bytes.readableBytes > 0 {
-                self.characterSet = try .init(byte: bytes.requireInteger(endianness: .little, source: .capture()))
-                self.statusFlags = try bytes.requireInteger(endianness: .little, source: .capture())
+                self.characterSet = try .init(byte: bytes.requireInteger(endianness: .little))
+                self.statusFlags = try bytes.requireInteger(endianness: .little)
 
                 // capability_flags_2 (2) -- upper 2 bytes of the Protocol::CapabilityFlags
                 self.capabilities = MySQLCapabilities(
-                    upper: try bytes.requireInteger(endianness: .little, source: .capture()),
+                    upper: try bytes.requireInteger(endianness: .little),
                     lower: capabilityFlag1
                 )
 
                 let authPluginDataLength: Byte
                 if capabilities.contains(.CLIENT_PLUGIN_AUTH) {
-                    authPluginDataLength = try bytes.requireInteger(endianness: .little, source: .capture())
+                    authPluginDataLength = try bytes.requireInteger(endianness: .little)
                 } else {
-                    authPluginDataLength = try bytes.requireInteger(endianness: .little, source: .capture())
+                    authPluginDataLength = try bytes.requireInteger(endianness: .little)
                     assert(authPluginDataLength == 0x00, "invalid auth plugin data filler: \(authPluginDataLength)")
                 }
 
                 /// string[6]     reserved (all [00])
-                let reserved = try bytes.requireBytes(length: 6, source: .capture())
+                let reserved = try bytes.requireBytes(length: 6)
                 assert(reserved == [0, 0, 0, 0, 0, 0])
 
                 if capabilities.contains(.CLIENT_LONG_PASSWORD) {
                     /// string[4]     reserved (all [00])
-                    let reserved2 = try bytes.requireBytes(length: 4, source: .capture())
+                    let reserved2 = try bytes.requireBytes(length: 4)
                     assert(reserved2 == [0, 0, 0, 0])
                 } else {
                     /// Capabilities 3rd part. MariaDB specific flags.
                     /// MariaDB Initial Handshake Packet specific flags
                     /// https://mariadb.com/kb/en/library/1-connecting-connecting/
-                    let mariaDBSpecific: UInt32 = try bytes.requireInteger(endianness: .little, source: .capture())
+                    let mariaDBSpecific: UInt32 = try bytes.requireInteger(endianness: .little)
                     self.capabilities.mariaDBSpecific = mariaDBSpecific
                 }
 
                 if capabilities.contains(.CLIENT_SECURE_CONNECTION) {
                     if capabilities.contains(.CLIENT_PLUGIN_AUTH) {
                         let len = max(13, authPluginDataLength - 8)
-                        let authPluginDataPart2 = try bytes.requireBytes(length: numericCast(len), source: .capture())
+                        let authPluginDataPart2 = try bytes.requireBytes(length: numericCast(len))
                         self.authPluginData = Data(authPluginDataPart1 + authPluginDataPart2)
                     } else {
-                        let authPluginDataPart2 = try bytes.requireBytes(length: 12, source: .capture())
+                        let authPluginDataPart2 = try bytes.requireBytes(length: 12)
                         self.authPluginData = Data(authPluginDataPart1 + authPluginDataPart2)
-                        let filler: Byte = try bytes.requireInteger(source: .capture())
+                        let filler: Byte = try bytes.requireInteger()
                         assert(filler == 0x00)
                     }
                 } else {
@@ -100,7 +100,7 @@ extension MySQLPacket {
                 }
 
                 if capabilities.contains(.CLIENT_PLUGIN_AUTH) {
-                    self.authPluginName = try bytes.requireNullTerminatedString(source: .capture())
+                    self.authPluginName = try bytes.requireNullTerminatedString()
                 }
             } else {
                 self.capabilities = .init(lower: capabilityFlag1)

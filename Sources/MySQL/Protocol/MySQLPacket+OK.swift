@@ -30,20 +30,20 @@ extension MySQLPacket {
         init(bytes: inout ByteBuffer, capabilities: MySQLCapabilities, length: Int) throws {
             let startIndex = bytes.readerIndex
 
-            let header = try bytes.requireInteger(endianness: .little, as: Byte.self, source: .capture())
+            let header = try bytes.requireInteger(endianness: .little, as: Byte.self)
             switch header {
             case 0x00, 0xFE: break
-            default: throw MySQLError(identifier: "okPacketHeader", reason: "Invalid OK packet header: \(header)", source: .capture())
+            default: throw MySQLError(identifier: "okPacketHeader", reason: "Invalid OK packet header: \(header)")
             }
 
-            affectedRows = try bytes.requireLengthEncodedInteger(source: .capture())
-            lastInsertID = try bytes.requireLengthEncodedInteger(source: .capture())
+            affectedRows = try bytes.requireLengthEncodedInteger()
+            lastInsertID = try bytes.requireLengthEncodedInteger()
             
             if capabilities.contains(.CLIENT_PROTOCOL_41) {
-                statusFlags = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
-                warningsCount = try bytes.requireInteger(endianness: .little, source: .capture())
+                statusFlags = try .init(raw: bytes.requireInteger(endianness: .little))
+                warningsCount = try bytes.requireInteger(endianness: .little)
             } else if capabilities.contains(.CLIENT_TRANSACTIONS) {
-                statusFlags = try .init(raw: bytes.requireInteger(endianness: .little, source: .capture()))
+                statusFlags = try .init(raw: bytes.requireInteger(endianness: .little))
             } else {
                 statusFlags = []
             }
@@ -53,14 +53,14 @@ extension MySQLPacket {
                     // entire packet has been read already
                     info = ""
                 } else {
-                    info = try bytes.requireLengthEncodedString(source: .capture())
+                    info = try bytes.requireLengthEncodedString()
                     if statusFlags.get(SERVER_SESSION_STATE_CHANGED) {
-                        sessionStateChanges = try bytes.requireLengthEncodedString(source: .capture())
+                        sessionStateChanges = try bytes.requireLengthEncodedString()
                     }
                 }
             } else {
                 /// FIXME: need to know packet length here?
-                info = try bytes.requireString(length: length - (bytes.readerIndex - startIndex), source: .capture())
+                info = try bytes.requireString(length: length - (bytes.readerIndex - startIndex))
             }
         }
     }

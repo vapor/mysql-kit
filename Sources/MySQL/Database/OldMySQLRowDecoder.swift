@@ -41,7 +41,7 @@
 //
 //    func require(key: CodingKey) throws -> MySQLData {
 //        guard let data = self.data[key.stringValue] else {
-//            throw MySQLError(identifier: "decode", reason: "No value found at key: \(key)", source: .capture())
+//            throw MySQLError(identifier: "decode", reason: "No value found at key: \(key)")
 //        }
 //        return data
 //    }
@@ -55,7 +55,7 @@
 //        suggestedFixes: [
 //            "You can conform nested types to `MySQLJSONType`. (Nested types must be `MySQLDataConvertible`.)"
 //        ],
-//        source: .capture()
+//        
 //    )
 //}
 //
@@ -96,7 +96,7 @@
 //                suggestedFixes: [
 //                    "Conform \(type) to MySQLDataConvertible"
 //                ],
-//                source: .capture()
+//                
 //            )
 //        }
 //        return try convertible.convertFromMySQLData(decoder.require(key: key)) as! T

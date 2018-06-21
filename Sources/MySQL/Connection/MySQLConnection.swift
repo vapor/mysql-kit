@@ -92,7 +92,7 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection, DatabaseQue
         handler.state = .callback(promise) { packet in
             switch packet {
             case .ok(let ok): self.lastMetadata = .init(ok)
-            case .err(let err): throw err.makeError(source: .capture())
+            case .err(let err): throw err.makeError()
             default: break
             }
             return try onResponse(packet)
@@ -134,4 +134,4 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection, DatabaseQue
 }
 
 /// Error to throw if the connection has closed.
-private let closeError = MySQLError(identifier: "closed", reason: "Connection is closed.", source: .capture())
+private let closeError = MySQLError(identifier: "closed", reason: "Connection is closed.")

@@ -73,7 +73,7 @@ struct MySQLComStmtExecute {
                 case .string(let data):
                     /// larger than 2^24 not yet supported
                     guard data.count < 16_777_216 else {
-                        throw MySQLError(identifier: "dataTooLarge", reason: "Data must be <= 16MB", source: .capture())
+                        throw MySQLError(identifier: "dataTooLarge", reason: "Data must be <= 16MB")
                     }
                     buffer.write(lengthEncoded: numericCast(data.count))
                     buffer.write(bytes: data)
