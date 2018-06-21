@@ -21,14 +21,14 @@ extension Date: MySQLDataTypeStaticRepresentable {
 extension String: MySQLDataTypeStaticRepresentable {
     /// See `MySQLDataTypeStaticRepresentable`.
     public static var mysqlDataType: MySQLDataType {
-        return .varchar(255, nil, nil)
+        return .varchar(255)
     }
 }
 
 extension Decimal: MySQLDataTypeStaticRepresentable {
     /// See `MySQLDataTypeStaticRepresentable`.
     public static var mysqlDataType: MySQLDataType {
-        return .decimal(nil, unsigned: false, zerofill: false)
+        return .decimal
     }
 }
 
