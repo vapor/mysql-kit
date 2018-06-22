@@ -3,10 +3,16 @@ public enum MySQLQuery: SQLQuery {
     public typealias AlterTable = MySQLAlterTable
     
     /// See `SQLQuery`.
+    public typealias CreateIndex = MySQLCreateIndex
+    
+    /// See `SQLQuery`.
     public typealias CreateTable = MySQLCreateTable
     
     /// See `SQLQuery`.
     public typealias Delete = MySQLDelete
+    
+    /// See `SQLQuery`.
+    public typealias DropIndex = MySQLDropIndex
     
     /// See `SQLQuery`.
     public typealias DropTable = MySQLDropTable
@@ -26,6 +32,11 @@ public enum MySQLQuery: SQLQuery {
     }
     
     /// See `SQLQuery`.
+    public static func createIndex(_ createIndex: MySQLCreateIndex) -> MySQLQuery {
+        return ._createIndex(createIndex)
+    }
+    
+    /// See `SQLQuery`.
     public static func createTable(_ createTable: CreateTable) -> MySQLQuery {
         return ._createTable(createTable)
     }
@@ -33,6 +44,11 @@ public enum MySQLQuery: SQLQuery {
     /// See `SQLQuery`.
     public static func delete(_ delete: Delete) -> MySQLQuery {
         return ._delete(delete)
+    }
+    
+    /// See `SQLQuery`.
+    public static func dropIndex(_ dropIndex: MySQLDropIndex) -> MySQLQuery {
+        return ._dropIndex(dropIndex)
     }
     
     /// See `SQLQuery`.
@@ -64,10 +80,16 @@ public enum MySQLQuery: SQLQuery {
     case _alterTable(AlterTable)
     
     /// See `SQLQuery`.
+    case _createIndex(CreateIndex)
+    
+    /// See `SQLQuery`.
     case _createTable(CreateTable)
     
     /// See `SQLQuery`.
     case _delete(Delete)
+    
+    /// See `SQLQuery`.
+    case _dropIndex(DropIndex)
     
     /// See `SQLQuery`.
     case _dropTable(DropTable)
@@ -88,8 +110,10 @@ public enum MySQLQuery: SQLQuery {
     public func serialize(_ binds: inout [Encodable]) -> String {
         switch self {
         case ._alterTable(let alterTable): return alterTable.serialize(&binds)
+        case ._createIndex(let createIndex): return createIndex.serialize(&binds)
         case ._createTable(let createTable): return createTable.serialize(&binds)
         case ._delete(let delete): return delete.serialize(&binds)
+        case ._dropIndex(let dropIndex): return dropIndex.serialize(&binds)
         case ._dropTable(let dropTable): return dropTable.serialize(&binds)
         case ._insert(let insert): return insert.serialize(&binds)
         case ._select(let select): return select.serialize(&binds)
