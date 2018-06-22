@@ -25,6 +25,11 @@ public typealias MySQLColumnIdentifier = GenericSQLColumnIdentifier<
 public typealias MySQLForeignKeyAction = GenericSQLForeignKeyAction
 
 /// See `SQLQuery`
+public typealias MySQLCreateIndex = GenericSQLCreateIndex<
+    MySQLIndexModifier, MySQLIdentifier, MySQLTableIdentifier
+>
+
+/// See `SQLQuery`
 public typealias MySQLCreateTable = GenericSQLCreateTable<
     MySQLTableIdentifier, MySQLColumnDefinition, MySQLTableConstraint
 >
@@ -55,6 +60,9 @@ public typealias MySQLForeignKey = GenericSQLForeignKey<
 
 /// See `SQLQuery`.
 public typealias MySQLGroupBy = GenericSQLGroupBy<MySQLExpression>
+
+/// See `SQLQuery`
+public typealias MySQLIndexModifier = GenericSQLIndexModifier
 
 /// See `SQLQuery`.
 public typealias MySQLJoin = GenericSQLJoin<
