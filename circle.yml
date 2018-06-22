@@ -113,6 +113,24 @@ jobs:
           name: Run Fluent MySQL unit tests
           command: swift test
           working_directory: ~/fluent-mysql
+  8.0-linux-4.2:
+    docker:
+      - image: norionomura/swift:swift-4.2-branch
+      - image: mysql:8.0
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: vapor_database
+          # MYSQL_ROOT_HOST: %
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+    steps:
+      - checkout
+      - run: 
+          name: Compile code
+          command: swift build
+      - run: 
+          name: Run unit tests
+          command: swift test -Xswiftc -DSSL_TESTS
   linux-release:
     docker:
       - image: codevapor/swift:4.1
@@ -129,6 +147,7 @@ workflows:
       - 5.6-linux
       - 5.7-linux
       - 8.0-linux
+      - 8.0-linux-4.2
       - 8.0-linux-fluent
       - mariadb-10.3-linux
       - linux-release
