@@ -280,6 +280,29 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(sql, "ALTER TABLE `Galaxy` ADD COLUMN `name` VARCHAR(255) NOT NULL AFTER `id`")
     }
     
+    func testDecimalPrecision() throws {
+        struct DecimalTest: MySQLTable {
+            var num: Decimal
+        }
+        
+        let conn = try MySQLConnection.makeTest()
+        defer {
+            try? conn.drop(table: DecimalTest.self).ifExists().run().wait()
+        }
+        try conn.create(table: DecimalTest.self)
+            .column(for: \DecimalTest.num)
+            .run().wait()
+        
+        let a = DecimalTest(num: .init(sign: .plus, exponent: 80, significand: 1.0))
+        try conn.insert(into: DecimalTest.self).value(a)
+            .run().wait()
+        
+        let b = try conn.select()
+            .all().from(DecimalTest.self)
+            .all(decoding: DecimalTest.self).wait()
+        XCTAssertEqual(b.first?.num, a.num)
+    }
+    
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testSimpleQuery", testSimpleQuery),
@@ -295,6 +318,7 @@ class MySQLTests: XCTestCase {
         ("testInsertMany", testInsertMany),
         ("testPreparedStatementOverload", testPreparedStatementOverload),
         ("testColumnAfter", testColumnAfter),
+        ("testDecimalPrecision", testDecimalPrecision),
     ]
 }
 

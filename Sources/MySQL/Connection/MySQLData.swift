@@ -26,15 +26,6 @@ public struct MySQLData: Equatable, Encodable {
         self.storage = .binary(binary)
     }
 
-    public init(decimal: Decimal) {
-        let binary = MySQLBinaryData(
-            type: .MYSQL_TYPE_NEWDECIMAL,
-            isUnsigned: true,
-            storage: .string(.init(decimal.description.utf8))
-        )
-        self.storage = .binary(binary)
-    }
-
     /// Creates a new `MySQLData` from `Data`.
     public init(data: Data?) {
         let binary = MySQLBinaryData(
@@ -398,24 +389,6 @@ extension String: MySQLDataConvertible {
             throw MySQLError(identifier: "string", reason: "Cannot decode String from MySQLData: \(mysqlData).")
         }
         return string
-    }
-}
-
-extension Decimal: MySQLDataConvertible {
-    /// See `MySQLDataConvertible.convertToMySQLData(format:)`
-    public func convertToMySQLData() -> MySQLData {
-        return MySQLData(decimal: self)
-    }
-
-    /// See `MySQLDataConvertible.convertFromMySQLData()`
-    public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Decimal {
-        guard let string = mysqlData.string() else {
-            throw MySQLError(identifier: "decimal", reason: "Cannot decode String from MySQLData: \(mysqlData).")
-        }
-        guard let decimal = Decimal(string: string) else {
-            throw MySQLError(identifier: "decimal", reason: "Cannot decode Decimal from String: \(string).")
-        }
-        return decimal
     }
 }
 

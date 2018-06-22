@@ -9,7 +9,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
     /// See `SQLDataType`.
     public static func dataType(appropriateFor type: Any.Type) -> MySQLDataType? {
         guard let type = type as? MySQLDataTypeStaticRepresentable.Type else {
-            return nil
+            return .json
         }
         return type.mysqlDataType
     }

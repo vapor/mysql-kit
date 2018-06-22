@@ -25,13 +25,6 @@ extension String: MySQLDataTypeStaticRepresentable {
     }
 }
 
-extension Decimal: MySQLDataTypeStaticRepresentable {
-    /// See `MySQLDataTypeStaticRepresentable`.
-    public static var mysqlDataType: MySQLDataType {
-        return .decimal
-    }
-}
-
 extension FixedWidthInteger {
     /// See `MySQLDataTypeStaticRepresentable`.
     public static var mysqlDataType: MySQLDataType {
