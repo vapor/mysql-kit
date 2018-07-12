@@ -86,16 +86,6 @@ struct MySQLComStmtExecute {
                     buffer.write(integer: time.minute, endianness: .little)
                     buffer.write(integer: time.second, endianness: .little)
                     buffer.write(integer: time.microsecond, endianness: .little)
-                case .geometry(let geometry):
-                    switch geometry {
-                    case .point(let x, let y):
-                        // See: https://dev.mysql.com/doc/refman/5.7/en/gis-data-formats.html
-                        buffer.write(integer: UInt32(0))
-                        buffer.write(integer: Byte(1), endianness: .little)
-                        buffer.write(integer: UInt32(1), endianness: .little)
-                        buffer.write(floatingPoint: x)
-                        buffer.write(floatingPoint: y)
-                    }
                 case .null: break
                 }
             }

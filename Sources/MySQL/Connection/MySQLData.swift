@@ -262,7 +262,6 @@ public struct MySQLData: Equatable, Encodable {
             case .null: try single.encodeNil()
             case .string(let data): try single.encode(data)
             case .time(let time): try single.encode(Date.convertFromMySQLTime(time))
-            case .geometry(let geometry): try single.encode(Point.convertFromMySQLGeometry(geometry))
             }
         case .text(let data):
             if let data = data {
@@ -333,12 +332,13 @@ extension MySQLData: CustomStringConvertible {
                 switch binary.type {
                 case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING:
                     return String(data: data, encoding: .utf8).flatMap { "string(\"\($0)\")" } ?? "<non-utf8 string (\(data.count))>"
+                case .MYSQL_TYPE_GEOMETRY:
+                    if let geometry = try? MySQLGeometry.convertFromData(data) {
+                        return "ST_GeomFromText(\"\(geometry.description)\"))"
+                    } else {
+                        return "<invalid geometry>"
+                    }
                 default: return "data(0x\(data.hexEncodedString()))"
-                }
-            case .geometry(let geometry):
-                switch geometry {
-                case .point(let x, let y):
-                    return "ST_GeomFromText(\"Point(\(x) \(y))\")"
                 }
             case .null: return "null"
             default: return "\(binary.storage)"
@@ -655,55 +655,5 @@ extension Date: MySQLDataConvertible {
         }
 
         return try .convertFromMySQLTime(time)
-    }
-}
-
-// POINT
-
-public struct Point: Codable, Equatable {
-    public let x: Double
-    public let y: Double
-
-    public init(x: Double, y: Double) {
-        self.x = x
-        self.y = y
-    }
-
-    func convertToMySQLGeometry() -> MySQLGeometry {
-        return .point(x: x, y: y)
-    }
-
-    static func convertFromMySQLGeometry(_ geometry: MySQLGeometry) -> Point {
-        switch geometry {
-        case .point(let x, let y): return Point(x: x, y: y)
-        }
-    }
-}
-
-extension Point: ReflectionDecodable {
-    public static func reflectDecoded() throws -> (Point, Point) {
-        return (.init(x: 0, y: 0), .init(x: 0, y: 1))
-    }
-}
-
-enum MySQLGeometry: Equatable {
-    case point(x: Double, y: Double)
-}
-
-extension Point: MySQLDataConvertible {
-    public func convertToMySQLData() -> MySQLData {
-        let binary = MySQLBinaryData(type: .MYSQL_TYPE_GEOMETRY, isUnsigned: false, storage: .geometry(convertToMySQLGeometry()))
-        return MySQLData(storage: .binary(binary))
-    }
-
-    public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Point {
-        switch mysqlData.storage {
-        case .binary(let binary):
-            switch binary.storage {
-            case .geometry(let geometry): return .convertFromMySQLGeometry(geometry)
-            default: throw MySQLError(identifier: "pointBinary", reason: "Parsing MySQLGeometry from \(binary) is not supported.")
-            }
-        case .text: throw MySQLError(identifier: "pointText", reason: "Parsing MySQLGeometry from text is not supported.")
-        }
     }
 }
