@@ -26,7 +26,7 @@ public typealias MySQLForeignKeyAction = GenericSQLForeignKeyAction
 
 /// See `SQLQuery`
 public typealias MySQLCreateIndex = GenericSQLCreateIndex<
-    MySQLIndexModifier, MySQLIdentifier, MySQLTableIdentifier
+    MySQLIndexModifier, MySQLIdentifier, MySQLColumnIdentifier
 >
 
 /// See `SQLQuery`
@@ -84,7 +84,7 @@ public typealias MySQLSelect = GenericSQLSelect<
 >
 
 /// See `SQLQuery`.
-public typealias MySQLSelectExpression = GenericSQLSelectExpression<MySQLExpression, MySQLIdentifier>
+public typealias MySQLSelectExpression = GenericSQLSelectExpression<MySQLExpression, MySQLIdentifier, MySQLTableIdentifier>
 
 /// See `SQLQuery`.
 public typealias MySQLTableConstraintAlgorithm = GenericSQLTableConstraintAlgorithm<
