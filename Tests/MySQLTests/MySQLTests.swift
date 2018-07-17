@@ -319,6 +319,7 @@ class MySQLTests: XCTestCase {
         ("testKitchenSink", testKitchenSink),
         ("testLargeValues", testLargeValues),
         ("testTimePrecision", testTimePrecision),
+        ("testDateBefore1970", testDateBefore1970),
         ("testSaveEmoticonsUnicode", testSaveEmoticonsUnicode),
         ("testStringCharacterSet", testStringCharacterSet),
         ("testDisconnect", testDisconnect),
