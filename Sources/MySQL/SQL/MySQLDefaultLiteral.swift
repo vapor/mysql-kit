@@ -1,6 +1,6 @@
 public struct MySQLDefaultLiteral: SQLDefaultLiteral {
     /// See `SQLDefaultLiteral`.
-    public static func `default`() -> MySQLDefaultLiteral {
+    public static var `default`: MySQLDefaultLiteral {
         return .init()
     }
     

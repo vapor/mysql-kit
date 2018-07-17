@@ -14,7 +14,7 @@ public struct MySQLDropIndex: SQLDropIndex {
 }
 
 public final class MySQLDropIndexBuilder<Connection>: SQLQueryBuilder
-    where Connection: DatabaseQueryable, Connection.Query == MySQLQuery
+    where Connection: SQLConnection, Connection.Query == MySQLQuery
 {
     /// `AlterTable` query being built.
     public var dropIndex: MySQLDropIndex
@@ -35,7 +35,7 @@ public final class MySQLDropIndexBuilder<Connection>: SQLQueryBuilder
 }
 
 
-extension DatabaseQueryable where Query == MySQLQuery {
+extension SQLConnection where Query == MySQLQuery {
     public func drop<T>(index identifier: MySQLIdentifier, on table: T.Type) -> MySQLDropIndexBuilder<Self>
         where T: MySQLTable
     {
