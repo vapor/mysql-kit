@@ -303,6 +303,26 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(b.first?.num, a.num)
     }
     
+    // https://github.com/vapor/mysql/issues/196
+    func testZeroRowSelect() throws {
+        struct Control: SQLTable {
+            static let sqlTableIdentifierString = "controls"
+            var id: String
+            var user: String
+        }
+        let conn = try MySQLConnection.makeTest()
+        try conn.drop(table: Control.self).ifExists().run().wait()
+        try conn.create(table: Control.self)
+            .column(for: \Control.id)
+            .column(for: \Control.user)
+            .run().wait()
+        
+        let res1 = try conn.simpleQuery("SELECT * FROM controls WHERE user = 'foo'").wait()
+        XCTAssertEqual(res1.count, 0)
+        let res2 = try conn.simpleQuery("SELECT * FROM controls WHERE user = 'foo'").wait()
+        XCTAssertEqual(res2.count, 0)
+    }
+    
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testSimpleQuery", testSimpleQuery),
@@ -319,6 +339,7 @@ class MySQLTests: XCTestCase {
         ("testPreparedStatementOverload", testPreparedStatementOverload),
         ("testColumnAfter", testColumnAfter),
         ("testDecimalPrecision", testDecimalPrecision),
+        ("testZeroRowSelect", testZeroRowSelect),
     ]
 }
 

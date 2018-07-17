@@ -140,7 +140,6 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             default: break
             }
         }
-        
         switch textState {
         case .waiting:
             // check for error or OK packet
@@ -173,9 +172,18 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             }
             ctx.fireChannelRead(wrapInboundOut(.columnDefinition41(column)))
         case .rows(let columnCount, var remaining):
+            // check for EOF
+            let peek = buffer.peekInteger(as: Byte.self, skipping: 4)
+            switch peek {
+            case 0xFE:
+                session.connectionState = .none
+                return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
+            default: break
+            }
+            
             if columnCount == remaining {
                 // we are on a new set of results, check packet length again
-                guard let _ = try buffer.checkPacketLength() else {
+                guard let _ = try! buffer.checkPacketLength() else {
                     return .needMoreData
                 }
             }
