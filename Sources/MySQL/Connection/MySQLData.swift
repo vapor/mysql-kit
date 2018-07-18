@@ -605,14 +605,7 @@ extension Date {
         let comps = Calendar(identifier: .gregorian)
             .dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: self)
 
-
-        /// For some reason comps.nanosecond is `nil` on linux :(
-        let microsecond: UInt32
-        #if os(macOS)
-        microsecond = numericCast((comps.nanosecond ?? 0) / 1_000)
-        #else
-        microsecond = numericCast(UInt64(timeIntervalSince1970 * 1_000_000) % 1_000_000)
-        #endif
+        let microsecond = UInt32(abs(timeIntervalSince1970.truncatingRemainder(dividingBy: 1) * 1_000_000))
 
         return MySQLTime(
             year: numericCast(comps.year ?? 0),

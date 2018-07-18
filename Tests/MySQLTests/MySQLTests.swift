@@ -157,6 +157,14 @@ class MySQLTests: XCTestCase {
             accuracy: 5
         )
     }
+ 
+    func testDateBefore1970() throws {
+        let time = Date(timeIntervalSince1970: 1.1).convertToMySQLTime()
+        let time2 = Date(timeIntervalSince1970: -1.1).convertToMySQLTime()
+        
+        XCTAssert(time.microsecond == UInt32(100000))
+        XCTAssert(time2.microsecond == UInt32(100000))
+    }
 
     func testSaveEmoticonsUnicode() throws {
         let client = try MySQLConnection.makeTest()
@@ -311,6 +319,7 @@ class MySQLTests: XCTestCase {
         ("testKitchenSink", testKitchenSink),
         ("testLargeValues", testLargeValues),
         ("testTimePrecision", testTimePrecision),
+        ("testDateBefore1970", testDateBefore1970),
         ("testSaveEmoticonsUnicode", testSaveEmoticonsUnicode),
         ("testStringCharacterSet", testStringCharacterSet),
         ("testDisconnect", testDisconnect),
