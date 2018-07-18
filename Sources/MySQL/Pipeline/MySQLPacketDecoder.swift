@@ -35,6 +35,17 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         switch session.handshakeState {
         case .waiting: return try decodeHandshake(ctx: ctx, buffer: &buffer)
         case .complete(let capabilities):
+            // check if we need to decode an EOF first
+            switch session.eofState {
+            case .waiting:
+                if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
+                    print("decode deprecated EOF")
+                    return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
+                }
+            default: break
+            }
+            
+            // decode normally
             switch session.connectionState {
             case .none:
                 return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
@@ -120,6 +131,8 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         session.incrementSequenceID()
         if forwarding {
             ctx.fireChannelRead(wrapInboundOut(packet))
+        } else {
+            session.eofState = .none
         }
 
         return .continue
@@ -132,14 +145,8 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         textState: MySQLTextProtocolState,
         capabilities: MySQLCapabilities
     ) throws -> DecodingState {
-        if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
-            // check for error or OK packet
-            let peek = buffer.peekInteger(as: Byte.self, skipping: 4)
-            switch peek {
-            case 0xFE: return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
-            default: break
-            }
-        }
+        // VERBOSE
+        print(textState)
         switch textState {
         case .waiting:
             // check for error or OK packet
@@ -167,6 +174,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             remaining -= 1
             if remaining == 0 {
                 session.connectionState = .text(.rows(columnCount: columnCount, remaining: columnCount))
+                session.eofState = .waiting
             } else {
                 session.connectionState = .text(.columns(columnCount: columnCount, remaining: remaining))
             }
@@ -175,7 +183,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             // check for EOF
             let peek = buffer.peekInteger(as: Byte.self, skipping: 4)
             switch peek {
-            case 0xFE, 0x00:
+            case 0xFE:
                 session.connectionState = .none
                 return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
             default: break

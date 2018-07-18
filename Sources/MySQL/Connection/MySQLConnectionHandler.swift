@@ -34,7 +34,8 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
     // MARK: Private
     
     private func handlePacket(ctx: ChannelHandlerContext, packet: MySQLPacket) throws {
-        // print("✅ \(packet) \(state)")
+        // VERBOSE
+        print("✅ \(packet) \(state)")
         switch state {
         case .nascent:
             switch packet {
