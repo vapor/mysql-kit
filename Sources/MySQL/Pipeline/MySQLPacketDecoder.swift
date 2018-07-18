@@ -175,7 +175,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             // check for EOF
             let peek = buffer.peekInteger(as: Byte.self, skipping: 4)
             switch peek {
-            case 0xFE:
+            case 0xFE, 0x00:
                 session.connectionState = .none
                 return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities)
             default: break
@@ -183,7 +183,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             
             if columnCount == remaining {
                 // we are on a new set of results, check packet length again
-                guard let _ = try! buffer.checkPacketLength() else {
+                guard let _ = try buffer.checkPacketLength() else {
                     return .needMoreData
                 }
             }
