@@ -1,5 +1,6 @@
 import NIOOpenSSL
 
+/// Supported options for MySQL connection TLS.
 public struct MySQLTransportConfig {
     /// Does not attempt to enable TLS (this is the default).
     public static var cleartext: MySQLTransportConfig {

@@ -26,6 +26,7 @@ public struct MySQLDatabaseConfig {
     /// Character set. Default utf8_general_ci
     public let characterSet: MySQLCharacterSet
     
+    /// Connection transport config.
     public let transport: MySQLTransportConfig
 
     /// Creates a new `MySQLDatabaseConfig`.

@@ -30,9 +30,6 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection, DatabaseQue
 
     /// The channel
     private let channel: Channel
-
-    /// Currently running `send(...)`.
-    private var currentSend: Promise<Void>?
     
     /// Close has been requested.
     private var isClosing: Bool
@@ -49,18 +46,19 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection, DatabaseQue
         // currently running calls to `send(...)`.
         channel.closeFuture.always {
             self.isClosed = true
-            if let current = self.currentSend {
+            switch handler.state {
+            // connection is closing, the handler is not going to be ready for query
+            case .nascent(let ready): ready.fail(error: closeError)
+            case .callback(let currentSend, _):
                 if self.isClosing {
                     // if we're closing, this is the close's current send
                     // so complete it!
-                    current.succeed()
+                    currentSend.succeed()
                 } else {
                     // if currently sending, fail it
-                    current.fail(error: closeError)
+                    currentSend.fail(error: closeError)
                 }
-            } else if let rfq = handler.readyForQuery {
-                // connection is closing, the handler is not going to be ready for query
-                rfq.fail(error: closeError)
+            case .waiting: break
             }
         }
     }
@@ -78,8 +76,6 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection, DatabaseQue
             return eventLoop.newFailedFuture(error: closeError)
         }
         
-        // if currentSend is not nil, previous send has not completed
-        assert(currentSend == nil, "Attempting to call `send(...)` again before previous invocation has completed.")
         switch handler.state {
         case .waiting: break
         default: assertionFailure("Attempting to call `send(...)` while handler is still: \(handler.state).")
@@ -87,7 +83,6 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection, DatabaseQue
         
         // create a new promise and store it
         let promise = eventLoop.newPromise(Void.self)
-        currentSend = promise
         
         handler.state = .callback(promise) { packet in
             switch packet {
@@ -108,8 +103,7 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection, DatabaseQue
         channel.flush()
         
         // FIXME: parse metadata from ok packet
-        
-        promise.futureResult.always { self.currentSend = nil }
+
         return promise.futureResult
     }
     
@@ -120,7 +114,11 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection, DatabaseQue
     
     /// Closes this client.
     public func close(done promise: Promise<Void>?) {
-        assert(currentSend == nil, "Cannot close while sending.")
+        switch handler.state {
+        case .waiting: break
+        case .nascent: fatalError("Cannot close while still connecting.")
+        case .callback: fatalError("Cannot close during a query.")
+        }
         self.isClosing = true
         let done = send([.quit]) { packet in
             return true

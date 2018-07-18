@@ -23,10 +23,15 @@ public struct MySQLAlterTable: SQLAlterTable {
     /// See `SQLAlterTable`.
     public var constraints: [TableConstraint]
     
-    public enum ColumnPosition {
+    /// Specifies the position of a column being added to a table.
+    public enum ColumnPosition: SQLSerializable {
+        /// Add the column at the beginning of the table.
         case first
+        
+        /// Add the column after a given column.
         case after(ColumnDefinition.ColumnIdentifier)
         
+        /// See `SQLSerializable`.
         func serialize(_ binds: inout [Encodable]) -> String {
             switch self {
             case .first: return "FIRST"
@@ -35,6 +40,7 @@ public struct MySQLAlterTable: SQLAlterTable {
         }
     }
     
+    /// Optional column position settings.
     public var columnPositions: [ColumnDefinition.ColumnIdentifier: ColumnPosition]
     
     /// Creates a new `AlterTable`.

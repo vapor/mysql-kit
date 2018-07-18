@@ -22,7 +22,7 @@ final class MySQLPacketEncoder: MessageToByteEncoder {
     ///     - out: The `ByteBuffer` into which we want to encode.
     func encode(ctx: ChannelHandlerContext, data message: MySQLPacket, out: inout ByteBuffer) throws {
         // VERBOSE
-        print("➡️ \(message)")
+        // print("➡️ \(message)")
         // print("\(#function) \(session.handshakeState)")
         let writeOffset = out.writerIndex
         out.write(bytes: [0x00, 0x00, 0x00, 0x00]) // save room for length

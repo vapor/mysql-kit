@@ -146,7 +146,7 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
         capabilities: MySQLCapabilities
     ) throws -> DecodingState {
         // VERBOSE
-        print(textState)
+        // print(textState)
         switch textState {
         case .waiting:
             // check for error or OK packet

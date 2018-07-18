@@ -369,9 +369,7 @@ extension MySQLConnection {
             database: "vapor_database",
             characterSet: .utf8mb4_unicode_ci,
             transport: transport
-        ), on: group) { error in
-            XCTFail("\(error)")
-        }.wait()
+        ), on: group).wait()
         conn.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
         return conn
     }
