@@ -1,3 +1,4 @@
+/// MySQL table column data types.
 public struct MySQLDataType: SQLDataType, Equatable {
     /// See `Equatable`.
     public static func == (lhs: MySQLDataType, rhs: MySQLDataType) -> Bool {
@@ -93,7 +94,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
     /// The decimal point and (for negative numbers) the - sign are not counted in M. If D is 0,
     /// values have no decimal point or fractional part. The maximum number of digits (M) for DECIMAL is 65.
     /// The maximum number of supported decimals (D) is 30. If D is omitted, the default is 0. If M is omitted,
-    // the default is 10.
+    /// the default is 10.
     public static var decimal: MySQLDataType {
         return .decimal()
     }
@@ -103,7 +104,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
     /// The decimal point and (for negative numbers) the - sign are not counted in M. If D is 0,
     /// values have no decimal point or fractional part. The maximum number of digits (M) for DECIMAL is 65.
     /// The maximum number of supported decimals (D) is 30. If D is omitted, the default is 0. If M is omitted,
-    // the default is 10.
+    /// the default is 10.
     public static func decimal(_ md: (Int, Int?)? = nil, unsigned: Bool = false, zerofill: Bool = false) -> MySQLDataType {
         return .init(.decimal(md, unsigned: unsigned, zerofill: zerofill))
     }
@@ -204,7 +205,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
     
     /// A fixed-length string that is always right-padded with spaces to the specified length when stored.
     /// M represents the column length in characters. The range of M is 0 to 255. If M is omitted, the length is 1.
-    public static func char(_ m: Int? = nil, characterSet: MySQLCharacterSet? = nil, collate: MySQLCollate? = nil) -> MySQLDataType {
+    public static func char(_ m: Int? = nil, characterSet: MySQLCharacterSet? = nil, collate: MySQLCollation? = nil) -> MySQLDataType {
         return .init(.char(m, characterSet, collate))
     }
     
@@ -220,7 +221,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
     /// The effective maximum length of a VARCHAR is subject to the maximum row size (65,535 bytes, which is shared among all columns)
     /// and the character set used. For example, utf8 characters can require up to three bytes per character, so a VARCHAR column that
     /// uses the utf8 character set can be declared to be a maximum of 21,844 characters.
-    public static func varchar(_ m: Int? = nil, characterSet: MySQLCharacterSet? = nil, collate: MySQLCollate? = nil) -> MySQLDataType {
+    public static func varchar(_ m: Int? = nil, characterSet: MySQLCharacterSet? = nil, collate: MySQLCollation? = nil) -> MySQLDataType {
         return .init(.varchar(m, characterSet, collate))
     }
     
@@ -256,7 +257,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
     
     /// A TEXT column with a maximum length of 255 (28 − 1) characters. The effective maximum length is less if the value contains
     /// multibyte characters. Each TINYTEXT value is stored using a 1-byte length prefix that indicates the number of bytes in the value.
-    public static func tinytext(characterSet: MySQLCharacterSet? = nil, collate: MySQLCollate? = nil) -> MySQLDataType {
+    public static func tinytext(characterSet: MySQLCharacterSet? = nil, collate: MySQLCollation? = nil) -> MySQLDataType {
         return .init(.tinytext(characterSet, collate))
     }
     
@@ -286,7 +287,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
     /// multibyte characters. Each TEXT value is stored using a 2-byte length prefix that indicates the number of bytes in the value.
     /// An optional length M can be given for this type. If this is done, MySQL creates the column as the smallest TEXT type large
     /// enough to hold values M characters long.
-    public static func text(_ m: Int? = nil, characterSet: MySQLCharacterSet? = nil, collate: MySQLCollate? = nil) -> MySQLDataType {
+    public static func text(_ m: Int? = nil, characterSet: MySQLCharacterSet? = nil, collate: MySQLCollation? = nil) -> MySQLDataType {
         return .init(.text(m, characterSet, collate))
     }
     
@@ -304,13 +305,13 @@ public struct MySQLDataType: SQLDataType, Equatable {
     
     /// A TEXT column with a maximum length of 16,777,215 (224 − 1) characters. The effective maximum length is less if the value contains
     /// multibyte characters. Each MEDIUMTEXT value is stored using a 3-byte length prefix that indicates the number of bytes in the value.
-    public static func mediumtext(characterSet: MySQLCharacterSet? = nil, collate: MySQLCollate? = nil) -> MySQLDataType {
+    public static func mediumtext(characterSet: MySQLCharacterSet? = nil, collate: MySQLCollation? = nil) -> MySQLDataType {
         return .init(.mediumtext(characterSet, collate))
     }
     
     /// A BLOB column with a maximum length of 4,294,967,295 or 4GB (232 − 1) bytes. The effective maximum length of LONGBLOB columns depends
     /// on the configured maximum packet size in the client/server protocol and available memory. Each LONGBLOB value is stored using a 4-byte
-    // length prefix that indicates the number of bytes in the value.
+    /// length prefix that indicates the number of bytes in the value.
     public static var longblob: MySQLDataType {
         return .init(.longblob)
     }
@@ -327,7 +328,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
     /// contains multibyte characters. The effective maximum length of LONGTEXT columns also depends on the configured maximum packet size in
     /// the client/server protocol and available memory. Each LONGTEXT value is stored using a 4-byte length prefix that indicates the number
     /// of bytes in the value.
-    public static func longtext(characterSet: MySQLCharacterSet? = nil, collate: MySQLCollate? = nil) -> MySQLDataType {
+    public static func longtext(characterSet: MySQLCharacterSet? = nil, collate: MySQLCollation? = nil) -> MySQLDataType {
         return .init(.longtext(characterSet, collate))
     }
     
@@ -338,7 +339,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
     /// An ENUM column can have a maximum of 65,535 distinct elements.
     /// The maximum supported length of an individual ENUM element is M <= 255 and (M x w) <= 1020, where M is the element literal length and
     /// w is the number of bytes required for the maximum-length character in the character set.
-    public static func `enum`(_ cases: [String?], characterSet: MySQLCharacterSet? = nil, collate: MySQLCollate? = nil) -> MySQLDataType {
+    public static func `enum`(_ cases: [String?], characterSet: MySQLCharacterSet? = nil, collate: MySQLCollation? = nil) -> MySQLDataType {
         return .init(.enum(cases, characterSet, collate))
     }
     
@@ -346,7 +347,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
     /// SET values are represented internally as integers. A SET column can have a maximum of 64 distinct members.
     /// The maximum supported length of an individual SET element is M <= 255 and (M x w) <= 1020, where M is the element literal length and
     /// w is the number of bytes required for the maximum-length character in the character set.
-    public static func set(_ cases: [String], characterSet: MySQLCharacterSet? = nil, collate: MySQLCollate? = nil) -> MySQLDataType {
+    public static func set(_ cases: [String], characterSet: MySQLCharacterSet? = nil, collate: MySQLCollation? = nil) -> MySQLDataType {
         return .init(.set(cases, characterSet, collate))
     }
     
@@ -438,13 +439,13 @@ public struct MySQLDataType: SQLDataType, Equatable {
         
         /// A fixed-length string that is always right-padded with spaces to the specified length when stored.
         /// M represents the column length in characters. The range of M is 0 to 255. If M is omitted, the length is 1.
-        case char(Int?, MySQLCharacterSet?, MySQLCollate?)
+        case char(Int?, MySQLCharacterSet?, MySQLCollation?)
         
         /// A variable-length string. M represents the maximum column length in characters. The range of M is 0 to 65,535.
         /// The effective maximum length of a VARCHAR is subject to the maximum row size (65,535 bytes, which is shared among all columns)
         /// and the character set used. For example, utf8 characters can require up to three bytes per character, so a VARCHAR column that
         /// uses the utf8 character set can be declared to be a maximum of 21,844 characters.
-        case varchar(Int?, MySQLCharacterSet?, MySQLCollate?)
+        case varchar(Int?, MySQLCharacterSet?, MySQLCollation?)
         
         /// The BINARY type is similar to the CHAR type, but stores binary byte strings rather than nonbinary character strings.
         /// An optional length M represents the column length in bytes. If omitted, M defaults to 1.
@@ -460,7 +461,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
         
         /// A TEXT column with a maximum length of 255 (28 − 1) characters. The effective maximum length is less if the value contains
         /// multibyte characters. Each TINYTEXT value is stored using a 1-byte length prefix that indicates the number of bytes in the value.
-        case tinytext(MySQLCharacterSet?, MySQLCollate?)
+        case tinytext(MySQLCharacterSet?, MySQLCollation?)
         
         /// A BLOB column with a maximum length of 65,535 (216 − 1) bytes. Each BLOB value is stored using a 2-byte length prefix that indicates
         /// the number of bytes in the value. An optional length M can be given for this type. If this is done, MySQL creates the column as the
@@ -471,7 +472,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
         /// multibyte characters. Each TEXT value is stored using a 2-byte length prefix that indicates the number of bytes in the value.
         /// An optional length M can be given for this type. If this is done, MySQL creates the column as the smallest TEXT type large
         /// enough to hold values M characters long.
-        case text(Int?, MySQLCharacterSet?, MySQLCollate?)
+        case text(Int?, MySQLCharacterSet?, MySQLCollation?)
         
         /// A BLOB column with a maximum length of 16,777,215 (224 − 1) bytes. Each MEDIUMBLOB value is stored using a 3-byte length prefix that
         /// indicates the number of bytes in the value.
@@ -479,7 +480,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
         
         /// A TEXT column with a maximum length of 16,777,215 (224 − 1) characters. The effective maximum length is less if the value contains
         /// multibyte characters. Each MEDIUMTEXT value is stored using a 3-byte length prefix that indicates the number of bytes in the value.
-        case mediumtext(MySQLCharacterSet?, MySQLCollate?)
+        case mediumtext(MySQLCharacterSet?, MySQLCollation?)
         
         /// A BLOB column with a maximum length of 4,294,967,295 or 4GB (232 − 1) bytes. The effective maximum length of LONGBLOB columns depends
         /// on the configured maximum packet size in the client/server protocol and available memory. Each LONGBLOB value is stored using a 4-byte
@@ -490,7 +491,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
         /// contains multibyte characters. The effective maximum length of LONGTEXT columns also depends on the configured maximum packet size in
         /// the client/server protocol and available memory. Each LONGTEXT value is stored using a 4-byte length prefix that indicates the number
         /// of bytes in the value.
-        case longtext(MySQLCharacterSet?, MySQLCollate?)
+        case longtext(MySQLCharacterSet?, MySQLCollation?)
         
         /// MARK: Special
         
@@ -499,13 +500,13 @@ public struct MySQLDataType: SQLDataType, Equatable {
         /// An ENUM column can have a maximum of 65,535 distinct elements.
         /// The maximum supported length of an individual ENUM element is M <= 255 and (M x w) <= 1020, where M is the element literal length and
         /// w is the number of bytes required for the maximum-length character in the character set.
-        case `enum`([String?], MySQLCharacterSet?, MySQLCollate?)
+        case `enum`([String?], MySQLCharacterSet?, MySQLCollation?)
         
         /// A set. A string object that can have zero or more values, each of which must be chosen from the list of values 'value1', 'value2', ...
         /// SET values are represented internally as integers. A SET column can have a maximum of 64 distinct members.
         /// The maximum supported length of an individual SET element is M <= 255 and (M x w) <= 1020, where M is the element literal length and
         /// w is the number of bytes required for the maximum-length character in the character set.
-        case set([String], MySQLCharacterSet?, MySQLCollate?)
+        case set([String], MySQLCharacterSet?, MySQLCollation?)
         
         /// MySQL supports a native JSON data type defined by RFC 7159 that enables efficient access to data in JSON
         /// (JavaScript Object Notation) documents.
@@ -553,7 +554,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
             }
         }
         
-        func _string(_ name: String, _ m: Int? = nil, _ charset: MySQLCharacterSet? = nil, _ collate: MySQLCollate? = nil) -> String {
+        func _string(_ name: String, _ m: Int? = nil, _ charset: MySQLCharacterSet? = nil, _ collate: MySQLCollation? = nil) -> String {
             var sql: [String] = []
             switch m {
             case .some(let m): sql.append(name + "(" + m.description + ")")

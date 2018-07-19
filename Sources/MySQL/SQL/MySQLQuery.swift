@@ -1,3 +1,4 @@
+/// MySQL specific `SQLQuery`.
 public enum MySQLQuery: SQLQuery {
     /// See `SQLQuery`.
     public typealias AlterTable = MySQLAlterTable
@@ -126,6 +127,7 @@ public enum MySQLQuery: SQLQuery {
 }
 
 extension MySQLQuery: ExpressibleByStringLiteral {
+    /// See `ExpressibleByStringLiteral`.
     public init(stringLiteral value: String) {
         self = ._raw(value, [])
     }

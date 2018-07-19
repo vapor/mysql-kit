@@ -1,9 +1,10 @@
 import Crypto
 import NIOOpenSSL
 
+/// MySQL channel handler for NIO.
 final class MySQLConnectionHandler: ChannelInboundHandler {
     enum ConnectionState {
-        case nascent
+        case nascent(Promise<Void>)
         case waiting
         case callback(Promise<Void>, (MySQLPacket) throws -> Bool)
     }
@@ -16,13 +17,13 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
     
     let config: MySQLDatabaseConfig
     var state: ConnectionState
-    var readyForQuery: Promise<Void>?
     
-    init(config: MySQLDatabaseConfig) {
+    init(config: MySQLDatabaseConfig, ready: Promise<Void>) {
         self.config = config
-        self.state = .nascent
+        self.state = .nascent(ready)
     }
     
+    /// See `ChannelInboundHandler`.
     func channelRead(ctx: ChannelHandlerContext, data: NIOAny) {
         do {
             try handlePacket(ctx: ctx, packet: unwrapInboundIn(data))
@@ -31,22 +32,44 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
         }
     }
     
+    /// See `ChannelInboundHandler`.
+    func errorCaught(ctx: ChannelHandlerContext, error: Error) {
+        switch state {
+        case .nascent(let ready):
+            self.state = .waiting
+            ready.fail(error: error)
+        case .callback(let promise, _):
+            self.state = .waiting
+            promise.fail(error: error)
+        case .waiting:
+            ERROR("Error while waiting: \(error).")
+        }
+    }
+    
     // MARK: Private
     
     private func handlePacket(ctx: ChannelHandlerContext, packet: MySQLPacket) throws {
+        // VERBOSE
         // print("✅ \(packet) \(state)")
         switch state {
-        case .nascent:
+        case .nascent(let ready):
             switch packet {
             case .handshakev10(let handshake):
                 switch config.transport.storage {
-                case .cleartext: try writeHandshakeResponse(ctx: ctx, handshake: handshake)
-                case .tls(let tlsConfig): try writeSSLRequest(ctx: ctx, using: tlsConfig, handshake: handshake)
+                case .cleartext:
+                    try writeHandshakeResponse(ctx: ctx, handshake: handshake).catch {
+                        self.state = .waiting
+                        ready.fail(error: $0)
+                    }
+                case .tls(let tlsConfig):
+                    try writeSSLRequest(ctx: ctx, using: tlsConfig, handshake: handshake).catch {
+                        self.state = .waiting
+                        ready.fail(error: $0)
+                    }
                 }
             case .ok:
                 state = .waiting
-                readyForQuery?.succeed()
-                self.readyForQuery = nil
+                ready.succeed()
             case .fullAuthenticationRequest:
                 guard config.transport.isTLS else {
                     throw MySQLError(
@@ -69,14 +92,12 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
                 // if auth write fail, we need to fail the rfq promise
                 let writePromise = ctx.eventLoop.newPromise(Void.self)
                 writePromise.futureResult.whenFailure { error in
-                    self.readyForQuery?.fail(error: error)
-                    self.readyForQuery = nil
+                    ready.fail(error: error)
                 }
                 ctx.writeAndFlush(wrapOutboundOut(packet), promise: writePromise)
             case .err(let err):
                 let error = err.makeError()
-                readyForQuery?.fail(error: error)
-                self.readyForQuery = nil
+                ready.fail(error: error)
             default: fatalError("Unsupported packet during connect: \(packet)")
             }
         case .waiting:
@@ -99,7 +120,7 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
         }
     }
     
-    private func writeHandshakeResponse(ctx: ChannelHandlerContext, handshake: MySQLPacket.HandshakeV10) throws {
+    private func writeHandshakeResponse(ctx: ChannelHandlerContext, handshake: MySQLPacket.HandshakeV10) throws -> Future<Void> {
         let authPlugin = handshake.authPluginName ?? "mysql_native_password"
         let authResponse: Data
         switch authPlugin {
@@ -155,29 +176,13 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
         )
         // if auth write fail, we need to fail the rfq promise
         let writePromise = ctx.eventLoop.newPromise(Void.self)
-        writePromise.futureResult.whenFailure { error in
-            self.readyForQuery?.fail(error: error)
-            self.readyForQuery = nil
-        }
         ctx.writeAndFlush(wrapOutboundOut(.handshakeResponse41(response)), promise: writePromise)
-    }
-    
-    func errorCaught(ctx: ChannelHandlerContext, error: Error) {
-        switch state {
-        case .nascent:
-            readyForQuery?.fail(error: error)
-            readyForQuery = nil
-        case .callback(let promise, _):
-            self.state = .waiting
-            promise.fail(error: error)
-        case .waiting:
-            ERROR("Error while waiting: \(error).")
-        }
+        return writePromise.futureResult
     }
     
     /// Ask the server if it supports SSL and adds a new OpenSSLClientHandler to pipeline if it does
     /// This will throw an error if the server does not support SSL
-    private func writeSSLRequest(ctx: ChannelHandlerContext, using tlsConfig: TLSConfiguration, handshake: MySQLPacket.HandshakeV10) throws {
+    private func writeSSLRequest(ctx: ChannelHandlerContext, using tlsConfig: TLSConfiguration, handshake: MySQLPacket.HandshakeV10) throws -> Future<Void> {
         var capabilities = config.capabilities
         capabilities.insert(.CLIENT_SSL)
         let promise = ctx.eventLoop.newPromise(Void.self)
@@ -189,28 +194,17 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
         
         let sslContext = try SSLContext(configuration: tlsConfig)
         let handler = try OpenSSLClientHandler(context: sslContext)
-        let sslReady = promise.futureResult.map {
+        return promise.futureResult.flatMap {
             return ctx.channel.pipeline.add(handler: handler, first: true)
-        }
-        
-        sslReady.whenSuccess { _ in
-            do {
-                try self.writeHandshakeResponse(ctx: ctx, handshake: handshake)
-            } catch {
-                self.readyForQuery?.fail(error: error)
-                self.readyForQuery = nil
-            }
-        }
-        sslReady.whenFailure { error in
-            self.readyForQuery?.fail(error: error)
-            self.readyForQuery = nil
+        }.flatMap {
+            return try self.writeHandshakeResponse(ctx: ctx, handshake: handshake)
         }
     }
 }
 
 
 extension Data {
-    public mutating func xor(_ key: Data) {
+    mutating func xor(_ key: Data) {
         for i in 0..<self.count {
             self[i] ^= key[i]
         }

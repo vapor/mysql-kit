@@ -20,12 +20,13 @@ public struct MySQLDatabaseConfig {
     /// Database name.
     public let database: String
     
-    // Capability flags
+    /// Capability flags
     public let capabilities: MySQLCapabilities
 
     /// Character set. Default utf8_general_ci
     public let characterSet: MySQLCharacterSet
     
+    /// Connection transport config.
     public let transport: MySQLTransportConfig
 
     /// Creates a new `MySQLDatabaseConfig`.

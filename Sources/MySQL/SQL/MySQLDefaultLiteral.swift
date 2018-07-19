@@ -1,3 +1,4 @@
+/// MySQL specific `SQLDefaultLiteral`.
 public struct MySQLDefaultLiteral: SQLDefaultLiteral {
     /// See `SQLDefaultLiteral`.
     public static var `default`: MySQLDefaultLiteral {

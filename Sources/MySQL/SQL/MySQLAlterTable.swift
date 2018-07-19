@@ -23,11 +23,16 @@ public struct MySQLAlterTable: SQLAlterTable {
     /// See `SQLAlterTable`.
     public var constraints: [TableConstraint]
     
-    public enum ColumnPosition {
+    /// Specifies the position of a column being added to a table.
+    public enum ColumnPosition: SQLSerializable {
+        /// Add the column at the beginning of the table.
         case first
+        
+        /// Add the column after a given column.
         case after(ColumnDefinition.ColumnIdentifier)
         
-        func serialize(_ binds: inout [Encodable]) -> String {
+        /// See `SQLSerializable`.
+        public func serialize(_ binds: inout [Encodable]) -> String {
             switch self {
             case .first: return "FIRST"
             case .after(let after): return "AFTER " + after.identifier.serialize(&binds)
@@ -35,6 +40,7 @@ public struct MySQLAlterTable: SQLAlterTable {
         }
     }
     
+    /// Optional column position settings.
     public var columnPositions: [ColumnDefinition.ColumnIdentifier: ColumnPosition]
     
     /// Creates a new `AlterTable`.
@@ -67,6 +73,15 @@ public struct MySQLAlterTable: SQLAlterTable {
 }
 
 extension SQLAlterTableBuilder where Connection.Query.AlterTable == MySQLAlterTable {
+    /// Specifies the position of a newly added column in a table relative to an existing column.
+    ///
+    ///     conn.alter(table: User.self)
+    ///         .column(for: \User.name)
+    ///         .order(\User.name, after: \User.id)
+    ///
+    /// - parameters:
+    ///     - column: Key path to new column.
+    ///     - after: Position of new column.
     public func order<T, A, B>(_ column: KeyPath<T, A>, after: KeyPath<T, B>) -> Self
         where T: MySQLTable
     {
@@ -74,6 +89,15 @@ extension SQLAlterTableBuilder where Connection.Query.AlterTable == MySQLAlterTa
         return self
     }
     
+    /// Specifies the position of a newly added column in a table as first.
+    ///
+    ///     conn.alter(table: User.self)
+    ///         .column(for: \User.name)
+    ///         .order(first: \User.name)
+    ///
+    /// - parameters:
+    ///     - column: Key path to new column.
+    ///     - after: Position of new column.
     public func order<T, A>(first column: KeyPath<T, A>) -> Self
         where T: MySQLTable
     {

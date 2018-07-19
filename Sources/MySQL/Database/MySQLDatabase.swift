@@ -10,9 +10,7 @@ public final class MySQLDatabase: Database {
 
     /// See `Database`
     public func newConnection(on worker: Worker) -> Future<MySQLConnection> {
-        return MySQLConnection.connect(config: self.config, on: worker) { error in
-            print("[MySQL] \(error)")
-        }
+        return MySQLConnection.connect(config: self.config, on: worker)
     }
 }
 

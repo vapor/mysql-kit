@@ -1,3 +1,4 @@
+/// MySQL specific `SQLPrimaryKeyDefault`.
 public enum MySQLPrimaryKeyDefault: SQLPrimaryKeyDefault {
     /// See `SQLPrimaryKey`.
     public static var `default`: MySQLPrimaryKeyDefault {

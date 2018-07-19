@@ -2,7 +2,6 @@ import Core
 
 /// Represents row data for a single MySQL column.
 public struct MySQLData: Equatable, Encodable {
-    
     internal enum Storage: Equatable {
         case text(Data?)
         case binary(MySQLBinaryData)
@@ -351,8 +350,11 @@ extension MySQLData {
 
 /// MARK: Convertible
 
+/// MySQL wire protocol data format.
 public enum MySQLDataFormat {
+    /// Text (string) format.
     case text
+    /// Binary, MySQL-specific format.
     case binary
 }
 
@@ -366,24 +368,24 @@ public protocol MySQLDataConvertible {
 }
 
 extension MySQLData: MySQLDataConvertible {
-    /// See `MySQLDataConvertible.convertToMySQLData(format:)`
+    /// See `MySQLDataConvertible`.
     public func convertToMySQLData() -> MySQLData {
         return self
     }
 
-    /// See `MySQLDataConvertible.convertFromMySQLData()`
+    /// See `MySQLDataConvertible`.
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> MySQLData {
         return mysqlData
     }
 }
 
 extension String: MySQLDataConvertible {
-    /// See `MySQLDataConvertible.convertToMySQLData(format:)`
+    /// See `MySQLDataConvertible`.
     public func convertToMySQLData() -> MySQLData {
         return MySQLData(string: self)
     }
 
-    /// See `MySQLDataConvertible.convertFromMySQLData()`
+    /// See `MySQLDataConvertible`.
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> String {
         guard let string = mysqlData.string() else {
             throw MySQLError(identifier: "string", reason: "Cannot decode String from MySQLData: \(mysqlData).")
@@ -393,12 +395,12 @@ extension String: MySQLDataConvertible {
 }
 
 extension FixedWidthInteger {
-    /// See `MySQLDataConvertible.convertToMySQLData(format:)`
+    /// See `MySQLDataConvertible`.
     public func convertToMySQLData() -> MySQLData {
         return MySQLData(integer: self)
     }
 
-    /// See `MySQLDataConvertible.convertFromMySQLData()`
+    /// See `MySQLDataConvertible`.
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Self {
         guard let int = try mysqlData.integer(Self.self) else {
             throw MySQLError(identifier: "int", reason: "Cannot decode Int from MySQLData: \(mysqlData).")
@@ -420,7 +422,7 @@ extension UInt64: MySQLDataConvertible { }
 extension UInt: MySQLDataConvertible { }
 
 extension OptionalType {
-    /// See `MySQLDataConvertible.convertToMySQLData(format:)`
+    /// See `MySQLDataConvertible`.
     public func convertToMySQLData() -> MySQLData {
         if let wrapped = self.wrapped {
             guard let convertible = wrapped as? MySQLDataConvertible else {
@@ -433,7 +435,7 @@ extension OptionalType {
         }
     }
 
-    /// See `MySQLDataConvertible.convertFromMySQLData()`
+    /// See `MySQLDataConvertible`.
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Self {
         if mysqlData.isNull {
             return makeOptionalType(nil)
@@ -450,13 +452,13 @@ extension OptionalType {
 extension Optional: MySQLDataConvertible { }
 
 extension Bool: MySQLDataConvertible {
-    /// See `MySQLDataConvertible.convertToMySQLData(format:)`
+    /// See `MySQLDataConvertible`.
     public func convertToMySQLData() -> MySQLData {
         let binary = MySQLBinaryData(type: .MYSQL_TYPE_TINY, isUnsigned: false, storage: .integer1(self ? 0b1 : 0b0))
         return MySQLData(storage: .binary(binary))
     }
 
-    /// See `MySQLDataConvertible.convertFromMySQLData()`
+    /// See `MySQLDataConvertible`.
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Bool {
         guard let int = try mysqlData.integer(UInt8.self) else {
             throw MySQLError(identifier: "bool", reason: "Could not parse bool from: \(mysqlData)")
@@ -471,12 +473,12 @@ extension Bool: MySQLDataConvertible {
 }
 
 extension BinaryFloatingPoint {
-    /// See `MySQLDataConvertible.convertToMySQLData(format:)`
+    /// See `MySQLDataConvertible`.
     public func convertToMySQLData() -> MySQLData {
         return MySQLData(float: self)
     }
 
-    /// See `MySQLDataConvertible.convertFromMySQLData()`
+    /// See `MySQLDataConvertible`.
     public static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Self {
         guard let int = mysqlData.float(Self.self) else {
             throw MySQLError(identifier: "float", reason: "Cannot decode Float from MySQLData: \(mysqlData).")
@@ -642,4 +644,3 @@ extension Date: MySQLDataConvertible {
         return try .convertFromMySQLTime(time)
     }
 }
-

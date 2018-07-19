@@ -7,6 +7,8 @@ final class MySQLPacketState {
 
     /// The state of queries and other functionality on this connection.
     var connectionState: MySQLConnectionState
+    
+    var eofState: MySQLEOFState
 
     /// The next available sequence ID.
     var nextSequenceID: Byte {
@@ -21,6 +23,7 @@ final class MySQLPacketState {
     init() {
         self.handshakeState = .waiting
         self.connectionState = .none
+        self.eofState = .none
         self.sequenceID = 0
     }
 
@@ -53,6 +56,11 @@ enum MySQLConnectionState {
     case text(MySQLTextProtocolState)
     /// Performing a Statement Protocol query.
     case statement(MySQLStatementProtocolState)
+}
+
+enum MySQLEOFState {
+    case none
+    case waiting
 }
 
 /// Connection states during a simple query aka Text Protocol.
