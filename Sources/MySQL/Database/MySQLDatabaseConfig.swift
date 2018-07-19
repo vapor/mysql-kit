@@ -20,7 +20,7 @@ public struct MySQLDatabaseConfig {
     /// Database name.
     public let database: String
     
-    // Capability flags
+    /// Capability flags
     public let capabilities: MySQLCapabilities
 
     /// Character set. Default utf8_general_ci

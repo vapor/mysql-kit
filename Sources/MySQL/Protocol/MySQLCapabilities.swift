@@ -178,6 +178,7 @@ public struct MySQLCapabilities: OptionSet {
 }
 
 extension MySQLCapabilities: CustomStringConvertible {
+    /// All capabilities.
     public static let all: [String: MySQLCapabilities] = [
         "CLIENT_LONG_PASSWORD": CLIENT_LONG_PASSWORD,
         "CLIENT_FOUND_ROWS": CLIENT_FOUND_ROWS,
@@ -206,6 +207,7 @@ extension MySQLCapabilities: CustomStringConvertible {
         "CLIENT_DEPRECATE_EOF": CLIENT_DEPRECATE_EOF,
     ]
     
+    /// See `CustomStringConvertible`.
     public var description: String {
         var desc: [String] = []
         for (name, flag) in MySQLCapabilities.all {

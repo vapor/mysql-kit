@@ -1,5 +1,9 @@
+/// MySQL specific `SQLDropIndex`.
 public struct MySQLDropIndex: SQLDropIndex {
+    /// See `SQLDropIndex`.
     public var identifier: MySQLIdentifier
+    
+    /// See `SQLDropIndex`.
     public var table: MySQLTableIdentifier
     
     /// See `SQLSerializable`.
@@ -13,6 +17,7 @@ public struct MySQLDropIndex: SQLDropIndex {
     }
 }
 
+/// Builds `MySQLDropIndex` queries.
 public final class MySQLDropIndexBuilder<Connection>: SQLQueryBuilder
     where Connection: SQLConnection, Connection.Query == MySQLQuery
 {
@@ -36,6 +41,13 @@ public final class MySQLDropIndexBuilder<Connection>: SQLQueryBuilder
 
 
 extension SQLConnection where Query == MySQLQuery {
+    /// Drops an index from a table.
+    ///
+    ///     conn.drop(index: "foo", on: User.self).run()
+    ///
+    /// - parameters:
+    ///     - index: Identifier of index to drop.
+    ///     - table: Table to drop index from.
     public func drop<T>(index identifier: MySQLIdentifier, on table: T.Type) -> MySQLDropIndexBuilder<Self>
         where T: MySQLTable
     {

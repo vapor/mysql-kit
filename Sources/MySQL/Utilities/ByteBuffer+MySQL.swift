@@ -5,7 +5,7 @@ import Foundation
 /// MARK: Assert
 
 extension ByteBuffer {
-    public mutating func requireInteger<T>(endianness: Endianness = .big, as type: T.Type = T.self) throws -> T
+    mutating func requireInteger<T>(endianness: Endianness = .big, as type: T.Type = T.self) throws -> T
         where T: FixedWidthInteger
     {
         guard let int = readInteger(endianness: endianness, as: T.self) else {
@@ -14,7 +14,7 @@ extension ByteBuffer {
         return int
     }
 
-    public mutating func requireFloatingPoint<T>(as type: T.Type = T.self) throws -> T
+    mutating func requireFloatingPoint<T>(as type: T.Type = T.self) throws -> T
         where T: BinaryFloatingPoint
     {
         guard let float = readFloatingPoint(as: T.self) else {
@@ -23,42 +23,42 @@ extension ByteBuffer {
         return float
     }
 
-    public mutating func requireNullTerminatedString() throws -> String {
+    mutating func requireNullTerminatedString() throws -> String {
         guard let string = readNullTerminatedString() else {
             throw MySQLError(identifier: "nullTerminatedString", reason: "Could not parse null terminated string.")
         }
         return string
     }
 
-    public mutating func requireString(length: Int) throws -> String {
+    mutating func requireString(length: Int) throws -> String {
         guard let string = readString(length: length) else {
             throw MySQLError(identifier: "string", reason: "Could not parse \(length) character string.")
         }
         return string
     }
 
-    public mutating func requireBytes(length: Int) throws -> [UInt8] {
+    mutating func requireBytes(length: Int) throws -> [UInt8] {
         guard let bytes = readBytes(length: length) else {
             throw MySQLError(identifier: "bytes", reason: "Could not parse \(length) bytes.")
         }
         return bytes
     }
 
-    public mutating func requireLengthEncodedInteger() throws -> UInt64 {
+    mutating func requireLengthEncodedInteger() throws -> UInt64 {
         guard let int = readLengthEncodedInteger() else {
             throw MySQLError(identifier: "lengthEncodedInt", reason: "Could not parse length encoded integer.")
         }
         return int
     }
 
-    public mutating func requireLengthEncodedString() throws -> String {
+    mutating func requireLengthEncodedString() throws -> String {
         guard let string = readLengthEncodedString() else {
             throw MySQLError(identifier: "lengthEncodedString", reason: "Could not parse length encoded string.")
         }
         return string
     }
 
-    public mutating func requireLengthEncodedData() throws -> Data {
+    mutating func requireLengthEncodedData() throws -> Data {
         guard let data = readLengthEncodedData() else {
             throw MySQLError(identifier: "lengthEncodedData", reason: "Could not parse length encoded data.")
         }
@@ -69,7 +69,7 @@ extension ByteBuffer {
 /// MARK: Null-terminated string
 
 extension ByteBuffer {
-    public mutating func write(nullTerminated string: String) {
+    mutating func write(nullTerminated string: String) {
         self.write(string: string)
         self.write(integer: Byte(0))
     }
@@ -99,7 +99,7 @@ extension ByteBuffer {
         return getInteger(at: readerIndex + skipping, endianness: endianness)
     }
 
-    public mutating func readLengthEncodedString() -> String? {
+    mutating func readLengthEncodedString() -> String? {
         guard let size = readLengthEncodedInteger() else {
             return nil
         }
@@ -111,7 +111,7 @@ extension ByteBuffer {
         return readString(length: Int(size))
     }
 
-    public mutating func readLengthEncodedData() -> Data? {
+    mutating func readLengthEncodedData() -> Data? {
         guard let size = readLengthEncodedInteger() else {
             return nil
         }
@@ -123,7 +123,7 @@ extension ByteBuffer {
         return readData(length: Int(size))
     }
 
-    public mutating func readLengthEncodedInteger() -> UInt64? {
+    mutating func readLengthEncodedInteger() -> UInt64? {
         guard let first: Byte = peekInteger() else {
             return nil
         }
@@ -171,7 +171,7 @@ extension ByteBuffer {
         }
     }
 
-    public mutating func write(lengthEncoded int: UInt64) {
+    mutating func write(lengthEncoded int: UInt64) {
         switch int {
         case 0..<251:
             /// If the value is < 251, it is stored as a 1-byte integer.
@@ -204,7 +204,7 @@ extension ByteBuffer {
     /// - parameters:
     ///     - as: the desired `BinaryFloatingPoint` type (optional parameter)
     /// - returns: An integer value deserialized from this `ByteBuffer` or `nil` if there aren't enough bytes readable.
-    public mutating func readFloatingPoint<T>(as: T.Type = T.self) -> T?
+    mutating func readFloatingPoint<T>(as: T.Type = T.self) -> T?
         where T: BinaryFloatingPoint
     {
         guard self.readableBytes >= MemoryLayout<T>.size else {
@@ -222,7 +222,7 @@ extension ByteBuffer {
     ///     - index: The starting index of the bytes for the floating point into the `ByteBuffer`.
     ///     - as: the desired `BinaryFloatingPoint` type (optional parameter)
     /// - returns: An integer value deserialized from this `ByteBuffer` or `nil` if the bytes of interest aren't contained in the `ByteBuffer`.
-    public func getFloatingPoint<T>(at index: Int, as: T.Type = T.self) -> T?
+    func getFloatingPoint<T>(at index: Int, as: T.Type = T.self) -> T?
         where T: BinaryFloatingPoint
     {
         precondition(index >= 0, "index must not be negative")
@@ -246,7 +246,7 @@ extension ByteBuffer {
     ///     - endianness: The endianness to use, defaults to big endian.
     /// - returns: The number of bytes written.
     @discardableResult
-    public mutating func write<T>(floatingPoint: T) -> Int where T: BinaryFloatingPoint {
+    mutating func write<T>(floatingPoint: T) -> Int where T: BinaryFloatingPoint {
         let bytesWritten = self.set(floatingPoint: floatingPoint, at: self.writerIndex)
         self.moveWriterIndex(forwardBy: bytesWritten)
         return Int(bytesWritten)
@@ -260,7 +260,7 @@ extension ByteBuffer {
     ///     - endianness: The endianness to use, defaults to big endian.
     /// - returns: The number of bytes written.
     @discardableResult
-    public mutating func set<T>(floatingPoint: T, at index: Int) -> Int where T: BinaryFloatingPoint {
+    mutating func set<T>(floatingPoint: T, at index: Int) -> Int where T: BinaryFloatingPoint {
         var value = floatingPoint
         return Swift.withUnsafeBytes(of: &value) { ptr in
             self.set(bytes: ptr, at: index)

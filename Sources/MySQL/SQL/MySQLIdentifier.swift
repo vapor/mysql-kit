@@ -1,3 +1,4 @@
+/// MySQL specific `SQLIdentifier`.
 public struct MySQLIdentifier: SQLIdentifier {
     /// See `SQLIdentifier`.
     public static func identifier(_ string: String) -> MySQLIdentifier {

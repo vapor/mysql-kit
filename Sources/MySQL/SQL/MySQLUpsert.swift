@@ -1,3 +1,4 @@
+/// `ON DUPLICATE KEY UPDATE` or "upsert" clause.
 public struct MySQLUpsert: SQLSerializable {
     /// See `SQLUpsert`.
     public typealias Identifier = MySQLIdentifier
@@ -23,6 +24,13 @@ public struct MySQLUpsert: SQLSerializable {
 }
 
 extension SQLInsertBuilder where Connection.Query.Insert == MySQLInsert {
+    /// Adds an `ON DUPLICATE KEY UPDATE` or "upsert" clause to the query.
+    ///
+    ///     conn.insert(into: Planet.self).value(earth)
+    ///          .onConflict(set: earth).run()
+    ///
+    /// - parameters:
+    ///     - value: Encodable value to set if there is a primary key conflict.
     public func onConflict<E>(set value: E) -> Self where E: Encodable {
         let row = SQLQueryEncoder(MySQLExpression.self).encode(value)
         let values = row.map { row -> (MySQLIdentifier, MySQLExpression) in

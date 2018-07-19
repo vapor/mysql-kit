@@ -1,3 +1,4 @@
+/// MySQL-specific `SQLBoolLiteral`.
 public enum MySQLBoolLiteral: SQLBoolLiteral {
     /// See `SQLBoolLiteral`.
     public static var `true`: MySQLBoolLiteral {
@@ -9,7 +10,10 @@ public enum MySQLBoolLiteral: SQLBoolLiteral {
         return ._false
     }
 
+    /// See `SQLBoolLiteral`.
     case _true
+    
+    /// See `SQLBoolLiteral`.
     case _false
 
     /// See `SQLSerializable`.

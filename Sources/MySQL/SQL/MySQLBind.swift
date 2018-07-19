@@ -1,7 +1,10 @@
+/// Convertible to a `MySQLExpression`.
 public protocol MySQLExpressionRepresentable {
+    /// Self converted to a `MySQLExpression`.
     var mySQLExpression: MySQLExpression { get }
 }
 
+/// MySQL specific `SQLBind`.
 public struct MySQLBind: SQLBind {
     /// See `SQLBind`.
     public static func encodable<E>(_ value: E) -> MySQLBind
@@ -14,11 +17,15 @@ public struct MySQLBind: SQLBind {
         }
     }
     
+    /// Bind value.
     public enum Value {
+        /// Nested `MySQLExpression`.
         case expression(MySQLExpression)
+        /// Bound `Encodable` value.
         case encodable(Encodable)
     }
     
+    /// This bind's value.
     public var value: Value
     
     /// See `SQLSerializable`.

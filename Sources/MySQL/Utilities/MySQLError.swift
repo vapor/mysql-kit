@@ -3,16 +3,31 @@ import Foundation
 
 /// Errors that can be thrown while working with MySQL.
 public struct MySQLError: Debuggable {
+    /// See `Debuggable`.
     public static let readableName = "MySQL Error"
+    
+    /// See `Debuggable`.
     public let identifier: String
+    
+    /// See `Debuggable`.
     public var reason: String
+    
+    /// See `Debuggable`.
     public var possibleCauses: [String]
+    
+    /// See `Debuggable`.
     public var suggestedFixes: [String]
+    
+    /// See `Debuggable`.
     public var documentationLinks: [String]
+    
+    /// See `Debuggable`.
     public var sourceLocation: SourceLocation?
+    
+    /// See `Debuggable`.
     public var stackTrace: [String]
 
-    /// Create a new TCP error.
+    /// Create a new `MySQLError`.
     public init(
         identifier: String,
         reason: String,
@@ -33,7 +48,8 @@ public struct MySQLError: Debuggable {
         self.stackTrace = MySQLError.makeStackTrace()
     }
 
-    public static func parse(
+    /// Creates a new MySQL parse error.
+    static func parse(
         _ identifier: String,
         file: String = #file,
         function: String = #function,

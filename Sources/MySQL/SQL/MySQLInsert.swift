@@ -1,3 +1,4 @@
+/// MySQL specific `SQLInsert`.
 public struct MySQLInsert: SQLInsert {
     /// See `SQLInsert`.
     public static func insert(_ table: MySQLTableIdentifier) -> MySQLInsert {
