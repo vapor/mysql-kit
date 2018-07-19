@@ -644,4 +644,3 @@ extension Date: MySQLDataConvertible {
         return try .convertFromMySQLTime(time)
     }
 }
-
