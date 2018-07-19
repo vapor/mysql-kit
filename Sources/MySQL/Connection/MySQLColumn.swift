@@ -68,4 +68,3 @@ extension Dictionary where Key == MySQLColumn {
         return self[MySQLColumn(table: table, name: column)]
     }
 }
-
