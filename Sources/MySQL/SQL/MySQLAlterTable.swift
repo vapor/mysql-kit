@@ -32,7 +32,7 @@ public struct MySQLAlterTable: SQLAlterTable {
         case after(ColumnDefinition.ColumnIdentifier)
         
         /// See `SQLSerializable`.
-        func serialize(_ binds: inout [Encodable]) -> String {
+        public func serialize(_ binds: inout [Encodable]) -> String {
             switch self {
             case .first: return "FIRST"
             case .after(let after): return "AFTER " + after.identifier.serialize(&binds)

@@ -36,6 +36,7 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
     func errorCaught(ctx: ChannelHandlerContext, error: Error) {
         switch state {
         case .nascent(let ready):
+            self.state = .waiting
             ready.fail(error: error)
         case .callback(let promise, _):
             self.state = .waiting
@@ -57,10 +58,12 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
                 switch config.transport.storage {
                 case .cleartext:
                     try writeHandshakeResponse(ctx: ctx, handshake: handshake).catch {
+                        self.state = .waiting
                         ready.fail(error: $0)
                     }
                 case .tls(let tlsConfig):
                     try writeSSLRequest(ctx: ctx, using: tlsConfig, handshake: handshake).catch {
+                        self.state = .waiting
                         ready.fail(error: $0)
                     }
                 }
