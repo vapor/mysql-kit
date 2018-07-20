@@ -2,11 +2,17 @@ import Service
 
 /// Provides base `MySQL` services such as database and connection.
 public final class MySQLProvider: Provider {
+    let identifier: DatabaseIdentifier<MySQLDatabase>
+    
     /// See `Provider.repositoryName`
     public static let repositoryName = "mysql"
 
     /// Creates a new `MySQLProvider`.
-    public init() {}
+    ///
+    /// - Parameter identifier: the default identifier for the required Database
+    public init(default identifier: DatabaseIdentifier<MySQLDatabase> = .mysql) {
+        self.identifier = identifier
+    }
 
     /// See `Provider.register`
     public func register(_ services: inout Services) throws {
@@ -14,7 +20,7 @@ public final class MySQLProvider: Provider {
         services.register(MySQLDatabaseConfig.self)
         services.register(MySQLDatabase.self)
         var databases = DatabasesConfig()
-        databases.add(database: MySQLDatabase.self, as: .mysql)
+        databases.add(database: MySQLDatabase.self, as: self.identifier)
         services.register(databases)
     }
 
