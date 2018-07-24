@@ -23,7 +23,7 @@ public struct MySQLDatabaseConfig {
     /// Capability flags
     public let capabilities: MySQLCapabilities
 
-    /// Character set. Default utf8_general_ci
+    /// Character set. Default is `utf8mb4_general_ci`.
     public let characterSet: MySQLCharacterSet
     
     /// Connection transport config.
