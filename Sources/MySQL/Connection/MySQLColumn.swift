@@ -55,9 +55,20 @@ extension Dictionary where Key == MySQLColumn {
     /// Accesses the _first_ value from this dictionary with a matching field name.
     public func firstValue(forColumn columnName: String, inTable table: String? = nil) -> Value? {
         if table != nil, let specific = self[MySQLColumn(table: table, name: columnName)] {
+            // check for column with matching table name
             return specific
+        } else if let unspecific = self[MySQLColumn(table: nil, name: columnName)] {
+            // check for column without table name
+            return unspecific
+        } else if table == nil {
+            // check for column with table name where we don't specify one
+            for (col, row) in self {
+                if col.name == columnName {
+                    return row
+                }
+            }
         }
-        return self[MySQLColumn(table: nil, name: columnName)]
+        return nil
     }
 
     /// Access a `Value` from this dictionary keyed by `MySQLColumn`s
