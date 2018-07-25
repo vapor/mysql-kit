@@ -563,6 +563,11 @@ extension Calendar {
     }
 }
 
+private var comps = DateComponents(
+    calendar:  Calendar(identifier: .gregorian),
+    timeZone: TimeZone(secondsFromGMT: 0)!
+)
+
 extension Date {
     static func convertFromMySQLTime(_ time: MySQLTime) throws -> Date {
         /// For some reason comps.nanosecond is `nil` on linux :(
@@ -572,25 +577,15 @@ extension Date {
         #else
         nanosecond = 0
         #endif
-
-        let comps = DateComponents(
-            calendar: Calendar(identifier: .gregorian),
-            timeZone: TimeZone(secondsFromGMT: 0)!,
-            era: nil,
-            year: numericCast(time.year),
-            month: numericCast(time.month),
-            day: numericCast(time.day),
-            hour: numericCast(time.hour),
-            minute: numericCast(time.minute),
-            second: numericCast(time.second),
-            nanosecond: numericCast(time.microsecond) * 1_000,
-            weekday: nil,
-            weekdayOrdinal: nil,
-            quarter: nil,
-            weekOfMonth: nil,
-            weekOfYear: nil,
-            yearForWeekOfYear: nil
-        )
+        
+        comps.year = numericCast(time.year)
+        comps.month = numericCast(time.month)
+        comps.day = numericCast(time.day)
+        comps.hour = numericCast(time.hour)
+        comps.minute = numericCast(time.minute)
+        comps.second = numericCast(time.second)
+        comps.nanosecond = numericCast(time.microsecond) * 1_000
+        
         guard let date = comps.date else {
             throw MySQLError(identifier: "date", reason: "Could not parse Date from: \(time)")
         }
@@ -602,13 +597,13 @@ extension Date {
         return date.addingTimeInterval(TimeInterval(time.microsecond) / 1_000_000)
         #endif
     }
-
+    
     func convertToMySQLTime() -> MySQLTime {
         let comps = Calendar(identifier: .gregorian)
             .dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: self)
-
+        
         let microsecond = UInt32(abs(timeIntervalSince1970.truncatingRemainder(dividingBy: 1) * 1_000_000))
-
+        
         return MySQLTime(
             year: numericCast(comps.year ?? 0),
             month: numericCast(comps.month ?? 0),
@@ -620,7 +615,6 @@ extension Date {
         )
     }
 }
-
 
 extension Date: MySQLDataConvertible {
     /// See `MySQLDataConvertible.convertToMySQLData(format:)`
