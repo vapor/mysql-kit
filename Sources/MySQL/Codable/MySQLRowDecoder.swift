@@ -21,7 +21,7 @@ struct MySQLRowDecoder {
         }
         
         func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> where Key : CodingKey {
-            return .init(_KeyedDecodingContainer(row: row, table: table))
+            return .init(_KeyedDecodingContainer(self))
         }
         
         func unkeyedContainer() throws -> UnkeyedDecodingContainer {
@@ -34,36 +34,31 @@ struct MySQLRowDecoder {
     }
     
     private struct _KeyedDecodingContainer<Key>: KeyedDecodingContainerProtocol where Key: CodingKey {
-        let allKeys: [Key]
-        let codingPath: [CodingKey] = []
-        let row: [MySQLColumn: MySQLData]
-        let table: String?
+        var allKeys: [Key] {
+            return []
+        }
+        var codingPath: [CodingKey] {
+            return []
+        }
+        let decoder: _Decoder
         
-        init(row: [MySQLColumn: MySQLData], table: String?) {
-            self.row = row
-            self.table = table
-            self.allKeys = row.keys.compactMap { col in
-                if table == nil || col.table == table || col.table == nil {
-                    return col.name
-                } else {
-                    return nil
-                }
-            }.compactMap(Key.init(stringValue:))
+        init(_ decoder: _Decoder) {
+            self.decoder = decoder
         }
         
         func contains(_ key: Key) -> Bool {
-            return allKeys.contains { $0.stringValue == key.stringValue }
+            return true
         }
         
         func decodeNil(forKey key: Key) throws -> Bool {
-            guard let data = row.firstValue(forColumn: key.stringValue, inTable: table) else {
+            guard let data = decoder.row.firstValue(forColumn: key.stringValue, inTable: decoder.table) else {
                 return true
             }
             return data.isNull
         }
         
         func decode<T>(_ type: T.Type, forKey key: Key) throws -> T where T : Decodable {
-            guard let data = row.firstValue(forColumn: key.stringValue, inTable: table) else {
+            guard let data = decoder.row.firstValue(forColumn: key.stringValue, inTable: decoder.table) else {
                 throw DecodingError.valueNotFound(T.self, .init(codingPath: codingPath + [key], debugDescription: "Could not decode \(T.self)."))
             }
             return try MySQLDataDecoder().decode(T.self, from: data)
