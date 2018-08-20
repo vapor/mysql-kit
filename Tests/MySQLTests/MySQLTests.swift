@@ -330,6 +330,49 @@ class MySQLTests: XCTestCase {
         let res2 = try conn.simpleQuery("SELECT * FROM controls WHERE user = 'foo'").wait()
         XCTAssertEqual(res2.count, 0)
     }
+
+    func testGeometry() throws {
+        struct Coordinate: Codable, Equatable, MySQLDataConvertible, MySQLDataTypeStaticRepresentable, ReflectionDecodable {
+            let x, y: Double
+            static let mysqlDataType: MySQLDataType = .geometry
+            static func reflectDecoded() throws -> (Coordinate, Coordinate) {
+                return (.init(x: 0, y: 0), .init(x: 0, y: 1))
+            }
+            func convertToMySQLData() -> MySQLData {
+                return MySQLGeometry.point(x: x, y: y).convertToMySQLData()
+            }
+
+            static func convertFromMySQLData(_ mysqlData: MySQLData) throws -> Coordinate {
+                switch try MySQLGeometry.convertFromMySQLData(mysqlData) {
+                case .point(x: let x, y: let y):
+                    return Coordinate(x: x, y: y)
+                }
+            }
+        }
+        struct Location: SQLTable, Equatable {
+            var coordinate: Coordinate
+        }
+
+        let conn = try MySQLConnection.makeTest()
+        try conn.create(table: Location.self)
+            .column(for: \Location.coordinate)
+            .run()
+            .wait()
+        let location1 = Location(coordinate: .init(x: 1, y: 2))
+        try conn.insert(into: Location.self)
+            .value(location1)
+            .run()
+            .wait()
+        let location2 = try conn.select().all()
+            .from(Location.self)
+            .all(decoding: Location.self)
+            .wait()
+        XCTAssertEqual(location1, location2.first)
+
+        defer {
+            try? conn.drop(table: Location.self).ifExists().run().wait()
+        }
+    }
     
     static let allTests = [
         ("testBenchmark", testBenchmark),
@@ -349,6 +392,7 @@ class MySQLTests: XCTestCase {
         ("testColumnAfter", testColumnAfter),
         ("testDecimalPrecision", testDecimalPrecision),
         ("testZeroRowSelect", testZeroRowSelect),
+        ("testGeometry", testGeometry)
     ]
 }
 
