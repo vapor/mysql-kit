@@ -2,6 +2,7 @@ import NIO
 
 /// This structure is used to represent GEOMETRY data (Currently only Points).
 public enum MySQLGeometry: Equatable {
+    /// A single 2 dimensional point
     case point(x: Double, y: Double)
 
     fileprivate var wkbType: UInt32 {
