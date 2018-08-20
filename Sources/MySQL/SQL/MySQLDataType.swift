@@ -358,6 +358,10 @@ public struct MySQLDataType: SQLDataType, Equatable {
     public static var json: MySQLDataType {
         return .init(.json)
     }
+
+    public static var geometry: MySQLDataType {
+        return .init(.geometry)
+    }
     
     let primitive: Primitive
     
@@ -513,6 +517,8 @@ public struct MySQLDataType: SQLDataType, Equatable {
         ///
         /// https://dev.mysql.com/doc/refman/8.0/en/json.html
         case json
+
+        case geometry
     }
     
     /// See `SQLSerializable`.
@@ -644,6 +650,7 @@ public struct MySQLDataType: SQLDataType, Equatable {
             }
             return sql.joined(separator: " ")
         case .json: return "JSON"
+        case .geometry: return "GEOMETRY"
         }
     }
 }

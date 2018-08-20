@@ -55,6 +55,9 @@ enum MySQLBinaryDataStorage: Equatable {
 
     /// MYSQL_TIME
     case time(MySQLTime)
+
+    /// MYSQL_GEOMETRY
+    case geometry(MySQLGeometry)
     
     /// MYSQL_TYPE_NULL
     case null
