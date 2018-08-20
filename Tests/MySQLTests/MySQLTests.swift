@@ -50,7 +50,7 @@ class MySQLTests: XCTestCase {
 
     func testKitchenSink() throws {
         /// support
-        struct KitechSinkColumn {
+        struct KitchenSinkColumn {
             let name: String
             let columnType: String
             let data: MySQLData
@@ -69,7 +69,7 @@ class MySQLTests: XCTestCase {
                 }
             }
         }
-        let tests: [KitechSinkColumn] = [
+        let tests: [KitchenSinkColumn] = [
             .init("xchar", "CHAR(60)", "hello1"),
             .init("xvarchar", "VARCHAR(61)", "hello2"),
             .init("xtext", "TEXT(62)", "hello3"),
@@ -397,7 +397,7 @@ class MySQLTests: XCTestCase {
 }
 
 extension MySQLConnection {
-    /// Creates a test event loop and psql client.
+    /// Creates a test event loop and mysql client.
     static func makeTest() throws -> MySQLConnection {
         let transport: MySQLTransportConfig
         #if SSL_TESTS
