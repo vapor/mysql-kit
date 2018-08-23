@@ -330,6 +330,28 @@ class MySQLTests: XCTestCase {
         let res2 = try conn.simpleQuery("SELECT * FROM controls WHERE user = 'foo'").wait()
         XCTAssertEqual(res2.count, 0)
     }
+
+    func testReadThenWriteGeometry() throws {
+        let conn = try MySQLConnection.makeTest()
+        defer { conn.close(done: nil) }
+
+        let dropResults = try conn.simpleQuery("DROP TABLE IF EXISTS Location;").wait()
+        XCTAssertEqual(dropResults.count, 0)
+        let createResults = try conn.simpleQuery("CREATE TABLE Location (coordinate GEOMETRY NOT NULL);").wait()
+        defer {
+            _ = try? conn.simpleQuery("DROP TABLE IF EXISTS Location;").wait()
+        }
+        XCTAssertEqual(createResults.count, 0)
+
+        // write a Location (with a `coordinate` column) using the text based protocol
+        _ = try conn.raw("INSERT INTO `Location`(`coordinate`) VALUES (ST_GeomFromText('Point(1.0 2.0)'));").run().wait()
+        // read the MySQLData for the inserted point
+        let raw = try conn.raw("SELECT * FROM `Location`;").all().wait()
+        let pointData = raw.first!.first!.value
+        // try to add a new row with the same data -> fails with "MySQLError.server (1048): Column 'coordinate' cannot be null"
+        _ = try conn.raw("INSERT INTO `Location`(`coordinate`) VALUES (?);").binds([pointData]).run().wait()
+    }
+
     
     static let allTests = [
         ("testBenchmark", testBenchmark),
@@ -349,6 +371,7 @@ class MySQLTests: XCTestCase {
         ("testColumnAfter", testColumnAfter),
         ("testDecimalPrecision", testDecimalPrecision),
         ("testZeroRowSelect", testZeroRowSelect),
+        ("testReadThenWriteGeometry", testReadThenWriteGeometry),
     ]
 }
 
