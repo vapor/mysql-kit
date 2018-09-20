@@ -18,14 +18,14 @@ public struct MySQLDropIndex: SQLDropIndex {
 }
 
 /// Builds `MySQLDropIndex` queries.
-public final class MySQLDropIndexBuilder<Connection>: SQLQueryBuilder
-    where Connection: SQLConnection, Connection.Query == MySQLQuery
+public final class MySQLDropIndexBuilder<Connectable>: SQLQueryBuilder
+    where Connectable: SQLConnection, Connectable.Connection.Query == MySQLQuery
 {
     /// `AlterTable` query being built.
     public var dropIndex: MySQLDropIndex
     
     /// See `SQLQueryBuilder`.
-    public var connection: Connection
+    public var connectable: Connectable
     
     /// See `SQLQueryBuilder`.
     public var query: MySQLQuery {
@@ -33,9 +33,9 @@ public final class MySQLDropIndexBuilder<Connection>: SQLQueryBuilder
     }
     
     /// Creates a new `SQLCreateIndexBuilder`.
-    public init(_ dropIndex: MySQLDropIndex, on connection: Connection) {
+    public init(_ dropIndex: MySQLDropIndex, on connectable: Connectable) {
         self.dropIndex = dropIndex
-        self.connection = connection
+        self.connectable = connectable
     }
 }
 
