@@ -72,7 +72,7 @@ public struct MySQLAlterTable: SQLAlterTable {
     }
 }
 
-extension SQLAlterTableBuilder where Connection.Query.AlterTable == MySQLAlterTable {
+extension SQLAlterTableBuilder where Connectable.Connection.Query.AlterTable == MySQLAlterTable {
     /// Specifies the position of a newly added column in a table relative to an existing column.
     ///
     ///     conn.alter(table: User.self)

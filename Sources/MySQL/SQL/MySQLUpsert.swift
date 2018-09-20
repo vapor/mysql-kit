@@ -23,7 +23,7 @@ public struct MySQLUpsert: SQLSerializable {
     }
 }
 
-extension SQLInsertBuilder where Connection.Query.Insert == MySQLInsert {
+extension SQLInsertBuilder where Connectable.Connection.Query.Insert == MySQLInsert {
     /// Adds an `ON DUPLICATE KEY UPDATE` or "upsert" clause to the query.
     ///
     ///     conn.insert(into: Planet.self).value(earth)
