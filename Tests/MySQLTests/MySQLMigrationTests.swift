@@ -3,7 +3,7 @@ import Async
 import SQLBenchmark
 import XCTest
 
-class MySQLAlterTableTests: XCTestCase {
+class MySQLMigrationTests: XCTestCase {
 
     func testDropOneColumn() throws {
         let client = try MySQLConnection.makeTest()
