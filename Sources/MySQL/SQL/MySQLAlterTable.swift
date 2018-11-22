@@ -4,6 +4,9 @@ public struct MySQLAlterTable: SQLAlterTable {
     public typealias ColumnDefinition = MySQLColumnDefinition
     
     /// See `SQLAlterTable`.
+    public typealias ColumnIdentifier = MySQLColumnIdentifier
+    
+    /// See `SQLAlterTable`.
     public typealias TableIdentifier = MySQLTableIdentifier
     
     /// See `SQLAlterTable`.
@@ -19,6 +22,9 @@ public struct MySQLAlterTable: SQLAlterTable {
     
     /// See `SQLAlterTable`.
     public var columns: [ColumnDefinition]
+    
+    /// See `FluentSQLSchema`.
+    public var deleteColumns: [ColumnIdentifier]
     
     /// See `SQLAlterTable`.
     public var constraints: [TableConstraint]
@@ -50,6 +56,7 @@ public struct MySQLAlterTable: SQLAlterTable {
     public init(table: TableIdentifier) {
         self.table = table
         self.columns = []
+        self.deleteColumns = []
         self.constraints = []
         self.columnPositions = [:]
     }
@@ -67,7 +74,10 @@ public struct MySQLAlterTable: SQLAlterTable {
                 return sql
             }
         } + constraints.map { "ADD " + $0.serialize(&binds) }
-        sql.append(actions.joined(separator: ", "))
+        let deleteActions = deleteColumns.map {
+            return "DROP `" + $0.identifier.string + "`"
+        }
+        sql.append((actions + deleteActions).joined(separator: ", "))
         return sql.joined(separator: " ")
     }
 }
