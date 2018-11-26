@@ -6,7 +6,7 @@ public struct MySQLData: Equatable, Encodable {
         case text(Data?)
         case binary(MySQLBinaryData)
     }
-    
+
     /// The value's data.
     internal var storage: Storage
 
@@ -44,7 +44,7 @@ public struct MySQLData: Equatable, Encodable {
             ERROR("Could not encode JSON to MySQLData: \(error)")
             storage = .null
         }
-        
+
         let binary = MySQLBinaryData(
             type: .MYSQL_TYPE_JSON,
             isUnsigned: true,
@@ -242,7 +242,7 @@ public struct MySQLData: Equatable, Encodable {
             }
         }
     }
-    
+
     /// See `Encodable`.
     public func encode(to encoder: Encoder) throws {
         var single = encoder.singleValueContainer()
@@ -583,14 +583,7 @@ extension Date {
             _comps.currentValue = new
             comps = new
         }
-        /// For some reason comps.nanosecond is `nil` on linux :(
-        let nanosecond: Int
-        #if os(macOS)
-        nanosecond = numericCast(time.microsecond) * 1_000
-        #else
-        nanosecond = 0
-        #endif
-        
+
         comps.value.year = numericCast(time.year)
         comps.value.month = numericCast(time.month)
         comps.value.day = numericCast(time.day)
@@ -598,11 +591,11 @@ extension Date {
         comps.value.minute = numericCast(time.minute)
         comps.value.second = numericCast(time.second)
         comps.value.nanosecond = numericCast(time.microsecond) * 1_000
-        
+
         guard let date = comps.value.date else {
             throw MySQLError(identifier: "date", reason: "Could not parse Date from: \(time)")
         }
-        
+
         /// For some reason comps.nanosecond is `nil` on linux :(
         #if os(macOS)
         return date
@@ -610,13 +603,13 @@ extension Date {
         return date.addingTimeInterval(TimeInterval(time.microsecond) / 1_000_000)
         #endif
     }
-    
+
     func convertToMySQLTime() -> MySQLTime {
         let comps = Calendar(identifier: .gregorian)
             .dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: self)
-        
+
         let microsecond = UInt32(abs(timeIntervalSince1970.truncatingRemainder(dividingBy: 1) * 1_000_000))
-        
+
         return MySQLTime(
             year: numericCast(comps.year ?? 0),
             month: numericCast(comps.month ?? 0),
