@@ -8,18 +8,13 @@ struct MySQLDataEncoder {
             let encoder = _Encoder()
             do {
                 try value.encode(to: encoder)
-                return encoder.data!
-            } catch is _DoJSONError {
-                struct AnyEncodable: Encodable {
-                    let encodable: Encodable
-                    init(_ encodable: Encodable) {
-                        self.encodable = encodable
-                    }
-                    func encode(to encoder: Encoder) throws {
-                        try encodable.encode(to: encoder)
-                    }
+                if let data = encoder.data {
+                    return data
+                } else {
+                    return self.encode(json: value)
                 }
-                return .init(json: AnyEncodable(value))
+            } catch is _DoJSONError {
+                return self.encode(json: value)
             } catch {
                 ERROR("Could not encode \(type(of: value)) to MySQLData: \(error)")
                 return .null
@@ -28,6 +23,19 @@ struct MySQLDataEncoder {
     }
     
     // MARK: Private
+    
+    private func encode(json value: Encodable) -> MySQLData {
+        struct AnyEncodable: Encodable {
+            let encodable: Encodable
+            init(_ encodable: Encodable) {
+                self.encodable = encodable
+            }
+            func encode(to encoder: Encoder) throws {
+                try encodable.encode(to: encoder)
+            }
+        }
+        return .init(json: AnyEncodable(value))
+    }
         
     private final class _Encoder: Encoder {
         let codingPath: [CodingKey] = []
