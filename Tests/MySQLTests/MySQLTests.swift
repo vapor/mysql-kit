@@ -331,6 +331,13 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(res2.count, 0)
     }
     
+    // https://github.com/vapor/fluent-mysql/issues/130
+    func testZeroLengthArray() throws {
+        let arr: [Int] = []
+        let data = MySQLDataEncoder().encode(arr)
+        print(data)
+    }
+    
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testSimpleQuery", testSimpleQuery),
@@ -349,6 +356,7 @@ class MySQLTests: XCTestCase {
         ("testColumnAfter", testColumnAfter),
         ("testDecimalPrecision", testDecimalPrecision),
         ("testZeroRowSelect", testZeroRowSelect),
+        ("testZeroLengthArray", testZeroLengthArray),
     ]
 }
 
