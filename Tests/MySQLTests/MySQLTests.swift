@@ -331,7 +331,7 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(res2.count, 0)
     }
     
-    // https://github.com/vapor/fluent-mysql/issues/130
+    // https://github.com/vapor/mysql/issues/221
     func testZeroLengthArray() throws {
         let arr: [Int] = []
         let data = MySQLDataEncoder().encode(arr)
