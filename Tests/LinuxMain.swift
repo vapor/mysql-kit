@@ -6,7 +6,6 @@ import XCTest
 XCTMain([
     testCase(MySQLTests.allTests),
     testCase(MySQLPacketTests.allTests),
-    testCase(MySQLMigrationTests.allTests),
 ])
 
 #endif
