@@ -338,6 +338,12 @@ class MySQLTests: XCTestCase {
         print(data)
     }
     
+    func testMySQLTimeDescription() throws {
+        let date = Date(timeIntervalSinceReferenceDate: 314159269)
+        let time = date.convertToMySQLTime()
+        XCTAssertEqual("\(time)", "2010-12-16 2:27:49.0")
+    }
+    
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testSimpleQuery", testSimpleQuery),
@@ -357,6 +363,7 @@ class MySQLTests: XCTestCase {
         ("testDecimalPrecision", testDecimalPrecision),
         ("testZeroRowSelect", testZeroRowSelect),
         ("testZeroLengthArray", testZeroLengthArray),
+        ("testMySQLTimeDescription", testMySQLTimeDescription),
     ]
 }
 
