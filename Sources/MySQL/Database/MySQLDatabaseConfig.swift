@@ -19,13 +19,13 @@ public struct MySQLDatabaseConfig {
 
     /// Database name.
     public let database: String
-    
+
     /// Capability flags
     public let capabilities: MySQLCapabilities
 
-    /// Character set. Default is `utf8mb4_general_ci`.
+    /// Character set. Default is `utf8mb4_unicode_ci`.
     public let characterSet: MySQLCharacterSet
-    
+
     /// Connection transport config.
     public let transport: MySQLTransportConfig
 
