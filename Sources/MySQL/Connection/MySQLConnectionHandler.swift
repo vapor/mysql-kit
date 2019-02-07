@@ -103,7 +103,7 @@ final class MySQLConnectionHandler: ChannelInboundHandler {
         case .waiting:
             switch packet {
             case .ok: break
-            default: fatalError("Unexpected packet: \(packet)")
+            default: break // ignore packets here, they may be left overs from an aborted query
             }
         case .callback(let promise, let callback):
             do {
