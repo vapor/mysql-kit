@@ -351,10 +351,15 @@ class MySQLTests: XCTestCase {
         _ = try conn.simpleQuery("CREATE TABLE `Todo` (id int, name text)").wait()
         _ = try conn.simpleQuery("INSERT INTO `Todo` VALUES (1, 'a')").wait()
         _ = try conn.simpleQuery("INSERT INTO `Todo` VALUES (2, 'b')").wait()
-        try conn.query("SELECT * FROM `Todo`") { row in
-            print(row)
-            throw MySQLError(identifier: "asdf", reason: "foo")
-        }.wait()
+        do {
+            try conn.query("SELECT * FROM `Todo`") { row in
+                print(row)
+                throw MySQLError(identifier: "asdf", reason: "foo")
+            }.wait()
+            XCTFail("should have thrown")
+        } catch {
+            // pass
+        }
     }
     
     static let allTests = [
