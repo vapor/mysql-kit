@@ -344,6 +344,24 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual("\(time)", "2010-12-16 2:27:49.0")
     }
     
+    // https://github.com/vapor/mysql/issues/223
+    func testGH223() throws {
+        let conn = try MySQLConnection.makeTest()
+        _ = try conn.simpleQuery("DROP TABLE IF EXISTS `Todo`").wait()
+        _ = try conn.simpleQuery("CREATE TABLE `Todo` (id int, name text)").wait()
+        _ = try conn.simpleQuery("INSERT INTO `Todo` VALUES (1, 'a')").wait()
+        _ = try conn.simpleQuery("INSERT INTO `Todo` VALUES (2, 'b')").wait()
+        do {
+            try conn.query("SELECT * FROM `Todo`") { row in
+                print(row)
+                throw MySQLError(identifier: "asdf", reason: "foo")
+            }.wait()
+            XCTFail("should have thrown")
+        } catch {
+            // pass
+        }
+    }
+    
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testSimpleQuery", testSimpleQuery),
@@ -364,6 +382,7 @@ class MySQLTests: XCTestCase {
         ("testZeroRowSelect", testZeroRowSelect),
         ("testZeroLengthArray", testZeroLengthArray),
         ("testMySQLTimeDescription", testMySQLTimeDescription),
+        ("testGH223", testGH223),
     ]
 }
 
