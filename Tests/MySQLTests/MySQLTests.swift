@@ -377,6 +377,7 @@ class MySQLTests: XCTestCase {
         ("testZeroRowSelect", testZeroRowSelect),
         ("testZeroLengthArray", testZeroLengthArray),
         ("testMySQLTimeDescription", testMySQLTimeDescription),
+        ("testGH223", testGH223),
     ]
 }
 
