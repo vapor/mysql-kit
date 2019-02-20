@@ -39,7 +39,6 @@ final class MySQLPacketDecoder: ByteToMessageDecoder {
             switch session.eofState {
             case .waiting:
                 if !capabilities.contains(.CLIENT_DEPRECATE_EOF) {
-                    print("decode deprecated EOF")
                     return try decodeBasicPacket(ctx: ctx, buffer: &buffer, capabilities: capabilities, forwarding: false)
                 }
             default: break

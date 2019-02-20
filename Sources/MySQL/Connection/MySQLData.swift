@@ -557,6 +557,12 @@ struct MySQLTime: Equatable {
     var microsecond: UInt32
 }
 
+extension MySQLTime: CustomStringConvertible {
+    var description: String {
+        return "\(self.year)-\(self.month)-\(self.day) \(self.hour):\(self.minute):\(self.second).\(self.microsecond)"
+    }
+}
+
 extension Calendar {
     func ccomponent<I>(_ component: Calendar.Component, from date: Date) -> I where I: FixedWidthInteger {
         return numericCast(self.component(component, from: date))
