@@ -84,9 +84,9 @@ public final class MySQLConnection: BasicWorker, DatabaseConnection, DatabaseQue
         // create a new promise and store it
         let promise = eventLoop.newPromise(Void.self)
         
-        handler.state = .callback(promise) { packet in
+        handler.state = .callback(promise) { [weak self] packet in
             switch packet {
-            case .ok(let ok): self.lastMetadata = .init(ok)
+            case .ok(let ok): self?.lastMetadata = .init(ok)
             case .err(let err): throw err.makeError()
             default: break
             }
