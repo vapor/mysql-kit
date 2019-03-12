@@ -35,6 +35,7 @@ extension MySQLConnection {
         let comQuery = MySQLComQuery(query: string)
         var columns: [MySQLColumnDefinition41] = []
         var currentRow: [MySQLColumn: MySQLData] = [:]
+        logger?.record(query: string, values: [])
         return send([.comQuery(comQuery)]) { message in
             switch message {
             case .columnDefinition41(let col):
