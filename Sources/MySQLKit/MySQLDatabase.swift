@@ -84,7 +84,7 @@ public struct MySQLConnectionSource: ConnectionPoolSource {
             username: self.configuration.username,
             database: self.configuration.database ?? self.configuration.username,
             password: self.configuration.password,
-            tlsConfig: self.configuration.tlsConfiguration,
+            tlsConfiguration: self.configuration.tlsConfiguration,
             on: self.eventLoop
         )
     }
@@ -92,14 +92,12 @@ public struct MySQLConnectionSource: ConnectionPoolSource {
 
 extension MySQLConnection: ConnectionPoolItem { }
 
-
 extension MySQLRow: SQLRow {
     public func decode<D>(column: String, as type: D.Type) throws -> D where D : Decodable {
         guard let data = self.column(column) else {
             fatalError()
         }
-        fatalError()
-        // return try PostgresDataDecoder().decode(D.self, from: data)
+        return try MySQLDataDecoder().decode(D.self, from: data)
     }
 }
 
@@ -147,19 +145,29 @@ struct MySQLDialect: SQLDialect {
     }
 }
 
-extension MySQLConnection: SQLDatabase {
-    #warning("TODO: add MySQLDatabase type")
+extension MySQLConnection: SQLDatabase { }
+
+extension MySQLDatabase where Self: SQLDatabase {
     public func sqlQuery(_ query: SQLExpression, _ onRow: @escaping (SQLRow) throws -> ()) -> EventLoopFuture<Void> {
         var serializer = SQLSerializer(dialect: MySQLDialect())
         query.serialize(to: &serializer)
         return self.query(serializer.sql, serializer.binds.map { encodable in
-            return MySQLData(string: "test")
-            // return try! PostgresDataEncoder().encode(encodable)
-        }) { row in
+            return try! MySQLDataEncoder().encode(encodable)
+        }, onRow: { row in
             try! onRow(row)
-        }
+        }, onMetadata: { metadata in
+            print(metadata)
+        })
     }
 }
+
+#warning("TODO: move to SQLKit?")
+extension ConnectionPool: SQLDatabase where Source.Connection: SQLDatabase {
+    public func sqlQuery(_ query: SQLExpression, _ onRow: @escaping (SQLRow) throws -> ()) -> EventLoopFuture<Void> {
+        return self.withConnection { $0.sqlQuery(query, onRow) }
+    }
+}
+
 
 #warning("TODO: move to NIOPostgres?")
 //extension ConnectionPool: PostgresDatabase where Source.Connection: PostgresDatabase {
@@ -173,9 +181,4 @@ extension MySQLConnection: SQLDatabase {
 //}
 
 #warning("TODO: move to SQLKit?")
-extension ConnectionPool: SQLDatabase where Source.Connection: SQLDatabase {
-    public func sqlQuery(_ query: SQLExpression, _ onRow: @escaping (SQLRow) throws -> ()) -> EventLoopFuture<Void> {
-        return self.withConnection { $0.sqlQuery(query, onRow) }
-    }
-}
 

@@ -37,18 +37,18 @@ extension MySQLConnection {
             #else
             address = try .init(ipAddress: "127.0.0.1", port: 3306)
             #endif
-            let tlsConfig: TLSConfiguration?
+            let tlsConfiguration: TLSConfiguration?
             #if TEST_TLS
-            tlsConfig = .forClient(certificateVerification: .none)
+            tlsConfiguration = .forClient(certificateVerification: .none)
             #else
-            tlsConfig = nil
+            tlsConfiguration = nil
             #endif
             return self.connect(
                 to: address,
                 username: "vapor_username",
                 database: "vapor_database",
                 password: "vapor_password",
-                tlsConfig: tlsConfig,
+                tlsConfiguration: tlsConfiguration,
                 on: eventLoop
             )
         } catch {
