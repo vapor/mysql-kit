@@ -127,13 +127,11 @@ public struct MySQLDataEncoder {
         }
         
         mutating func encode(_ value: Double) throws {
-            fatalError()
-            // self.encoder.data = MySQLData(double: value)
+            self.encoder.data = MySQLData(double: value)
         }
         
         mutating func encode(_ value: Float) throws {
-            fatalError()
-            // self.encoder.data = MySQLData(float: value)
+            self.encoder.data = MySQLData(float: value)
         }
         
         mutating func encode(_ value: Int) throws {

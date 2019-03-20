@@ -112,26 +112,22 @@ public struct SQLRaw: SQLExpression {
     }
 }
 
-struct MySQLDialect: SQLDialect {
-    private var bindOffset: Int
+public struct MySQLDialect: SQLDialect {
+    public init() {}
     
-    init() {
-        self.bindOffset = 0
-    }
-    
-    var identifierQuote: SQLExpression {
+    public var identifierQuote: SQLExpression {
         return SQLRaw("`")
     }
     
-    var literalStringQuote: SQLExpression {
+    public var literalStringQuote: SQLExpression {
         return SQLRaw("'")
     }
     
-    mutating func nextBindPlaceholder() -> SQLExpression {
+    public mutating func nextBindPlaceholder() -> SQLExpression {
         return SQLRaw("?")
     }
     
-    func literalBoolean(_ value: Bool) -> SQLExpression {
+    public func literalBoolean(_ value: Bool) -> SQLExpression {
         switch value {
         case false:
             return SQLRaw("0")
@@ -140,7 +136,7 @@ struct MySQLDialect: SQLDialect {
         }
     }
     
-    var autoIncrementClause: SQLExpression {
+    public var autoIncrementClause: SQLExpression {
         return SQLRaw("AUTO_INCREMENT")
     }
 }
@@ -155,8 +151,6 @@ extension MySQLDatabase where Self: SQLDatabase {
             return try! MySQLDataEncoder().encode(encodable)
         }, onRow: { row in
             try! onRow(row)
-        }, onMetadata: { metadata in
-            print(metadata)
         })
     }
 }
