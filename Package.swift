@@ -1,38 +1,19 @@
-// swift-tools-version:4.0
+// swift-tools-version:5.0
 import PackageDescription
 
 let package = Package(
-    name: "MySQL",
+    name: "mysql-kit",
     products: [
-        .library(name: "MySQL", targets: ["MySQL"]),
+        .library(name: "MySQLKit", targets: ["MySQLKit"]),
     ],
     dependencies: [
-        // 🌎 Utility package containing tools for byte manipulation, Codable, OS APIs, and debugging.
-        .package(url: "https://github.com/vapor/core.git", from: "3.0.0"),
-        
-        // 🔑 Hashing (BCrypt, SHA, HMAC, etc), encryption, and randomness.
-        .package(url: "https://github.com/vapor/crypto.git", from: "3.0.0"),
-
-        // 🗄 Core services for creating database integrations.
-        .package(url: "https://github.com/vapor/database-kit.git", from: "1.2.0"),
-
-        // 📦 Dependency injection / inversion of control framework.
-        .package(url: "https://github.com/vapor/service.git", from: "1.0.0"),
-        
-        // Event-driven network application framework for high performance protocol servers & clients, non-blocking.
-        .package(url: "https://github.com/apple/swift-nio.git", from: "1.0.0"),
-
-        // Bindings to OpenSSL-compatible libraries for TLS support in SwiftNIO
-        .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "1.0.0"),
-        
-        // *️⃣ Build SQL queries in Swift. Extensible, protocol-based design that supports DQL, DML, and DDL.
-        .package(url: "https://github.com/vapor/sql.git", from: "2.0.0"),
+        .package(url: "https://github.com/vapor/nio-mysql.git", .branch("master")),
+        .package(url: "https://github.com/vapor/sql.git", .branch("master")),
+        .package(url: "https://github.com/vapor/nio-kit.git", .branch("master")),
 
     ],
     targets: [
-        .target(name: "MySQL", dependencies: [
-            "Async", "Bits", "Core", "Crypto", "DatabaseKit", "NIO", "NIOOpenSSL", "Service", "SQL"
-        ]),
-        .testTarget(name: "MySQLTests", dependencies: ["Crypto", "MySQL", "SQLBenchmark"]),
+        .target(name: "MySQLKit", dependencies: ["NIOKit", "NIOMySQL", "SQLKit"]),
+        .testTarget(name: "MySQLKitTests", dependencies: ["MySQLKit", "SQLKitBenchmark"]),
     ]
 )

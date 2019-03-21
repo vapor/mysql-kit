@@ -1,11 +1,8 @@
-#if os(Linux)
-
 import XCTest
-@testable import MySQLTests
 
-XCTMain([
-    testCase(MySQLTests.allTests),
-    testCase(MySQLPacketTests.allTests),
-])
+import MySQLKitTests
 
-#endif
+var tests = [XCTestCaseEntry]()
+tests += MySQLKitTests.__allTests()
+
+XCTMain(tests)
