@@ -1,7 +1,19 @@
 /// Represents a MySQL column.
 public struct MySQLColumn: Hashable {
-    /// See `Hashable.hashValue`
+    // #if compiler(>=4.2)
+    #if swift(>=4.1.50)
+    /// See `Hashable`.
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(self._hashValue)
+    }
+    #else
+    /// See `Hashable`.
     public var hashValue: Int {
+        return self._hashValue
+    }
+    #endif
+    
+    private var _hashValue: Int {
         return (table?.hashValue ?? 0) &+ name.hashValue
     }
 
