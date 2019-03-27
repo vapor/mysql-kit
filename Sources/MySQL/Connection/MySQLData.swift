@@ -580,26 +580,21 @@ extension Date {
         #endif
         
         var unixTime = tm()
-        unixTime.tm_year = Int32(time.year) - 1900
-        unixTime.tm_mon = Int32(time.month)
-        unixTime.tm_mday = Int32(time.day)
-        unixTime.tm_hour = Int32(time.hour)
-        unixTime.tm_min = Int32(time.minute)
-        unixTime.tm_sec = Int32(time.second)
-        unixTime.tm_wday = 0
-        unixTime.tm_yday = 0
-        unixTime.tm_isdst = 0
-        unixTime.tm_gmtoff = 0
-        unixTime.tm_zone = nil
+        unixTime.tm_year = numericCast(time.year) - 1900
+        unixTime.tm_mon = numericCast(time.month - 1)
+        unixTime.tm_mday = numericCast(time.day)
+        unixTime.tm_hour = numericCast(time.hour)
+        unixTime.tm_min = numericCast(time.minute)
+        unixTime.tm_sec = numericCast(time.second)
 
-        let timeStamp = mktime(&unixTime)
-        let date = Date(timeIntervalSince1970: TimeInterval(timeStamp) + (TimeInterval(nanosecond) / 1_000_000))
+        let timeStamp = timegm(&unixTime)
+        let date = Date(timeIntervalSince1970: TimeInterval(timeStamp) + (TimeInterval(nanosecond) / 1_000_000_000))
         
         /// For some reason comps.nanosecond is `nil` on linux :(
         #if os(macOS)
         return date
         #else
-        return date
+        return date.addingTimeInterval(TimeInterval(time.microsecond) / 1_000_000)
         #endif
     }
     
