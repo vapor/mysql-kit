@@ -569,26 +569,8 @@ extension Calendar {
     }
 }
 
-private final class _DateComponentsWrapper {
-    var value = DateComponents(
-        calendar:  Calendar(identifier: .gregorian),
-        timeZone: TimeZone(secondsFromGMT: 0)!
-    )
-}
-
-private var _comps = ThreadSpecificVariable<_DateComponentsWrapper>()
-
-
 extension Date {
     static func convertFromMySQLTime(_ time: MySQLTime) throws -> Date {
-        let comps: _DateComponentsWrapper
-        if let existing = _comps.currentValue {
-            comps = existing
-        } else {
-            let new = _DateComponentsWrapper()
-            _comps.currentValue = new
-            comps = new
-        }
         /// For some reason comps.nanosecond is `nil` on linux :(
         let nanosecond: Int
         #if os(macOS)
@@ -597,23 +579,27 @@ extension Date {
         nanosecond = 0
         #endif
         
-        comps.value.year = numericCast(time.year)
-        comps.value.month = numericCast(time.month)
-        comps.value.day = numericCast(time.day)
-        comps.value.hour = numericCast(time.hour)
-        comps.value.minute = numericCast(time.minute)
-        comps.value.second = numericCast(time.second)
-        comps.value.nanosecond = numericCast(time.microsecond) * 1_000
-        
-        guard let date = comps.value.date else {
-            throw MySQLError(identifier: "date", reason: "Could not parse Date from: \(time)")
-        }
+        var unixTime = tm()
+        unixTime.tm_year = Int32(time.year) - 1900
+        unixTime.tm_mon = Int32(time.month)
+        unixTime.tm_mday = Int32(time.day)
+        unixTime.tm_hour = Int32(time.hour)
+        unixTime.tm_min = Int32(time.minute)
+        unixTime.tm_sec = Int32(time.second)
+        unixTime.tm_wday = 0
+        unixTime.tm_yday = 0
+        unixTime.tm_isdst = 0
+        unixTime.tm_gmtoff = 0
+        unixTime.tm_zone = nil
+
+        let timeStamp = mktime(&unixTime)
+        let date = Date(timeIntervalSince1970: TimeInterval(timeStamp) + (TimeInterval(nanosecond) / 1_000_000))
         
         /// For some reason comps.nanosecond is `nil` on linux :(
         #if os(macOS)
         return date
         #else
-        return date.addingTimeInterval(TimeInterval(time.microsecond) / 1_000_000)
+        return date
         #endif
     }
     
