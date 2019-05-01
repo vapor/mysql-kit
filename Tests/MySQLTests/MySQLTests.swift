@@ -491,7 +491,7 @@ extension MySQLConnection {
             password: "vapor_password",
             database: "vapor_database",
             characterSet: .utf8mb4_unicode_ci,
-            transport: .unverifiedTLS
+            transport: transport
         ), on: group).wait()
         conn.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
         return conn
