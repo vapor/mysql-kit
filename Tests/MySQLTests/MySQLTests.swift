@@ -196,6 +196,18 @@ class MySQLTests: XCTestCase {
         let client = try MySQLConnection.makeTest()
         defer { client.close(done: nil) }
 
+        if
+            let version: MySQLData = try client.simpleQuery("SELECT @@version").wait()[0]["@@version"],
+            let numbers: [String] = version.string()?.split(separator: ".").map(String.init),
+            let major: Int = Int(numbers[0]),
+            let minor: Int = Int(numbers[1]),
+            major <= 5, minor <= 6
+        {
+            print("Exiting .testSaveJSON test case. JSON is not supported in the current version of MySQL")
+            return
+        }
+
+
         try client.drop(table: Nested.self).ifExists().run().wait()
         try client.create(table: Nested.self)
             .column(for: \Nested.id, type: .bigint, .notNull, .primaryKey, .unique())
