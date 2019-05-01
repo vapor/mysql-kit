@@ -186,6 +186,7 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(selectResults2.count, 1)
     }
 
+    /// https://github.com/vapor/mysql/issues/235
     func testSaveJSON() throws {
         struct Nested: SQLTable {
             var id: Int
