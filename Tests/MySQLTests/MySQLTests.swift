@@ -186,6 +186,28 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(selectResults2.count, 1)
     }
 
+    func testSaveJSON() throws {
+        struct Nested: SQLTable {
+            var id: Int
+            var data: [String: String]
+        }
+
+        let client = try MySQLConnection.makeTest()
+        defer { client.close(done: nil) }
+
+        try client.drop(table: Nested.self).ifExists().run().wait()
+        try client.create(table: Nested.self)
+            .column(for: \Nested.id, .notNull, .primaryKey, .unique())
+            .column(for: \Nested.data, .notNull)
+            .run().wait()
+
+        try client.insert(into: Nested.self).value(Nested(id: 1, data: ["description": "JSON data"])).run().wait()
+        let nested = try client.select().all(table: Nested.self).first(decoding: Nested.self).wait()
+
+        XCTAssertEqual(nested?.id, 1)
+        XCTAssertEqual(nested?.data, ["description": "JSON data"])
+    }
+
     func testStringCharacterSet() throws {
         var characterSet = "latin1_swedish_ci"
         XCTAssertNotNil(MySQLCharacterSet(string: characterSet))
@@ -435,6 +457,7 @@ class MySQLTests: XCTestCase {
         ("testTimePrecision", testTimePrecision),
         ("testDateBefore1970", testDateBefore1970),
         ("testSaveEmoticonsUnicode", testSaveEmoticonsUnicode),
+        ("testSaveJSON", testSaveJSON),
         ("testStringCharacterSet", testStringCharacterSet),
         ("testDisconnect", testDisconnect),
         ("testURLParsing", testURLParsing),
@@ -467,7 +490,7 @@ extension MySQLConnection {
             password: "vapor_password",
             database: "vapor_database",
             characterSet: .utf8mb4_unicode_ci,
-            transport: transport
+            transport: .unverifiedTLS
         ), on: group).wait()
         conn.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
         return conn
