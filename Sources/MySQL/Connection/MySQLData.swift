@@ -46,7 +46,7 @@ public struct MySQLData: Equatable, Encodable {
         }
         
         let binary = MySQLBinaryData(
-            type: .MYSQL_TYPE_JSON,
+            type: .MYSQL_TYPE_STRING,
             isUnsigned: true,
             storage: storage
         )

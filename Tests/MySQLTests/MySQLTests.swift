@@ -186,6 +186,41 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(selectResults2.count, 1)
     }
 
+    /// https://github.com/vapor/mysql/issues/235
+    func testSaveJSON() throws {
+        struct Nested: SQLTable {
+            var id: Int
+            var data: [String: String]
+        }
+
+        let client = try MySQLConnection.makeTest()
+        defer { client.close(done: nil) }
+
+        if
+            let version: MySQLData = try client.simpleQuery("SELECT @@version").wait()[0]["@@version"],
+            let numbers: [String] = version.string()?.split(separator: ".").map(String.init),
+            let major: Int = Int(numbers[0]),
+            let minor: Int = Int(numbers[1]),
+            major <= 5, minor <= 6
+        {
+            print("Exiting .testSaveJSON test case. JSON is not supported in the current version of MySQL")
+            return
+        }
+
+
+        try client.drop(table: Nested.self).ifExists().run().wait()
+        try client.create(table: Nested.self)
+            .column(for: \Nested.id, type: .bigint, .notNull, .primaryKey, .unique())
+            .column(for: \Nested.data, type: .json, .notNull)
+            .run().wait()
+
+        try client.insert(into: Nested.self).value(Nested(id: 1, data: ["description": "JSON data"])).run().wait()
+        let nested = try client.select().all().from(Nested.self).first(decoding: Nested.self).wait()
+
+        XCTAssertEqual(nested?.id, 1)
+        XCTAssertEqual(nested?.data, ["description": "JSON data"])
+    }
+
     func testStringCharacterSet() throws {
         var characterSet = "latin1_swedish_ci"
         XCTAssertNotNil(MySQLCharacterSet(string: characterSet))
@@ -435,6 +470,7 @@ class MySQLTests: XCTestCase {
         ("testTimePrecision", testTimePrecision),
         ("testDateBefore1970", testDateBefore1970),
         ("testSaveEmoticonsUnicode", testSaveEmoticonsUnicode),
+        ("testSaveJSON", testSaveJSON),
         ("testStringCharacterSet", testStringCharacterSet),
         ("testDisconnect", testDisconnect),
         ("testURLParsing", testURLParsing),
