@@ -198,8 +198,8 @@ class MySQLTests: XCTestCase {
 
         try client.drop(table: Nested.self).ifExists().run().wait()
         try client.create(table: Nested.self)
-            .column(for: \Nested.id, .notNull, .primaryKey, .unique())
-            .column(for: \Nested.data, .notNull)
+            .column(for: \Nested.id, type: .bigint, .notNull, .primaryKey, .unique())
+            .column(for: \Nested.data, type: .json, .notNull)
             .run().wait()
 
         try client.insert(into: Nested.self).value(Nested(id: 1, data: ["description": "JSON data"])).run().wait()
