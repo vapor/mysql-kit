@@ -203,7 +203,7 @@ class MySQLTests: XCTestCase {
             .run().wait()
 
         try client.insert(into: Nested.self).value(Nested(id: 1, data: ["description": "JSON data"])).run().wait()
-        let nested = try client.select().all(table: Nested.self).first(decoding: Nested.self).wait()
+        let nested = try client.select().all().from(Nested.self).first(decoding: Nested.self).wait()
 
         XCTAssertEqual(nested?.id, 1)
         XCTAssertEqual(nested?.data, ["description": "JSON data"])
