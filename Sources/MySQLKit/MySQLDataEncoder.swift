@@ -16,7 +16,12 @@ public struct MySQLDataEncoder {
                 let data = try json.encode(Wrapper(type))
                 var buffer = ByteBufferAllocator().buffer(capacity: data.count)
                 buffer.writeBytes(data)
-                return MySQLData(type: .json, buffer: buffer)
+                return MySQLData(
+                    type: .string,
+                    format: .text,
+                    buffer: buffer,
+                    isUnsigned: true
+                )
             }
         }
     }
@@ -47,11 +52,8 @@ public struct MySQLDataEncoder {
         }
     }
     
-    #warning("TODO: fix fatal errors")
-    
     struct DoJSON: Error {}
-    
-    #warning("TODO: move to encodable kit")
+
     struct Wrapper: Encodable {
         let encodable: Encodable
         init(_ encodable: Encodable) {
