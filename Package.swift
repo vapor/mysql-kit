@@ -7,13 +7,13 @@ let package = Package(
         .library(name: "MySQLKit", targets: ["MySQLKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/vapor/nio-mysql.git", .branch("master")),
+        .package(url: "https://github.com/vapor/mysql-nio.git", .branch("master")),
         .package(url: "https://github.com/vapor/sql.git", .branch("master")),
-        .package(url: "https://github.com/vapor/nio-kit.git", .branch("master")),
+        .package(url: "https://github.com/vapor/async-kit.git", .branch("master")),
 
     ],
     targets: [
-        .target(name: "MySQLKit", dependencies: ["NIOKit", "NIOMySQL", "SQLKit"]),
+        .target(name: "MySQLKit", dependencies: ["AsyncKit", "MySQLNIO", "SQLKit"]),
         .testTarget(name: "MySQLKitTests", dependencies: ["MySQLKit", "SQLKitBenchmark"]),
     ]
 )

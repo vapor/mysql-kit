@@ -144,7 +144,7 @@ public struct MySQLDialect: SQLDialect {
 extension MySQLConnection: SQLDatabase { }
 
 extension MySQLDatabase where Self: SQLDatabase {
-    public func sqlQuery(_ query: SQLExpression, _ onRow: @escaping (SQLRow) throws -> ()) -> EventLoopFuture<Void> {
+    public func execute(sql query: SQLExpression, _ onRow: @escaping (SQLRow) throws -> ()) -> EventLoopFuture<Void> {
         var serializer = SQLSerializer(dialect: MySQLDialect())
         query.serialize(to: &serializer)
         return self.query(serializer.sql, serializer.binds.map { encodable in
@@ -155,24 +155,8 @@ extension MySQLDatabase where Self: SQLDatabase {
     }
 }
 
-#warning("TODO: move to SQLKit?")
 extension ConnectionPool: SQLDatabase where Source.Connection: SQLDatabase {
-    public func sqlQuery(_ query: SQLExpression, _ onRow: @escaping (SQLRow) throws -> ()) -> EventLoopFuture<Void> {
-        return self.withConnection { $0.sqlQuery(query, onRow) }
+    public func execute(sql query: SQLExpression, _ onRow: @escaping (SQLRow) throws -> ()) -> EventLoopFuture<Void> {
+        return self.withConnection { $0.execute(sql: query, onRow) }
     }
 }
-
-
-#warning("TODO: move to NIOPostgres?")
-//extension ConnectionPool: PostgresDatabase where Source.Connection: PostgresDatabase {
-//    public var eventLoop: EventLoop {
-//        return self.source.eventLoop
-//    }
-//    
-//    public func send(_ request: PostgresRequestHandler) -> EventLoopFuture<Void> {
-//        return self.withConnection { $0.send(request) }
-//    }
-//}
-
-#warning("TODO: move to SQLKit?")
-
