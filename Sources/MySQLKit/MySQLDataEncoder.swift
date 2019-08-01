@@ -5,7 +5,7 @@ public struct MySQLDataEncoder {
     
     public func encode(_ type: Encodable) throws -> MySQLData {
         if let custom = type as? MySQLDataConvertible {
-            return custom.mysqlData ?? .null
+            return custom.mysqlData!
         } else {
             do {
                 let encoder = _Encoder()
@@ -15,7 +15,6 @@ public struct MySQLDataEncoder {
                 let json = JSONEncoder()
                 let data = try json.encode(Wrapper(type))
                 var buffer = ByteBufferAllocator().buffer(capacity: data.count)
-                #warning("TODO: use nio foundation compat write")
                 buffer.writeBytes(data)
                 return MySQLData(type: .json, buffer: buffer)
             }
@@ -110,73 +109,21 @@ public struct MySQLDataEncoder {
         }
         
         mutating func encodeNil() throws {
-            // data already null
-        }
-        
-        mutating func encode(_ value: Bool) throws {
-            switch value {
-            case true:
-                self.encoder.data = MySQLData(int: 1)
-            case false:
-                self.encoder.data = MySQLData(int: 0)
-            }
-        }
-        
-        mutating func encode(_ value: String) throws {
-            self.encoder.data = MySQLData(string: value)
-        }
-        
-        mutating func encode(_ value: Double) throws {
-            self.encoder.data = MySQLData(double: value)
-        }
-        
-        mutating func encode(_ value: Float) throws {
-            self.encoder.data = MySQLData(float: value)
-        }
-        
-        mutating func encode(_ value: Int) throws {
-            self.encoder.data = MySQLData(int: value)
-        }
-        
-        mutating func encode(_ value: Int8) throws {
-            fatalError()
-        }
-        
-        mutating func encode(_ value: Int16) throws {
-            fatalError()
-        }
-        
-        mutating func encode(_ value: Int32) throws {
-            fatalError()
-        }
-        
-        mutating func encode(_ value: Int64) throws {
-            fatalError()
-            // self.encoder.data = MySQLData(int64: value)
-        }
-        
-        mutating func encode(_ value: UInt) throws {
-            fatalError()
-        }
-        
-        mutating func encode(_ value: UInt8) throws {
-            fatalError()
-        }
-        
-        mutating func encode(_ value: UInt16) throws {
-            fatalError()
-        }
-        
-        mutating func encode(_ value: UInt32) throws {
-            fatalError()
-        }
-        
-        mutating func encode(_ value: UInt64) throws {
-            fatalError()
+            self.encoder.data = MySQLData.null
         }
         
         mutating func encode<T>(_ value: T) throws where T : Encodable {
-            try value.encode(to: self.encoder)
+            if let convertible = value as? MySQLDataConvertible {
+                guard let data = convertible.mysqlData else {
+                    throw EncodingError.invalidValue(convertible, EncodingError.Context(
+                        codingPath: self.codingPath,
+                        debugDescription: "Could not convert value of type \(T.self)"
+                    ))
+                }
+                self.encoder.data = data
+            } else {
+                try value.encode(to: self.encoder)
+            }
         }
     }
 }

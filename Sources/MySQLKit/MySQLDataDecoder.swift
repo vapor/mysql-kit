@@ -63,65 +63,18 @@ public struct MySQLDataDecoder {
             return self.decoder.data.buffer == nil
         }
         
-        func decode(_ type: Bool.Type) throws -> Bool {
-            fatalError()
-        }
-        
-        func decode(_ type: String.Type) throws -> String {
-            return self.decoder.data.string!
-        }
-        
-        func decode(_ type: Double.Type) throws -> Double {
-            fatalError()
-        }
-        
-        func decode(_ type: Float.Type) throws -> Float {
-            fatalError()
-        }
-        
-        func decode(_ type: Int.Type) throws -> Int {
-            return self.decoder.data.int!
-        }
-        
-        func decode(_ type: Int8.Type) throws -> Int8 {
-            fatalError()
-        }
-        
-        func decode(_ type: Int16.Type) throws -> Int16 {
-            fatalError()
-        }
-        
-        func decode(_ type: Int32.Type) throws -> Int32 {
-            fatalError()
-        }
-        
-        func decode(_ type: Int64.Type) throws -> Int64 {
-            fatalError()
-        }
-        
-        func decode(_ type: UInt.Type) throws -> UInt {
-            fatalError()
-        }
-        
-        func decode(_ type: UInt8.Type) throws -> UInt8 {
-            fatalError()
-        }
-        
-        func decode(_ type: UInt16.Type) throws -> UInt16 {
-            fatalError()
-        }
-        
-        func decode(_ type: UInt32.Type) throws -> UInt32 {
-            fatalError()
-        }
-        
-        func decode(_ type: UInt64.Type) throws -> UInt64 {
-            fatalError()
-        }
-        
         func decode<T>(_ type: T.Type) throws -> T where T : Decodable {
-            return try T.init(from: self.decoder)
+            if let convertible = T.self as? MySQLDataConvertible.Type {
+                guard let value = convertible.init(mysqlData: self.decoder.data) else {
+                    throw DecodingError.typeMismatch(convertible, DecodingError.Context.init(
+                        codingPath: self.codingPath,
+                        debugDescription: "Could not convert from MySQL data: \(T.self)"
+                    ))
+                }
+                return value as! T
+            } else {
+                return try T.init(from: self.decoder)
+            }
         }
-        
     }
 }
