@@ -1,3 +1,3 @@
-@_exported import NIOMySQL
-@_exported import NIOKit
+@_exported import MySQLNIO
+@_exported import AsyncKit
 @_exported import SQLKit
