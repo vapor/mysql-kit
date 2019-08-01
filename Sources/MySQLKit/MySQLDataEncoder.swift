@@ -12,16 +12,7 @@ public struct MySQLDataEncoder {
                 try type.encode(to: encoder)
                 return encoder.data
             } catch is DoJSON {
-                let json = JSONEncoder()
-                let data = try json.encode(Wrapper(type))
-                var buffer = ByteBufferAllocator().buffer(capacity: data.count)
-                buffer.writeBytes(data)
-                return MySQLData(
-                    type: .string,
-                    format: .text,
-                    buffer: buffer,
-                    isUnsigned: true
-                )
+                return try MySQLData(json: type)
             }
         }
     }
@@ -53,16 +44,6 @@ public struct MySQLDataEncoder {
     }
     
     struct DoJSON: Error {}
-
-    struct Wrapper: Encodable {
-        let encodable: Encodable
-        init(_ encodable: Encodable) {
-            self.encodable = encodable
-        }
-        func encode(to encoder: Encoder) throws {
-            try self.encodable.encode(to: encoder)
-        }
-    }
     
     private struct _KeyedValueEncoder<Key>: KeyedEncodingContainerProtocol where Key: CodingKey {
         var codingPath: [CodingKey] {

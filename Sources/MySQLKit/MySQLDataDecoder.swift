@@ -1,12 +1,12 @@
 import Foundation
 
-#warning("TODO: move to codable kit")
-struct DecoderUnwrapper: Decodable {
+private struct DecoderUnwrapper: Decodable {
     let decoder: Decoder
     init(from decoder: Decoder) {
         self.decoder = decoder
     }
 }
+private struct DoJSON: Error { }
 
 public struct MySQLDataDecoder {
     public init() {}
@@ -14,10 +14,18 @@ public struct MySQLDataDecoder {
     public func decode<T>(_ type: T.Type, from data: MySQLData) throws -> T
         where T: Decodable
     {
-        return try T.init(from: _Decoder(data: data))
+        do {
+            return try T.init(from: _Decoder(data: data))
+        } catch is DoJSON {
+            guard let value = try data.json(as: T.self) else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context.init(
+                    codingPath: [],
+                    debugDescription: "Could not convert from MySQL data: \(T.self)"
+                ))
+            }
+            return value
+        }
     }
-    
-    #warning("TODO: finish implementing")
     
     private final class _Decoder: Decoder {
         var codingPath: [CodingKey] {
@@ -37,12 +45,10 @@ public struct MySQLDataDecoder {
             fatalError()
         }
         
-        func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> where Key : CodingKey {
-            #warning("TODO: use NIOFoundationCompat")
-            var buffer = self.data.buffer!
-            let data = buffer.readBytes(length: buffer.readableBytes)!
-            let unwrapper = try JSONDecoder().decode(DecoderUnwrapper.self, from: Data(data))
-            return try unwrapper.decoder.container(keyedBy: Key.self)
+        func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key>
+            where Key : CodingKey
+        {
+            throw DoJSON()
         }
         
         func singleValueContainer() throws -> SingleValueDecodingContainer {
@@ -66,7 +72,7 @@ public struct MySQLDataDecoder {
         func decode<T>(_ type: T.Type) throws -> T where T : Decodable {
             if let convertible = T.self as? MySQLDataConvertible.Type {
                 guard let value = convertible.init(mysqlData: self.decoder.data) else {
-                    throw DecodingError.typeMismatch(convertible, DecodingError.Context.init(
+                    throw DecodingError.typeMismatch(T.self, DecodingError.Context.init(
                         codingPath: self.codingPath,
                         debugDescription: "Could not convert from MySQL data: \(T.self)"
                     ))
