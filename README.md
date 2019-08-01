@@ -12,7 +12,7 @@
         <img src="http://img.shields.io/badge/license-MIT-brightgreen.svg" alt="MIT License">
     </a>
     <a href="https://circleci.com/gh/vapor/mysql">
-        <img src="https://circleci.com/gh/vapor/mysql.svg?style=shield" alt="Continuous Integration">
+        <img src="https://circleci.com/gh/vapor/mysql-kit.svg?style=shield" alt="Continuous Integration">
     </a>
     <a href="https://swift.org">
         <img src="http://img.shields.io/badge/swift-5-brightgreen.svg" alt="Swift 5">
