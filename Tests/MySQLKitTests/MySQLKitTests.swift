@@ -22,6 +22,7 @@ class MySQLKitTests: XCTestCase {
         let conn = try MySQLConnection.test(on: self.eventLoop).wait()
         defer { try! conn.close().wait() }
         let benchmark = SQLBenchmarker(on: conn)
+        print(benchmark)
         // try benchmark.run()
     }
 }

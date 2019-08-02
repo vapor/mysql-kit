@@ -7,7 +7,7 @@ let package = Package(
         .library(name: "MySQLKit", targets: ["MySQLKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/vapor/mysql-nio.git", .branch("master")),
+        .package(url: "https://github.com/vapor/mysql-nio.git", from: "1.0.0-alpha"),
         .package(url: "https://github.com/vapor/sql-kit.git", from: "3.0.0-alpha"),
         .package(url: "https://github.com/vapor/async-kit.git", from: "1.0.0-alpha"),
 
