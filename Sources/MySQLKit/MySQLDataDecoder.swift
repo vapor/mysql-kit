@@ -6,6 +6,16 @@ private struct DecoderUnwrapper: Decodable {
         self.decoder = decoder
     }
 }
+
+private struct Wrapper<D>: Decodable where D: Decodable {
+    var value: D
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        self.value = try container.decode(D.self)
+    }
+}
+
 private struct DoJSON: Error { }
 
 public struct MySQLDataDecoder {
@@ -15,7 +25,7 @@ public struct MySQLDataDecoder {
         where T: Decodable
     {
         do {
-            return try T.init(from: _Decoder(data: data))
+            return try Wrapper<T>.init(from: _Decoder(data: data)).value
         } catch is DoJSON {
             guard let value = try data.json(as: T.self) else {
                 throw DecodingError.typeMismatch(T.self, DecodingError.Context.init(
