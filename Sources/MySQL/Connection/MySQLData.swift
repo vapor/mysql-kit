@@ -215,9 +215,16 @@ public struct MySQLData: Equatable, Encodable {
     /// Access the value as an binary floating point.
     public func float<F>(_ type: F.Type) -> F? where F: BinaryFloatingPoint {
         switch storage {
-        case .text(let data): return data.flatMap { String(data: $0, encoding: .ascii) }
-            .flatMap { Float80($0) }
-            .flatMap { F.init($0) }
+        case .text(let data):
+            #if arch(arm) || arch(arm64)
+            return data.flatMap { String(data: $0, encoding: .ascii) }
+                .flatMap { Float($0)}
+                .flatMap { F.init($0) }
+            #else
+            return data.flatMap { String(data: $0, encoding: .ascii) }
+                .flatMap { Float80($0)}
+                .flatMap { F.init($0) }
+            #endif
         case .binary(let binary):
             switch binary.storage {
             case .integer1(let int8): return F(int8)
@@ -233,9 +240,15 @@ public struct MySQLData: Equatable, Encodable {
             case .string(let data):
                 switch binary.type {
                 case .MYSQL_TYPE_VARCHAR, .MYSQL_TYPE_VAR_STRING, .MYSQL_TYPE_STRING, .MYSQL_TYPE_DECIMAL, .MYSQL_TYPE_NEWDECIMAL:
+                    #if arch(arm) || arch(arm64)
+                    return String(data: data, encoding: .ascii)
+                        .flatMap { Float($0) }
+                        .flatMap { F.init($0) }
+                    #else
                     return String(data: data, encoding: .ascii)
                         .flatMap { Float80($0) }
                         .flatMap { F.init($0) }
+                    #endif
                 default: return nil // TODO: support more
                 }
             default: return nil
