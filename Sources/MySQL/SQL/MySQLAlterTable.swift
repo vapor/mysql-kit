@@ -82,7 +82,7 @@ public struct MySQLAlterTable: SQLAlterTable {
         let deleteActions = deleteColumns.map {
             return "DROP " + $0.identifier.serialize(&binds)
         } + deleteConstraints.map {
-            return "DROP " + $0.serialize(&binds)
+            return "DROP CONSTRAINT " + $0.serialize(&binds)
         }
         sql.append((actions + deleteActions).joined(separator: ", "))
         return sql.joined(separator: " ")
