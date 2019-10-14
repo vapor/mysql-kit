@@ -11,6 +11,8 @@ public struct MySQLAlterTable: SQLAlterTable {
     
     /// See `SQLAlterTable`.
     public typealias TableConstraint = MySQLTableConstraint
+
+    public typealias Identifier = MySQLIdentifier
     
     /// See `SQLAlterTable`.
     public static func alterTable(_ table: TableIdentifier) -> MySQLAlterTable {
@@ -28,7 +30,9 @@ public struct MySQLAlterTable: SQLAlterTable {
     
     /// See `SQLAlterTable`.
     public var constraints: [TableConstraint]
-    
+
+    public var deleteConstraints: [Identifier]
+
     /// Specifies the position of a column being added to a table.
     public enum ColumnPosition: SQLSerializable {
         /// Add the column at the beginning of the table.
@@ -59,6 +63,7 @@ public struct MySQLAlterTable: SQLAlterTable {
         self.deleteColumns = []
         self.constraints = []
         self.columnPositions = [:]
+        self.deleteConstraints = []
     }
     
     /// See `SQLSerializable`.
@@ -76,6 +81,8 @@ public struct MySQLAlterTable: SQLAlterTable {
         } + constraints.map { "ADD " + $0.serialize(&binds) }
         let deleteActions = deleteColumns.map {
             return "DROP " + $0.identifier.serialize(&binds)
+        } + deleteConstraints.map {
+            return "DROP " + $0.serialize(&binds)
         }
         sql.append((actions + deleteActions).joined(separator: ", "))
         return sql.joined(separator: " ")
