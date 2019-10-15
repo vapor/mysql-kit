@@ -2,7 +2,7 @@ name: test
 on:
 - pull_request
 jobs:
-  mysql-8.0:
+  mysql-8_0:
     container: 
       image: vapor/swift:5.1
     services:
@@ -22,7 +22,7 @@ jobs:
         MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
         MYSQL_HOSTNAME: mysql
         MYSQL_TLS: true
-  mysql-5.7:
+  mysql-5_7:
     container: 
       image: vapor/swift:5.1
     services:
