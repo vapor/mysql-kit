@@ -30,24 +30,17 @@ class MySQLKitTests: XCTestCase {
 extension MySQLConnection {
     static func test(on eventLoop: EventLoop) -> EventLoopFuture<MySQLConnection> {
         do {
-            let address: SocketAddress
-            #if os(Linux)
-            address = try .makeAddressResolvingHost("mysql", port: 3306)
-            #else
-            address = try .makeAddressResolvingHost("localhost", port: 3306)
-            #endif
-            let tlsConfiguration: TLSConfiguration?
-            #if TEST_TLS
-            tlsConfiguration = .forClient(certificateVerification: .none)
-            #else
-            tlsConfiguration = nil
-            #endif
-            return self.connect(
-                to: address,
+            let hostname = ProcessInfo.processInfo.environment["MYSQL_HOSTNAME"] ?? "localhost"
+            let port = ProcessInfo.processInfo.environment["MYSQL_PORT"].flatMap(Int.init) ?? 3306
+            let tls: TLSConfiguration? = ProcessInfo.processInfo.environment["MYSQL_TLS"] != nil
+                ? .forClient(certificateVerification: .none)
+                : nil
+            return try self.connect(
+                to: .makeAddressResolvingHost(hostname, port: port),
                 username: "vapor_username",
                 database: "vapor_database",
                 password: "vapor_password",
-                tlsConfiguration: tlsConfiguration,
+                tlsConfiguration: tls,
                 on: eventLoop
             )
         } catch {

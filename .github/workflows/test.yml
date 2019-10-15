@@ -1,0 +1,43 @@
+name: test
+on:
+- pull_request
+jobs:
+  mysql-8.0:
+    container: 
+      image: vapor/swift:5.1
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306/tcp
+        env:
+          MYSQL_DATABASE: vapor_database
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: swift test
+      env:
+        MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
+        MYSQL_HOSTNAME: mysql
+        MYSQL_TLS: true
+  mysql-5.7:
+    container: 
+      image: vapor/swift:5.1
+    services:
+      mysql:
+        image: mysql:5.7
+        ports:
+          - 3306/tcp
+        env:
+          MYSQL_DATABASE: vapor_database
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: swift test
+      env:
+        MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
+        MYSQL_HOSTNAME: mysql
