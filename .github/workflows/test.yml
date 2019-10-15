@@ -20,7 +20,7 @@ jobs:
     - run: swift test
       env:
         MYSQL_PORT: ${{ job.services.mysql.ports['3306'] }}
-        MYSQL_HOSTNAME: mysql
+        MYSQL_HOSTNAME: localhost
         MYSQL_TLS: true
   mysql-5_7:
     container: 
