@@ -64,20 +64,18 @@ public struct MySQLConfiguration {
 }
 
 public struct MySQLConnectionSource: ConnectionPoolSource {
-    public var eventLoop: EventLoop
     public let configuration: MySQLConfiguration
     
-    public init(configuration: MySQLConfiguration, on eventLoop: EventLoop) {
+    public init(configuration: MySQLConfiguration) {
         self.configuration = configuration
-        self.eventLoop = eventLoop
     }
     
-    public func makeConnection() -> EventLoopFuture<MySQLConnection> {
+    public func makeConnection(on eventLoop: EventLoop) -> EventLoopFuture<MySQLConnection> {
         let address: SocketAddress
         do {
             address = try self.configuration.address()
         } catch {
-            return self.eventLoop.makeFailedFuture(error)
+            return eventLoop.makeFailedFuture(error)
         }
         return MySQLConnection.connect(
             to: address,
@@ -85,7 +83,7 @@ public struct MySQLConnectionSource: ConnectionPoolSource {
             database: self.configuration.database ?? self.configuration.username,
             password: self.configuration.password,
             tlsConfiguration: self.configuration.tlsConfiguration,
-            on: self.eventLoop
+            on: eventLoop
         )
     }
 }
