@@ -114,6 +114,10 @@ public struct SQLRaw: SQLExpression {
 public struct MySQLDialect: SQLDialect {
     public init() {}
     
+    public var name: String {
+        "mysql"
+    }
+    
     public var identifierQuote: SQLExpression {
         return SQLRaw("`")
     }
@@ -122,10 +126,10 @@ public struct MySQLDialect: SQLDialect {
         return SQLRaw("'")
     }
     
-    public mutating func nextBindPlaceholder() -> SQLExpression {
+    public func bindPlaceholder(at position: Int) -> SQLExpression {
         return SQLRaw("?")
     }
-    
+
     public func literalBoolean(_ value: Bool) -> SQLExpression {
         switch value {
         case false:
