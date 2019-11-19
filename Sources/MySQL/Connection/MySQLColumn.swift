@@ -72,6 +72,9 @@ extension Dictionary where Key == MySQLColumn {
         } else if let unspecific = self[MySQLColumn(table: nil, name: columnName)] {
             // check for column without table name
             return unspecific
+        } else if let unspecific = self.first(where: { $0.key.name == columnName }) {
+            // check for column without table name
+            return unspecific.value
         } else if table == nil {
             // check for column with table name where we don't specify one
             for (col, row) in self {
