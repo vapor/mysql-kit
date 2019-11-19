@@ -397,6 +397,25 @@ class MySQLTests: XCTestCase {
         }
     }
     
+    // https://github.com/vapor/mysql/issues/243
+    func testGH243() throws {
+        let conn = try MySQLConnection.makeTest()
+        _ = try conn.simpleQuery("DROP TABLE IF EXISTS `Todo`").wait()
+        _ = try conn.simpleQuery("CREATE TABLE `Todo` (id int, name text)").wait()
+        _ = try conn.simpleQuery("INSERT INTO `Todo` VALUES (3, 'c')").wait()
+        _ = try conn.simpleQuery("INSERT INTO `Todo` VALUES (4, 'd')").wait()
+        struct Todo: MySQLTable {
+            var id: Int
+            var name: String
+        }
+        do {
+            _ = try conn.raw("SELECT t.* FROM `Todo` as t").all(decoding: Todo.self).wait()
+            // pass
+        } catch {
+            XCTFail("Unable to decode query with table alias: \(error)")
+        }
+    }
+    
     func testDropOneColumn() throws {
         let client = try MySQLConnection.makeTest()
         defer { client.close(done: nil) }
@@ -482,6 +501,7 @@ class MySQLTests: XCTestCase {
         ("testZeroLengthArray", testZeroLengthArray),
         ("testMySQLTimeDescription", testMySQLTimeDescription),
         ("testGH223", testGH223),
+        ("testGH243", testGH243),
         ("testDropOneColumn", testDropOneColumn),
         ("testDropColumnMultipleColumns", testDropColumnMultipleColumns),
     ]
