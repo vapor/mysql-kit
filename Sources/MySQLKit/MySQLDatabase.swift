@@ -70,7 +70,7 @@ public struct MySQLConnectionSource: ConnectionPoolSource {
         self.configuration = configuration
     }
     
-    public func makeConnection(on eventLoop: EventLoop) -> EventLoopFuture<MySQLConnection> {
+    public func makeConnection(logger: Logger, on eventLoop: EventLoop) -> EventLoopFuture<MySQLConnection> {
         let address: SocketAddress
         do {
             address = try self.configuration.address()
@@ -83,6 +83,7 @@ public struct MySQLConnectionSource: ConnectionPoolSource {
             database: self.configuration.database ?? self.configuration.username,
             password: self.configuration.password,
             tlsConfiguration: self.configuration.tlsConfiguration,
+            logger: logger,
             on: eventLoop
         )
     }
@@ -113,6 +114,10 @@ public struct SQLRaw: SQLExpression {
 public struct MySQLDialect: SQLDialect {
     public init() {}
     
+    public var name: String {
+        "mysql"
+    }
+    
     public var identifierQuote: SQLExpression {
         return SQLRaw("`")
     }
@@ -121,10 +126,10 @@ public struct MySQLDialect: SQLDialect {
         return SQLRaw("'")
     }
     
-    public mutating func nextBindPlaceholder() -> SQLExpression {
+    public func bindPlaceholder(at position: Int) -> SQLExpression {
         return SQLRaw("?")
     }
-    
+
     public func literalBoolean(_ value: Bool) -> SQLExpression {
         switch value {
         case false:
@@ -136,25 +141,5 @@ public struct MySQLDialect: SQLDialect {
     
     public var autoIncrementClause: SQLExpression {
         return SQLRaw("AUTO_INCREMENT")
-    }
-}
-
-extension MySQLConnection: SQLDatabase { }
-
-extension MySQLDatabase where Self: SQLDatabase {
-    public func execute(sql query: SQLExpression, _ onRow: @escaping (SQLRow) throws -> ()) -> EventLoopFuture<Void> {
-        var serializer = SQLSerializer(dialect: MySQLDialect())
-        query.serialize(to: &serializer)
-        return self.query(serializer.sql, serializer.binds.map { encodable in
-            return try! MySQLDataEncoder().encode(encodable)
-        }, onRow: { row in
-            try! onRow(row)
-        })
-    }
-}
-
-extension ConnectionPool: SQLDatabase where Source.Connection: SQLDatabase {
-    public func execute(sql query: SQLExpression, _ onRow: @escaping (SQLRow) throws -> ()) -> EventLoopFuture<Void> {
-        return self.withConnection { $0.execute(sql: query, onRow) }
     }
 }
