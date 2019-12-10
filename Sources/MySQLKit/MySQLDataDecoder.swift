@@ -52,7 +52,7 @@ public struct MySQLDataDecoder {
         }
         
         func unkeyedContainer() throws -> UnkeyedDecodingContainer {
-            fatalError()
+            throw DoJSON()
         }
         
         func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key>
