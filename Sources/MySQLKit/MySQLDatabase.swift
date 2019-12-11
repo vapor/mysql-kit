@@ -11,7 +11,7 @@ public struct MySQLConfiguration {
     internal var _hostname: String?
     
     public init?(url: URL) {
-        guard url.scheme == "mysql" else {
+        guard url.scheme?.hasPrefix("mysql") == true else {
             return nil
         }
         guard let username = url.user else {
@@ -28,8 +28,8 @@ public struct MySQLConfiguration {
         }
         
         let tlsConfiguration: TLSConfiguration?
-        if url.query == "ssl=true" {
-            tlsConfiguration = TLSConfiguration.forClient(certificateVerification: .none)
+        if url.query == "ssl=true" || url.scheme == "mysqls" {
+            tlsConfiguration = .forClient()
         } else {
             tlsConfiguration = nil
         }
@@ -50,7 +50,7 @@ public struct MySQLConfiguration {
         username: String,
         password: String,
         database: String? = nil,
-        tlsConfiguration: TLSConfiguration? = nil
+        tlsConfiguration: TLSConfiguration? = .forClient()
     ) {
         self.address = {
             return try SocketAddress.makeAddressResolvingHost(hostname, port: port)
