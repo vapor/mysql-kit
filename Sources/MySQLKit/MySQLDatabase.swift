@@ -28,10 +28,10 @@ public struct MySQLConfiguration {
         }
         
         let tlsConfiguration: TLSConfiguration?
-        if url.query == "ssl=true" || url.scheme == "mysqls" {
-            tlsConfiguration = .forClient()
-        } else {
+        if url.query == "ssl=false" {
             tlsConfiguration = nil
+        } else {
+            tlsConfiguration = .forClient()
         }
         
         self.init(
