@@ -1,29 +1,36 @@
+import Logging
 import MySQLKit
 import SQLKitBenchmark
 import XCTest
 
 class MySQLKitTests: XCTestCase {
-    private var group: EventLoopGroup!
-    private var eventLoop: EventLoop {
-        return self.group.next()
+    func testEnum() throws {
+        try self.benchmark.testEnum()
     }
-    
+
+    var db: SQLDatabase {
+        self.connection.sql()
+    }
+    var benchmark: SQLBenchmarker {
+        .init(on: self.db)
+    }
+
+    var eventLoopGroup: EventLoopGroup!
+    var connection: MySQLConnection!
+
     override func setUp() {
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        XCTAssertTrue(isLoggingConfigured)
+        self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 2)
+        self.connection = try! MySQLConnection.test(
+            on: self.eventLoopGroup.next()
+        ).wait()
     }
-    
+
     override func tearDown() {
-        XCTAssertNoThrow(try self.group.syncShutdownGracefully())
-        self.group = nil
-    }
-    
-    
-    func testSQLKitBenchmark() throws {
-        let conn = try MySQLConnection.test(on: self.eventLoop).wait()
-        defer { try! conn.close().wait() }
-        let benchmark = SQLBenchmarker(on: conn.sql())
-        print(benchmark)
-        // try benchmark.run()
+        try! self.connection.close().wait()
+        self.connection = nil
+        try! self.eventLoopGroup.syncShutdownGracefully()
+        self.eventLoopGroup = nil
     }
 }
 
@@ -47,3 +54,12 @@ extension MySQLConnection {
 func env(_ name: String) -> String? {
     getenv(name).flatMap { String(cString: $0) }
 }
+
+let isLoggingConfigured: Bool = {
+    LoggingSystem.bootstrap { label in
+        var handler = StreamLogHandler.standardOutput(label: label)
+        handler.logLevel = .debug
+        return handler
+    }
+    return true
+}()

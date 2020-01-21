@@ -159,6 +159,10 @@ public struct MySQLDialect: SQLDialect {
         return SQLRaw("AUTO_INCREMENT")
     }
 
+    public var supportsAutoIncrement: Bool {
+        true
+    }
+
     public var enumSyntax: SQLEnumSyntax {
         .inline
     }
