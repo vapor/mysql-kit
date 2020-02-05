@@ -36,7 +36,7 @@ public struct MySQLDialect: SQLDialect {
         .inline
     }
 
-    public var createTriggerSupportsBody = true
-    public var createTriggerConditionRequiresParens = true
-    public var createTriggerSupportsOrder = true
+    public var triggerSyntax: SQLTriggerSyntax {
+        return .init(create: [.supportsBody, .conditionRequiresParentheses, .supportsOrder])
+    }
 }
