@@ -105,7 +105,10 @@ extension MySQLRow: SQLRow {
     }
 
     public func decodeNil(column: String) throws -> Bool {
-        self.column(column) == nil
+        guard let data = self.column(column) else {
+            return true
+        }
+        return data.buffer == nil
     }
 
     public func decode<D>(column: String, as type: D.Type) throws -> D where D : Decodable {

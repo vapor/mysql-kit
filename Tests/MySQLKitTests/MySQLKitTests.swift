@@ -8,6 +8,18 @@ class MySQLKitTests: XCTestCase {
         try self.benchmark.testEnum()
     }
 
+    func testNullDecode() throws {
+        struct Person: Codable {
+            let id: Int
+            let name: String?
+        }
+
+        let rows = try self.db.raw("SELECT 1 as `id`, null as `name`")
+            .all(decoding: Person.self).wait()
+        XCTAssertEqual(rows[0].id, 1)
+        XCTAssertEqual(rows[0].name, nil)
+    }
+
     var db: SQLDatabase {
         self.connection.sql()
     }
