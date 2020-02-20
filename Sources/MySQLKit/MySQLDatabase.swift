@@ -169,4 +169,11 @@ public struct MySQLDialect: SQLDialect {
     public var enumSyntax: SQLEnumSyntax {
         .inline
     }
+
+    public var alterTableSyntax: SQLAlterTableSyntax {
+        .init(
+            alterColumnDefinitionClause: SQLRaw("MODIFY COLUMN"),
+            alterColumnDefinitionTypeKeyword: nil
+        )
+    }
 }

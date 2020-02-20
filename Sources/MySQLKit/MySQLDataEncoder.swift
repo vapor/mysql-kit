@@ -3,16 +3,23 @@ import Foundation
 public struct MySQLDataEncoder {
     public init() { }
     
-    public func encode(_ type: Encodable) throws -> MySQLData {
-        if let custom = type as? MySQLDataConvertible {
-            return custom.mysqlData!
+    public func encode(_ value: Encodable) throws -> MySQLData {
+        if let custom = value as? MySQLDataConvertible, let data = custom.mysqlData {
+            return data
         } else {
-            do {
-                let encoder = _Encoder()
-                try type.encode(to: encoder)
-                return encoder.data
-            } catch is DoJSON {
-                return try MySQLData(json: type)
+            let encoder = _Encoder()
+            try value.encode(to: encoder)
+            if let data = encoder.data {
+                return data
+            } else {
+                var buffer = ByteBufferAllocator().buffer(capacity: 0)
+                try buffer.writeBytes(JSONEncoder().encode(_Wrapper(value)))
+                return MySQLData(
+                    type: .string,
+                    format: .text,
+                    buffer: buffer,
+                    isUnsigned: true
+                )
             }
         }
     }
@@ -25,9 +32,9 @@ public struct MySQLDataEncoder {
         var userInfo: [CodingUserInfoKey : Any] {
             return [:]
         }
-        var data: MySQLData
+        var data: MySQLData?
         init() {
-            self.data = .null
+
         }
         
         func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> where Key : CodingKey {
@@ -59,15 +66,11 @@ public struct MySQLDataEncoder {
         }
 
 
-        mutating func encodeNil() throws {
-            throw DoJSON()
-        }
+        mutating func encodeNil() throws { }
 
         mutating func encode<T>(_ value: T) throws
             where T : Encodable
-        {
-            throw DoJSON()
-        }
+        { }
 
         mutating func nestedContainer<NestedKey>(
             keyedBy keyType: NestedKey.Type
@@ -96,15 +99,11 @@ public struct MySQLDataEncoder {
             self.encoder = encoder
         }
         
-        mutating func encodeNil(forKey key: Key) throws {
-            throw DoJSON()
-        }
+        mutating func encodeNil(forKey key: Key) throws { }
         
         mutating func encode<T>(_ value: T, forKey key: Key) throws
             where T : Encodable
-        {
-            throw DoJSON()
-        }
+        { }
         
         mutating func nestedContainer<NestedKey>(
             keyedBy keyType: NestedKey.Type,
@@ -154,5 +153,15 @@ public struct MySQLDataEncoder {
                 try value.encode(to: self.encoder)
             }
         }
+    }
+}
+
+struct _Wrapper: Encodable {
+    let encodable: Encodable
+    init(_ encodable: Encodable) {
+        self.encodable = encodable
+    }
+    func encode(to encoder: Encoder) throws {
+        try self.encodable.encode(to: encoder)
     }
 }
