@@ -16,7 +16,13 @@ private struct Wrapper<D>: Decodable where D: Decodable {
     }
 }
 
-private struct DoJSON: Error { }
+extension MySQLData {
+    var data: Data? {
+        self.buffer.flatMap {
+            .init($0.readableBytesView)
+        }
+    }
+}
 
 public struct MySQLDataDecoder {
     public init() {}
@@ -24,16 +30,10 @@ public struct MySQLDataDecoder {
     public func decode<T>(_ type: T.Type, from data: MySQLData) throws -> T
         where T: Decodable
     {
-        do {
-            return try Wrapper<T>.init(from: _Decoder(data: data)).value
-        } catch is DoJSON {
-            guard let value = try data.json(as: T.self) else {
-                throw DecodingError.typeMismatch(T.self, DecodingError.Context.init(
-                    codingPath: [],
-                    debugDescription: "Could not convert from MySQL data: \(T.self)"
-                ))
-            }
-            return value
+        if let convertible = T.self as? MySQLDataConvertible.Type {
+            return convertible.init(mysqlData: data)! as! T
+        } else {
+            return try T.init(from: _Decoder(data: data))
         }
     }
     
@@ -52,13 +52,17 @@ public struct MySQLDataDecoder {
         }
         
         func unkeyedContainer() throws -> UnkeyedDecodingContainer {
-            throw DoJSON()
+            try JSONDecoder()
+                .decode(DecoderUnwrapper.self, from: self.data.data!)
+                .decoder.unkeyedContainer()
         }
         
         func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key>
             where Key : CodingKey
         {
-            throw DoJSON()
+            try JSONDecoder()
+                .decode(DecoderUnwrapper.self, from: self.data.data!)
+                .decoder.container(keyedBy: Key.self)
         }
         
         func singleValueContainer() throws -> SingleValueDecodingContainer {
@@ -89,7 +93,7 @@ public struct MySQLDataDecoder {
                 }
                 return value as! T
             } else {
-                return try T.init(from: self.decoder)
+                return try MySQLDataDecoder().decode(T.self, from: self.decoder.data)
             }
         }
     }
