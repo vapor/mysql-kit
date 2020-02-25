@@ -582,60 +582,40 @@ extension Calendar {
     }
 }
 
-private final class _DateComponentsWrapper {
-    var value = DateComponents(
-        calendar:  Calendar(identifier: .gregorian),
-        timeZone: TimeZone(secondsFromGMT: 0)!
-    )
-}
-
-private var _comps = ThreadSpecificVariable<_DateComponentsWrapper>()
-
+let gmt = TimeZone(secondsFromGMT: 0)!
 
 extension Date {
     static func convertFromMySQLTime(_ time: MySQLTime) throws -> Date {
-        let comps: _DateComponentsWrapper
-        if let existing = _comps.currentValue {
-            comps = existing
-        } else {
-            let new = _DateComponentsWrapper()
-            _comps.currentValue = new
-            comps = new
-        }
-        /// For some reason comps.nanosecond is `nil` on linux :(
-        let nanosecond: Int
-        #if os(macOS)
-        nanosecond = numericCast(time.microsecond) * 1_000
-        #else
-        nanosecond = 0
-        #endif
+        var comps = DateComponents(
+            calendar:  Calendar(identifier: .gregorian),
+            timeZone: gmt
+        )
+        comps.year = numericCast(time.year)
+        comps.month = numericCast(time.month)
+        comps.day = numericCast(time.day)
+        comps.hour = numericCast(time.hour)
+        comps.minute = numericCast(time.minute)
+        comps.second = numericCast(time.second)
+        comps.nanosecond = numericCast(time.microsecond) * 1_000
         
-        comps.value.year = numericCast(time.year)
-        comps.value.month = numericCast(time.month)
-        comps.value.day = numericCast(time.day)
-        comps.value.hour = numericCast(time.hour)
-        comps.value.minute = numericCast(time.minute)
-        comps.value.second = numericCast(time.second)
-        comps.value.nanosecond = numericCast(time.microsecond) * 1_000
-        
-        guard let date = comps.value.date else {
+        guard let date = comps.date else {
             throw MySQLError(identifier: "date", reason: "Could not parse Date from: \(time)")
         }
-        
-        /// For some reason comps.nanosecond is `nil` on linux :(
-        #if os(macOS)
+
         return date
-        #else
-        return date.addingTimeInterval(TimeInterval(time.microsecond) / 1_000_000)
-        #endif
     }
     
     func convertToMySQLTime() -> MySQLTime {
         let comps = Calendar(identifier: .gregorian)
-            .dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: self)
-        
-        let microsecond = UInt32(abs(timeIntervalSince1970.truncatingRemainder(dividingBy: 1) * 1_000_000))
-        
+            .dateComponents(in: gmt, from: self)
+
+        let microseconds: Int
+        let nanoseconds = comps.nanosecond ?? 0
+        if nanoseconds == 0 {
+            microseconds = 0
+        } else {
+            microseconds = nanoseconds / 1_000
+        }
         return MySQLTime(
             year: numericCast(comps.year ?? 0),
             month: numericCast(comps.month ?? 0),
@@ -643,7 +623,7 @@ extension Date {
             hour: numericCast(comps.hour ?? 0),
             minute: numericCast(comps.minute ?? 0),
             second: numericCast(comps.second ?? 0),
-            microsecond: microsecond
+            microsecond: numericCast(microseconds)
         )
     }
 }

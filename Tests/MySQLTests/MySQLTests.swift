@@ -162,8 +162,8 @@ class MySQLTests: XCTestCase {
         let time = Date(timeIntervalSince1970: 1.1).convertToMySQLTime()
         let time2 = Date(timeIntervalSince1970: -1.1).convertToMySQLTime()
         
-        XCTAssert(time.microsecond == UInt32(100000))
-        XCTAssert(time2.microsecond == UInt32(100000))
+        XCTAssertEqual(time.microsecond, UInt32(100_000))
+        XCTAssertEqual(time2.microsecond, UInt32(899_999))
     }
 
     func testSaveEmoticonsUnicode() throws {
@@ -459,7 +459,27 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(postSelectResults[0].count, 1) // 1 column
         XCTAssertEqual(postSelectResults[0].keys.first!, MySQLColumn(table: "foos", name: "id"))
     }
-    
+
+    func testSubsecondPrecision() throws {
+        let conn = try MySQLConnection.makeTest()
+        defer {
+            try? conn.drop(table: Timestamp.self).ifExists()
+                .run().wait()
+            conn.close(done: nil)
+        }
+        let date = Date()
+
+        try conn.create(table: Timestamp.self)
+            .column(for: \Timestamp.id, type: .bigint(nil, unsigned: false, zerofill: false), .notNull, .primaryKey(default: .autoIncrement))
+            .column(for: \Timestamp.timestamp, type: .datetime(6), .notNull)
+            .run().wait()
+
+        try conn.insert(into: Timestamp.self).value(Timestamp(timestamp: date)).run().wait()
+        let a = try conn.raw("SELECT * FROM Timestamp;").all().wait()
+        let decodedDate = try a[0].firstValue(forColumn: "timestamp")!.decode(Date.self)
+        XCTAssertEqual(decodedDate.convertToMySQLTime(), date.convertToMySQLTime())
+    }
+
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testSimpleQuery", testSimpleQuery),
@@ -488,7 +508,7 @@ class MySQLTests: XCTestCase {
 }
 
 extension MySQLConnection {
-    /// Creates a test event loop and psql client.
+    /// Creates a test event loop and mysql client.
     static func makeTest() throws -> MySQLConnection {
         let transport: MySQLTransportConfig
         #if SSL_TESTS
@@ -498,7 +518,7 @@ extension MySQLConnection {
         #endif
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         let conn =  try MySQLConnection.connect(config: .init(
-            hostname: "localhost",
+            hostname: hostname,
             username: "vapor_username",
             password: "vapor_password",
             database: "vapor_database",
@@ -507,6 +527,22 @@ extension MySQLConnection {
         ), on: group).wait()
         conn.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
         return conn
+    }
+}
+
+var hostname: String {
+    getenv("MYSQL_HOSTNAME").flatMap {
+        String(cString: $0)
+    } ?? "localhost"
+}
+
+struct Timestamp: MySQLTable {
+    var id: Int?
+    var timestamp: Date
+
+    init(id: Int? = nil, timestamp: Date) {
+        self.id = id
+        self.timestamp = timestamp
     }
 }
 
