@@ -459,7 +459,27 @@ class MySQLTests: XCTestCase {
         XCTAssertEqual(postSelectResults[0].count, 1) // 1 column
         XCTAssertEqual(postSelectResults[0].keys.first!, MySQLColumn(table: "foos", name: "id"))
     }
-    
+
+    func testSubsecondPrecision() throws {
+        let conn = try MySQLConnection.makeTest()
+        defer {
+            try? conn.drop(table: Timestamp.self).ifExists()
+                .run().wait()
+            conn.close(done: nil)
+        }
+        let date = Date()
+
+        try conn.create(table: Timestamp.self)
+            .column(for: \Timestamp.id, type: .bigint(nil, unsigned: false, zerofill: false), .notNull, .primaryKey(default: .autoIncrement))
+            .column(for: \Timestamp.timestamp, type: .datetime(6), .notNull)
+            .run().wait()
+
+        try conn.insert(into: Timestamp.self).value(Timestamp(timestamp: date)).run().wait()
+        let a = try conn.raw("SELECT * FROM Timestamp;").all().wait()
+        let decodedDate = try a[0].firstValue(forColumn: "timestamp")!.decode(Date.self)
+        XCTAssertEqual(decodedDate.convertToMySQLTime(), date.convertToMySQLTime())
+    }
+
     static let allTests = [
         ("testBenchmark", testBenchmark),
         ("testSimpleQuery", testSimpleQuery),
@@ -488,7 +508,7 @@ class MySQLTests: XCTestCase {
 }
 
 extension MySQLConnection {
-    /// Creates a test event loop and psql client.
+    /// Creates a test event loop and mysql client.
     static func makeTest() throws -> MySQLConnection {
         let transport: MySQLTransportConfig
         #if SSL_TESTS
@@ -507,6 +527,16 @@ extension MySQLConnection {
         ), on: group).wait()
         conn.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
         return conn
+    }
+}
+
+struct Timestamp: MySQLTable {
+    var id: Int?
+    var timestamp: Date
+
+    init(id: Int? = nil, timestamp: Date) {
+        self.id = id
+        self.timestamp = timestamp
     }
 }
 
