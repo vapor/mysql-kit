@@ -518,7 +518,7 @@ extension MySQLConnection {
         #endif
         let group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         let conn =  try MySQLConnection.connect(config: .init(
-            hostname: "localhost",
+            hostname: hostname,
             username: "vapor_username",
             password: "vapor_password",
             database: "vapor_database",
@@ -528,6 +528,12 @@ extension MySQLConnection {
         conn.logger = DatabaseLogger(database: .mysql, handler: PrintLogHandler())
         return conn
     }
+}
+
+var hostname: String {
+    getenv("MYSQL_HOSTNAME").flatMap {
+        String(cString: $0)
+    } ?? "localhost"
 }
 
 struct Timestamp: MySQLTable {
