@@ -602,13 +602,13 @@ extension Date {
             _comps.currentValue = new
             comps = new
         }
-        /// For some reason comps.nanosecond is `nil` on linux :(
-        let nanosecond: Int
-        #if os(macOS)
-        nanosecond = numericCast(time.microsecond) * 1_000
-        #else
-        nanosecond = 0
-        #endif
+//        /// For some reason comps.nanosecond is `nil` on linux :(
+//        let nanosecond: Int
+//        #if os(macOS)
+//        nanosecond = numericCast(time.microsecond) * 1_000
+//        #else
+//        nanosecond = 0
+//        #endif
         
         comps.value.year = numericCast(time.year)
         comps.value.month = numericCast(time.month)
@@ -621,21 +621,19 @@ extension Date {
         guard let date = comps.value.date else {
             throw MySQLError(identifier: "date", reason: "Could not parse Date from: \(time)")
         }
-        
-        /// For some reason comps.nanosecond is `nil` on linux :(
-        #if os(macOS)
+
         return date
-        #else
-        return date.addingTimeInterval(TimeInterval(time.microsecond) / 1_000_000)
-        #endif
+//        /// For some reason comps.nanosecond is `nil` on linux :(
+//        #if os(macOS)
+//        return date
+//        #else
+//        return date.addingTimeInterval(TimeInterval(time.microsecond) / 1_000_000)
+//        #endif
     }
     
     func convertToMySQLTime() -> MySQLTime {
         let comps = Calendar(identifier: .gregorian)
             .dateComponents(in: TimeZone(secondsFromGMT: 0)!, from: self)
-        
-        let microsecond = UInt32(abs(timeIntervalSince1970.truncatingRemainder(dividingBy: 1) * 1_000_000))
-        
         return MySQLTime(
             year: numericCast(comps.year ?? 0),
             month: numericCast(comps.month ?? 0),
@@ -643,7 +641,7 @@ extension Date {
             hour: numericCast(comps.hour ?? 0),
             minute: numericCast(comps.minute ?? 0),
             second: numericCast(comps.second ?? 0),
-            microsecond: microsecond
+            microsecond: UInt32(Double(comps.nanosecond ?? 0) / 1_000)
         )
     }
 }
