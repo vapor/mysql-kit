@@ -2,9 +2,26 @@ name: test
 on:
 - pull_request
 jobs:
-  mysql-8_0:
+  mysql-kit:
     container: 
-      image: vapor/swift:5.1
+      image: vapor/swift:5.2
+    services:
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: vapor_database
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: swift test --enable-test-discovery --sanitize=thread
+      env:
+        MYSQL_HOSTNAME: mysql
+  mysql-kit-8_0:
+    container: 
+      image: vapor/swift:5.2
     services:
       mysql:
         image: mysql:8.0
@@ -19,9 +36,9 @@ jobs:
     - run: swift test --enable-test-discovery --sanitize=thread
       env:
         MYSQL_HOSTNAME: mysql
-  mysql-5_7:
+  mysql-kit-5_7:
     container: 
-      image: vapor/swift:5.1
+      image: vapor/swift:5.2
     services:
       mysql:
         image: mysql:5.7
@@ -34,5 +51,26 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - run: swift test --enable-test-discovery --sanitize=thread
+      env:
+        MYSQL_HOSTNAME: mysql
+  fluent-mysql-driver:
+    container: 
+      image: vapor/swift:5.2
+    services:
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: vapor_database
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+    runs-on: ubuntu-latest
+    steps:
+    - run: git clone -b master https://github.com/vapor/fluent-mysql-driver.git
+      working-directory: ./
+    - run: swift package edit mysql-kit --revision ${{ github.sha }}
+      working-directory: ./fluent-mysql-driver
+    - run: swift test --enable-test-discovery --sanitize=thread
+      working-directory: ./fluent-mysql-driver
       env:
         MYSQL_HOSTNAME: mysql
