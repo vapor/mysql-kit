@@ -16,7 +16,14 @@ let package = Package(
 
     ],
     targets: [
-        .target(name: "MySQLKit", dependencies: ["AsyncKit", "MySQLNIO", "SQLKit"]),
-        .testTarget(name: "MySQLKitTests", dependencies: ["MySQLKit", "SQLKitBenchmark"]),
+        .target(name: "MySQLKit", dependencies: [
+            .product(name: "AsyncKit", package: "async-kit"),
+            .product(name: "MySQLNIO", package: "mysql-nio"),
+            .product(name: "SQLKit", package: "sql-kit"),
+        ]),
+        .testTarget(name: "MySQLKitTests", dependencies: [
+            .target(name: "MySQLKit"),
+            .product(name: "SQLKitBenchmark", package: "sql-kit"),
+        ]),
     ]
 )
