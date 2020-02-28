@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://user-images.githubusercontent.com/1342803/36769061-0a96b82c-1c10-11e8-8c66-4b7a337bbb43.png" height="64" alt="MySQL">
+    <img src="https://user-images.githubusercontent.com/1342803/75589537-fbfc9100-5a48-11ea-8732-e75dfe32e338.png" height="64" alt="MySQL">
     <br>
     <br>
     <a href="https://docs.vapor.codes/4.0/">
