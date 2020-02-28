@@ -4,7 +4,7 @@ on:
 jobs:
   mysql-kit-8_0:
     container: 
-      image: vapor/swift:5.1
+      image: vapor/swift:5.2
     services:
       mysql:
         image: mysql:8.0
@@ -21,7 +21,7 @@ jobs:
         MYSQL_HOSTNAME: mysql
   mysql-kit-5_7:
     container: 
-      image: vapor/swift:5.1
+      image: vapor/swift:5.2
     services:
       mysql:
         image: mysql:5.7
