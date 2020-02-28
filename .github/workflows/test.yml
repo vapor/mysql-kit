@@ -2,6 +2,23 @@ name: test
 on:
 - pull_request
 jobs:
+  mysql-kit:
+    container: 
+      image: vapor/swift:5.2
+    services:
+      mysql:
+        image: mysql
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: vapor_database
+          MYSQL_USER: vapor_username
+          MYSQL_PASSWORD: vapor_password
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: swift test --enable-test-discovery --sanitize=thread
+      env:
+        MYSQL_HOSTNAME: mysql
   mysql-kit-8_0:
     container: 
       image: vapor/swift:5.2
