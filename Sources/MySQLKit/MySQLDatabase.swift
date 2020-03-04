@@ -48,7 +48,7 @@ public struct MySQLConfiguration {
         unixDomainSocketPath: String,
         username: String,
         password: String,
-        database: String
+        database: String? = nil
     ) {
         self.address = {
             return try SocketAddress.init(unixDomainSocketPath: unixDomainSocketPath)
