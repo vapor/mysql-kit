@@ -43,6 +43,22 @@ public struct MySQLConfiguration {
             tlsConfiguration: tlsConfiguration
         )
     }
+
+    public init(
+        unixDomainSocketPath: String,
+        username: String,
+        password: String,
+        database: String
+    ) {
+        self.address = {
+            return try SocketAddress.init(unixDomainSocketPath: unixDomainSocketPath)
+        }
+        self.username = username
+        self.password = password
+        self.database = database
+        self.tlsConfiguration = nil
+        self._hostname = nil
+    }
     
     public init(
         hostname: String,
