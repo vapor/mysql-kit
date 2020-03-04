@@ -40,6 +40,9 @@ class MySQLKitTests: XCTestCase {
         self.connection = try! MySQLConnection.test(
             on: self.eventLoopGroup.next()
         ).wait()
+        _ = try! self.connection.simpleQuery("DROP DATABASE vapor_database").wait()
+        _ = try! self.connection.simpleQuery("CREATE DATABASE vapor_database").wait()
+        _ = try! self.connection.simpleQuery("USE vapor_database").wait()
     }
 
     override func tearDown() {

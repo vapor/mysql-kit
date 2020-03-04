@@ -186,6 +186,15 @@ public struct MySQLDialect: SQLDialect {
         .inline
     }
 
+    public func customDataType(for dataType: SQLDataType) -> SQLExpression? {
+        switch dataType {
+        case .text:
+            return SQLRaw("VARCHAR(255)")
+        default:
+            return nil
+        }
+    }
+
     public var alterTableSyntax: SQLAlterTableSyntax {
         .init(
             alterColumnDefinitionClause: SQLRaw("MODIFY COLUMN"),
