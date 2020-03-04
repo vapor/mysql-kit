@@ -4,6 +4,10 @@ import SQLKitBenchmark
 import XCTest
 
 class MySQLKitTests: XCTestCase {
+    func testSQLKitBenchmark() throws {
+        try self.benchmark.run()
+    }
+    
     func testEnum() throws {
         try self.benchmark.testEnum()
     }
