@@ -82,8 +82,8 @@ struct MySQLBinaryResultsetRow {
                             second: 0,
                             microsecond: 0
                         )
-                    case 7:
-                        /// if micro_seconds is 0, length is 7 and micro_seconds is not sent
+                    case 7, 8:
+                        /// if micro_seconds is 0, length is 7 or 8 and micro_seconds is not sent
                         time = try MySQLTime(
                             year: bytes.requireInteger(endianness: .little),
                             month: bytes.requireInteger(endianness: .little),
