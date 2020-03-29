@@ -93,6 +93,10 @@ struct MySQLBinaryResultsetRow {
                             second: bytes.requireInteger(endianness: .little),
                             microsecond: 0
                         )
+
+                        if length == 8 {
+                            let _: UInt8 = try bytes.requireInteger(endianness: .little)
+                        }
                     case 11:
                         /// otherwise length is 11
                         time = try MySQLTime(
