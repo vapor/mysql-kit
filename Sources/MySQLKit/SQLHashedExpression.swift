@@ -12,7 +12,8 @@ struct SQLHashedExpression: SQLExpression {
     func serialize(to serializer: inout SQLSerializer) {
         var temp = SQLSerializer(database: serializer.database)
         self.expression.serialize(to: &temp)
-        let hashed = String(describing: Insecure.SHA1.hash(data: Data(temp.sql.utf8)))
-        serializer.write(hashed)
+        let hashed = Insecure.SHA1.hash(data: Data(temp.sql.utf8))
+        let digest = hashed.reduce("") { $0 + String(format: "%02x", $1) }
+        serializer.write(digest)
     }
 }
