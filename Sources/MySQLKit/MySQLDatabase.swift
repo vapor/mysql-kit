@@ -1,5 +1,7 @@
 @_exported import struct Foundation.URL
+@_exported import struct Foundation.Data
 @_exported import struct NIOSSL.TLSConfiguration
+import enum Crypto.Insecure
 
 public struct MySQLConfiguration {
     public let address: () throws -> SocketAddress
@@ -200,5 +202,15 @@ public struct MySQLDialect: SQLDialect {
             alterColumnDefinitionClause: SQLRaw("MODIFY COLUMN"),
             alterColumnDefinitionTypeKeyword: nil
         )
+    }
+    
+    public func normalizeSQLConstraint(identifier: SQLExpression) -> SQLExpression {
+        if let sqlIdentifier = identifier as? SQLIdentifier {
+            let hashed = Insecure.SHA1.hash(data: Data(sqlIdentifier.string.utf8))
+            let digest = hashed.reduce("") { $0 + String(format: "%02x", $1) }
+            return SQLIdentifier(digest)
+        } else {
+            return identifier
+        }
     }
 }
