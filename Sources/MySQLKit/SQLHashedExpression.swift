@@ -1,4 +1,4 @@
-import enum CryptoKit.Insecure
+import enum Crypto.Insecure
 import Foundation
 
 /// Hashes an expression
