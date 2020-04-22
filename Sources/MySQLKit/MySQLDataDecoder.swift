@@ -31,7 +31,14 @@ public struct MySQLDataDecoder {
         where T: Decodable
     {
         if let convertible = T.self as? MySQLDataConvertible.Type {
-            return convertible.init(mysqlData: data)! as! T
+            guard let value = convertible.init(mysqlData: data) else {
+                throw DecodingError.typeMismatch(T.self, DecodingError.Context(
+                    codingPath: [],
+                    debugDescription: "Could not convert to \(T.self): \(data)",
+                    underlyingError: nil
+                ))
+            }
+            return value as! T
         } else {
             return try T.init(from: _Decoder(data: data))
         }
