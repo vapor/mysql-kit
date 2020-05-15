@@ -34,22 +34,24 @@ class MySQLKitTests: XCTestCase {
     var eventLoopGroup: EventLoopGroup!
     var connection: MySQLConnection!
 
-    override func setUp() {
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         XCTAssertTrue(isLoggingConfigured)
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 2)
-        self.connection = try! MySQLConnection.test(
+        self.connection = try MySQLConnection.test(
             on: self.eventLoopGroup.next()
         ).wait()
-        _ = try! self.connection.simpleQuery("DROP DATABASE vapor_database").wait()
-        _ = try! self.connection.simpleQuery("CREATE DATABASE vapor_database").wait()
-        _ = try! self.connection.simpleQuery("USE vapor_database").wait()
+        _ = try self.connection.simpleQuery("DROP DATABASE vapor_database").wait()
+        _ = try self.connection.simpleQuery("CREATE DATABASE vapor_database").wait()
+        _ = try self.connection.simpleQuery("USE vapor_database").wait()
     }
 
-    override func tearDown() {
-        try! self.connection.close().wait()
+    override func tearDownWithError() throws {
+        try self.connection?.close().wait()
         self.connection = nil
-        try! self.eventLoopGroup.syncShutdownGracefully()
+        try self.eventLoopGroup.syncShutdownGracefully()
         self.eventLoopGroup = nil
+        try super.tearDownWithError()
     }
 }
 
@@ -77,7 +79,7 @@ func env(_ name: String) -> String? {
 let isLoggingConfigured: Bool = {
     LoggingSystem.bootstrap { label in
         var handler = StreamLogHandler.standardOutput(label: label)
-        handler.logLevel = .debug
+        handler.logLevel = env("LOG_LEVEL").flatMap { Logger.Level(rawValue: $0) } ?? .debug
         return handler
     }
     return true
