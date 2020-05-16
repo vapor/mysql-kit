@@ -4,7 +4,7 @@ on:
 jobs:
   mysql-kit:
     container: 
-      image: vapor/swift:5.2
+      image: swift:5.2-bionic
     services:
       mysql:
         image: mysql
@@ -15,13 +15,13 @@ jobs:
           MYSQL_PASSWORD: vapor_password
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - run: swift test --enable-test-discovery --sanitize=thread
       env:
         MYSQL_HOSTNAME: mysql
   mysql-kit-8_0:
     container: 
-      image: vapor/swift:5.2
+      image: swift:5.2-bionic
     services:
       mysql:
         image: mysql:8.0
@@ -32,13 +32,13 @@ jobs:
           MYSQL_PASSWORD: vapor_password
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - run: swift test --enable-test-discovery --sanitize=thread
       env:
         MYSQL_HOSTNAME: mysql
   mysql-kit-5_7:
     container: 
-      image: vapor/swift:5.2
+      image: swift:5.2-bionic
     services:
       mysql:
         image: mysql:5.7
@@ -49,13 +49,13 @@ jobs:
           MYSQL_PASSWORD: vapor_password
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - run: swift test --enable-test-discovery --sanitize=thread
       env:
         MYSQL_HOSTNAME: mysql
   fluent-mysql-driver:
     container: 
-      image: vapor/swift:5.2
+      image: swift:5.2-bionic
     services:
       mysql:
         image: mysql
