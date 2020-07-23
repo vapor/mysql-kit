@@ -42,6 +42,7 @@ jobs:
         with:
           repository: vapor/${{ matrix.dependent }}
           path: dependent
+          ref: master
       - name: Use local package
         run: swift package edit mysql-kit --path ../package
         working-directory: dependent
@@ -52,7 +53,7 @@ jobs:
           MYSQL_HOSTNAME: mysql-a
           MYSQL_HOSTNAME_A: mysql-a
           MYSQL_HOSTNAME_B: mysql-b
-          LOG_LEVEL: error
+          LOG_LEVEL: info
   linux:
     strategy:
       fail-fast: false
@@ -87,7 +88,7 @@ jobs:
         run: swift test --enable-test-discovery --sanitize=thread
         env:
           MYSQL_HOSTNAME: mysql
-          LOG_LEVEL: error
+          LOG_LEVEL: info
   macOS:
     strategy:
       fail-fast: false
@@ -127,5 +128,5 @@ jobs:
         env: 
           MYSQL_HOSTNAME: '127.0.0.1'
           MYSQL_DATABASE: vapor_database
-          LOG_LEVEL: error
+          LOG_LEVEL: info
 
