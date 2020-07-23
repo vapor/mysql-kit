@@ -1,76 +1,132 @@
 name: test
-on:
-- pull_request
+on: 
+  - pull_request
+defaults:
+  run:
+    shell: bash
 jobs:
-  mysql-kit:
-    container: 
-      image: swift:5.2-bionic
+  dependents:
+    runs-on: ubuntu-latest
     services:
-      mysql:
-        image: mysql
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: vapor_database
+      mysql-a:
+        image: ${{ matrix.dbimage }}
+        env: 
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
           MYSQL_USER: vapor_username
           MYSQL_PASSWORD: vapor_password
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - run: swift test --enable-test-discovery --sanitize=thread
-      env:
-        MYSQL_HOSTNAME: mysql
-  mysql-kit-8_0:
-    container: 
-      image: swift:5.2-bionic
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: vapor_database
+      mysql-b:
+        image: ${{ matrix.dbimage }}
+        env: 
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
           MYSQL_USER: vapor_username
           MYSQL_PASSWORD: vapor_password
-    runs-on: ubuntu-latest
+          MYSQL_DATABASE: vapor_database
+    container: swift:5.2-bionic
+    strategy:
+      fail-fast: false
+      matrix:
+        dbimage:
+          - mysql:5.7
+          - mysql:8.0
+          - mariadb:latest
+        dependent:
+          - fluent-mysql-driver
     steps:
-    - uses: actions/checkout@v2
-    - run: swift test --enable-test-discovery --sanitize=thread
-      env:
-        MYSQL_HOSTNAME: mysql
-  mysql-kit-5_7:
-    container: 
-      image: swift:5.2-bionic
+      - name: Check out package
+        uses: actions/checkout@v2
+        with:
+          path: package
+      - name: Check out dependent
+        uses: actions/checkout@v2
+        with:
+          repository: vapor/${{ matrix.dependent }}
+          path: dependent
+          ref: master
+      #- name: Use local package
+          #run: swift package edit mysql-kit --path ../package
+          #working-directory: dependent
+      - name: Run tests with Thread Sanitizer
+        run: swift test --enable-test-discovery --sanitize=thread
+        working-directory: dependent
+        env:
+          MYSQL_HOSTNAME: mysql-a
+          MYSQL_HOSTNAME_A: mysql-a
+          MYSQL_HOSTNAME_B: mysql-b
+          LOG_LEVEL: info
+  linux:
+    strategy:
+      fail-fast: false
+      matrix:
+        dbimage:
+          - mysql:5.7
+          - mysql:8.0
+          - mariadb:latest
+        runner:
+          # 5.2 Stable
+          - swift:5.2-bionic
+          # 5.2 Unstable
+          - swiftlang/swift:nightly-5.2-bionic
+          # 5.3 Unstable
+          - swiftlang/swift:nightly-5.3-bionic
+          # Master Unsable
+          - swiftlang/swift:nightly-master-focal
+    container: ${{ matrix.runner }}
+    runs-on: ubuntu-latest
     services:
       mysql:
-        image: mysql:5.7
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: vapor_database
+        image: ${{ matrix.dbimage }}
+        env: 
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
           MYSQL_USER: vapor_username
           MYSQL_PASSWORD: vapor_password
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-    - run: swift test --enable-test-discovery --sanitize=thread
-      env:
-        MYSQL_HOSTNAME: mysql
-  fluent-mysql-driver:
-    container: 
-      image: swift:5.2-bionic
-    services:
-      mysql:
-        image: mysql
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
           MYSQL_DATABASE: vapor_database
-          MYSQL_USER: vapor_username
-          MYSQL_PASSWORD: vapor_password
-    runs-on: ubuntu-latest
     steps:
-    - run: git clone -b master https://github.com/vapor/fluent-mysql-driver.git
-      working-directory: ./
-    - run: swift package edit mysql-kit --revision ${{ github.sha }}
-      working-directory: ./fluent-mysql-driver
-    - run: swift test --enable-test-discovery --sanitize=thread
-      working-directory: ./fluent-mysql-driver
-      env:
-        MYSQL_HOSTNAME: mysql
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Run tests with Thread Sanitizer
+        run: swift test --enable-test-discovery --sanitize=thread
+        env:
+          MYSQL_HOSTNAME: mysql
+          LOG_LEVEL: info
+  macOS:
+    strategy:
+      fail-fast: false
+      matrix:
+        formula: 
+          - mysql@8.0
+          - mysql@5.7
+          - mariadb
+        include:
+          - username: root
+          - formula: mariadb
+            username: runner
+    runs-on: macos-latest
+    steps:
+      - name: Select latest available Xcode
+        uses: maxim-lobanov/setup-xcode@1.0
+        with: 
+          xcode-version: latest
+      - name: Install MySQL server from Homebrew
+        run: brew install ${{ matrix.formula }} && brew link --force ${{ matrix.formula }}
+      - name: Start MySQL server
+        run: brew services start ${{ matrix.formula }}
+      - name: Wait for MySQL server to be ready
+        run: until echo | mysql -u${{ matrix.username }}; do sleep 1; done
+        timeout-minutes: 5
+      - name: Set up MySQL databases and privileges
+        run: |
+          mysql -u${{ matrix.username }} --batch <<-'SQL'
+              CREATE USER vapor_username@localhost IDENTIFIED BY 'vapor_password';
+              CREATE DATABASE vapor_database; 
+              GRANT ALL PRIVILEGES ON vapor_database.* TO vapor_username@localhost;
+          SQL
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Run tests with Thread Sanitizer
+        run: swift test --enable-test-discovery --sanitize=thread
+        env: 
+          MYSQL_HOSTNAME: '127.0.0.1'
+          MYSQL_DATABASE: vapor_database
+          LOG_LEVEL: info
+
