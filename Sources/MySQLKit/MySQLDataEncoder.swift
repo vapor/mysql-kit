@@ -1,7 +1,11 @@
 import Foundation
 
 public struct MySQLDataEncoder {
-    public init() { }
+    let json: JSONEncoder
+
+    public init(json: JSONEncoder = .init()) {
+        self.json = json
+    }
     
     public func encode(_ value: Encodable) throws -> MySQLData {
         if let custom = value as? MySQLDataConvertible, let data = custom.mysqlData {
@@ -13,7 +17,7 @@ public struct MySQLDataEncoder {
                 return data
             } else {
                 var buffer = ByteBufferAllocator().buffer(capacity: 0)
-                try buffer.writeBytes(JSONEncoder().encode(_Wrapper(value)))
+                try buffer.writeBytes(self.json.encode(_Wrapper(value)))
                 return MySQLData(
                     type: .string,
                     format: .text,

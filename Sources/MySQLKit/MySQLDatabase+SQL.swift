@@ -1,12 +1,17 @@
 extension MySQLDatabase {
-    public func sql() -> SQLDatabase {
-        _MySQLSQLDatabase(database: self)
+    public func sql(
+        encoder: MySQLDataEncoder = .init(),
+        decoder: MySQLDataDecoder = .init()
+    ) -> SQLDatabase {
+        _MySQLSQLDatabase(database: self, encoder: encoder, decoder: decoder)
     }
 }
 
 
 private struct _MySQLSQLDatabase {
     let database: MySQLDatabase
+    let encoder: MySQLDataEncoder
+    let decoder: MySQLDataDecoder
 }
 
 extension _MySQLSQLDatabase: SQLDatabase {
@@ -26,9 +31,9 @@ extension _MySQLSQLDatabase: SQLDatabase {
         let (sql, binds) = self.serialize(query)
         do {
             return try self.database.query(sql, binds.map { encodable in
-                return try MySQLDataEncoder().encode(encodable)
+                return try self.encoder.encode(encodable)
             }, onRow: { row in
-                onRow(row)
+                onRow(row.sql(decoder: self.decoder))
             })
         } catch {
             return self.eventLoop.makeFailedFuture(error)
