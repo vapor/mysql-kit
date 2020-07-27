@@ -25,7 +25,11 @@ extension MySQLData {
 }
 
 public struct MySQLDataDecoder {
-    public init() {}
+    let json: JSONDecoder
+
+    public init(json: JSONDecoder = .init()) {
+        self.json = json
+    }
     
     public func decode<T>(_ type: T.Type, from data: MySQLData) throws -> T
         where T: Decodable
@@ -40,7 +44,7 @@ public struct MySQLDataDecoder {
             }
             return value as! T
         } else {
-            return try T.init(from: _Decoder(data: data))
+            return try T.init(from: _Decoder(data: data, json: self.json))
         }
     }
     
@@ -52,14 +56,17 @@ public struct MySQLDataDecoder {
         var userInfo: [CodingUserInfoKey : Any] {
             return [:]
         }
-        
+
         let data: MySQLData
-        init(data: MySQLData) {
+        let json: JSONDecoder
+
+        init(data: MySQLData, json: JSONDecoder) {
             self.data = data
+            self.json = json
         }
         
         func unkeyedContainer() throws -> UnkeyedDecodingContainer {
-            try JSONDecoder()
+            try self.json
                 .decode(DecoderUnwrapper.self, from: self.data.data!)
                 .decoder.unkeyedContainer()
         }
@@ -67,7 +74,7 @@ public struct MySQLDataDecoder {
         func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key>
             where Key : CodingKey
         {
-            try JSONDecoder()
+            try self.json
                 .decode(DecoderUnwrapper.self, from: self.data.data!)
                 .decoder.container(keyedBy: Key.self)
         }
