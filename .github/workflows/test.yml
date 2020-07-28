@@ -43,9 +43,9 @@ jobs:
           repository: vapor/${{ matrix.dependent }}
           path: dependent
           ref: master
-      #- name: Use local package
-          #run: swift package edit mysql-kit --path ../package
-          #working-directory: dependent
+      - name: Use local package
+        run: swift package edit mysql-kit --path ../package
+        working-directory: dependent
       - name: Run tests with Thread Sanitizer
         run: swift test --enable-test-discovery --sanitize=thread
         working-directory: dependent
