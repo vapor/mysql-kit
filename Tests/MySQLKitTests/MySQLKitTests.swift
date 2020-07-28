@@ -55,8 +55,7 @@ class MySQLKitTests: XCTestCase {
     }
 
     var mysql: MySQLDatabase {
-        self.pool.pool(for: self.eventLoopGroup.next())
-            .database(logger: .init(label: "codes.vapor.mysql"))
+        self.pools.database(logger: .init(label: "codes.vapor.mysql"))
     }
 
     var benchmark: SQLBenchmarker {
@@ -64,13 +63,13 @@ class MySQLKitTests: XCTestCase {
     }
 
     var eventLoopGroup: EventLoopGroup!
-    var pool: EventLoopGroupConnectionPool<MySQLConnectionSource>!
+    var pools: EventLoopGroupConnectionPool<MySQLConnectionSource>!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         XCTAssertTrue(isLoggingConfigured)
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 2)
-        self.pool = .init(
+        self.pools = .init(
             source: .init(configuration: .init(
                 hostname: env("MYSQL_HOSTNAME") ?? "localhost",
                 port: 3306,
@@ -96,8 +95,8 @@ class MySQLKitTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        try self.pool.syncShutdownGracefully()
-        self.pool = nil
+        try self.pools.syncShutdownGracefully()
+        self.pools = nil
         try self.eventLoopGroup.syncShutdownGracefully()
         self.eventLoopGroup = nil
         try super.tearDownWithError()
