@@ -1,6 +1,5 @@
 <img src="https://user-images.githubusercontent.com/1342803/75589537-fbfc9100-5a48-11ea-8732-e75dfe32e338.png" height="64" alt="MySQL">
 <br>
-<br>
 <a href="https://docs.vapor.codes/4.0/">
     <img src="http://img.shields.io/badge/read_the-docs-2196f3.svg" alt="Documentation">
 </a>
@@ -16,6 +15,8 @@
 <a href="https://swift.org">
     <img src="http://img.shields.io/badge/swift-5.2-brightgreen.svg" alt="Swift 5.2">
 </a>
+<br>
+<br>
 
 🐬 Non-blocking, event-driven Swift client for MySQL.
 
