@@ -33,6 +33,10 @@ The table below shows a list of PostgresKit major releases alongside their compa
 
 Use the SPM string to easily include the dependendency in your `Package.swift` file.
 
+```swift
+.package(url: "https://github.com/vapor/mysql-kit.git", from: ...)
+```
+
 ### Supported Platforms
 
 MySQLKit supports the following platforms:
