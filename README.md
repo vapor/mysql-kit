@@ -16,6 +16,7 @@
     <img src="http://img.shields.io/badge/swift-5.2-brightgreen.svg" alt="Swift 5.2">
 </a>
 <br>
+<br>
 
 🐬 Non-blocking, event-driven Swift client for MySQL.
 
