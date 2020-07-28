@@ -38,7 +38,7 @@ public struct MySQLDataDecoder {
             guard let value = convertible.init(mysqlData: data) else {
                 throw DecodingError.typeMismatch(T.self, DecodingError.Context(
                     codingPath: [],
-                    debugDescription: "Could not convert to \(T.self): \(data)",
+                    debugDescription: "Could not convert MySQL data to \(T.self): \(data)",
                     underlyingError: nil
                 ))
             }
@@ -102,7 +102,7 @@ public struct MySQLDataDecoder {
                 guard let value = convertible.init(mysqlData: self.decoder.data) else {
                     throw DecodingError.typeMismatch(T.self, DecodingError.Context.init(
                         codingPath: self.codingPath,
-                        debugDescription: "Could not convert from MySQL data: \(T.self)"
+                        debugDescription: "Could not convert MySQL data to \(T.self): \(self.decoder.data)"
                     ))
                 }
                 return value as! T

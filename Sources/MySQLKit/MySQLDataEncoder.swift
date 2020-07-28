@@ -149,7 +149,7 @@ public struct MySQLDataEncoder {
                 guard let data = convertible.mysqlData else {
                     throw EncodingError.invalidValue(convertible, EncodingError.Context(
                         codingPath: self.codingPath,
-                        debugDescription: "Could not convert value of type \(T.self)"
+                        debugDescription: "Could not encode \(T.self) to MySQL data: \(value)"
                     ))
                 }
                 self.encoder.data = data
