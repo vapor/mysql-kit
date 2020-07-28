@@ -10,6 +10,13 @@ public struct MySQLConfiguration {
     public let tlsConfiguration: TLSConfiguration?
     
     internal var _hostname: String?
+
+    public init?(url: String) {
+        guard let url = URL(string: url) else {
+            return nil
+        }
+        self.init(url: url)
+    }
     
     public init?(url: URL) {
         guard url.scheme?.hasPrefix("mysql") == true else {
