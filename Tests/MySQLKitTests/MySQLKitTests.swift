@@ -72,7 +72,7 @@ class MySQLKitTests: XCTestCase {
         self.pools = .init(
             source: .init(configuration: .init(
                 hostname: env("MYSQL_HOSTNAME") ?? "localhost",
-                port: (env("MYSQL_PORT").flatMap({ Int($0) }) ?? 3306) as Int,
+                port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
                 username: env("MYSQL_USERNAME") ?? "vapor_username",
                 password: env("MYSQL_PASSWORD") ?? "vapor_password",
                 database: env("MYSQL_DATABASE") ?? "vapor_database",
