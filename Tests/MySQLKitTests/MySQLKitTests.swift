@@ -72,10 +72,10 @@ class MySQLKitTests: XCTestCase {
         self.pools = .init(
             source: .init(configuration: .init(
                 hostname: env("MYSQL_HOSTNAME") ?? "localhost",
-                port: 3306,
-                username: "vapor_username",
-                password: "vapor_password",
-                database: "vapor_database",
+                port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
+                username: env("MYSQL_USERNAME") ?? "vapor_username",
+                password: env("MYSQL_PASSWORD") ?? "vapor_password",
+                database: env("MYSQL_DATABASE") ?? "vapor_database",
                 tlsConfiguration: .forClient(certificateVerification: .none)
             )),
             maxConnectionsPerEventLoop: 2,
@@ -100,23 +100,6 @@ class MySQLKitTests: XCTestCase {
         try self.eventLoopGroup.syncShutdownGracefully()
         self.eventLoopGroup = nil
         try super.tearDownWithError()
-    }
-}
-
-extension MySQLConnection {
-    static func test(on eventLoop: EventLoop) -> EventLoopFuture<MySQLConnection> {
-        do {
-            return try self.connect(
-                to: .makeAddressResolvingHost(env("MYSQL_HOSTNAME") ?? "localhost", port: 3306),
-                username: "vapor_username",
-                database: "vapor_database",
-                password: "vapor_password",
-                tlsConfiguration: .forClient(certificateVerification: .none),
-                on: eventLoop
-            )
-        } catch {
-            return eventLoop.makeFailedFuture(error)
-        }
     }
 }
 
