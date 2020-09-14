@@ -31,9 +31,7 @@ public struct MySQLConfiguration {
         guard let hostname = url.host else {
             return nil
         }
-        guard let port = url.port else {
-            return nil
-        }
+        let port = url.port ?? 3306
         
         let tlsConfiguration: TLSConfiguration?
         if url.query == "ssl=false" {
