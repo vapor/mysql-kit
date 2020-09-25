@@ -8,7 +8,11 @@ public struct MySQLConfiguration {
     public let password: String
     public let database: String?
     public let tlsConfiguration: TLSConfiguration?
-    
+
+    /// IANA-assigned port number for MySQL
+    /// `UInt16(getservbyname("mysql", "tcp").pointee.s_port).byteSwapped`
+    public static var ianaPortNumber: Int { 3306 }
+
     internal var _hostname: String?
 
     public init?(url: String) {
@@ -31,9 +35,7 @@ public struct MySQLConfiguration {
         guard let hostname = url.host else {
             return nil
         }
-        guard let port = url.port else {
-            return nil
-        }
+        let port = url.port ?? Self.ianaPortNumber
         
         let tlsConfiguration: TLSConfiguration?
         if url.query == "ssl=false" {
@@ -70,7 +72,7 @@ public struct MySQLConfiguration {
     
     public init(
         hostname: String,
-        port: Int = 3306,
+        port: Int = Self.ianaPortNumber,
         username: String,
         password: String,
         database: String? = nil,
