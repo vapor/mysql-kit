@@ -22,7 +22,7 @@
 
 ### Major Releases
 
-The table below shows a list of PostgresKit major releases alongside their compatible NIO and Swift versions. 
+The table below shows a list of MySQLKit major releases alongside their compatible NIO and Swift versions. 
 
 |Version|NIO|Swift|SPM|
 |---|---|---|---|
@@ -31,7 +31,7 @@ The table below shows a list of PostgresKit major releases alongside their compa
 |2.0|N/A|3.1+|`from: "2.0.0"`|
 |1.0|N/A|3.1+|`from: "1.0.0"`|
 
-Use the SPM string to easily include the dependendency in your `Package.swift` file.
+Use the SPM string to easily include the dependency in your `Package.swift` file.
 
 ```swift
 .package(url: "https://github.com/vapor/mysql-kit.git", from: ...)
