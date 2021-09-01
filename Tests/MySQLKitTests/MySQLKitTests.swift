@@ -2,6 +2,8 @@ import Logging
 import MySQLKit
 import SQLKitBenchmark
 import XCTest
+import NIOSSL
+import AsyncKit
 
 class MySQLKitTests: XCTestCase {
     func testSQLKitBenchmark() throws {
@@ -68,16 +70,19 @@ class MySQLKitTests: XCTestCase {
     override func setUpWithError() throws {
         try super.setUpWithError()
         XCTAssertTrue(isLoggingConfigured)
+        var tls = TLSConfiguration.makeClientConfiguration()
+        tls.certificateVerification = .none
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 2)
+        let configuration = MySQLConfiguration(
+            hostname: env("MYSQL_HOSTNAME") ?? "localhost",
+            port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
+            username: env("MYSQL_USERNAME") ?? "vapor_username",
+            password: env("MYSQL_PASSWORD") ?? "vapor_password",
+            database: env("MYSQL_DATABASE") ?? "vapor_database",
+            tlsConfiguration: tls
+        )
         self.pools = .init(
-            source: .init(configuration: .init(
-                hostname: env("MYSQL_HOSTNAME") ?? "localhost",
-                port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
-                username: env("MYSQL_USERNAME") ?? "vapor_username",
-                password: env("MYSQL_PASSWORD") ?? "vapor_password",
-                database: env("MYSQL_DATABASE") ?? "vapor_database",
-                tlsConfiguration: .forClient(certificateVerification: .none)
-            )),
+            source: .init(configuration: configuration),
             maxConnectionsPerEventLoop: 2,
             requestTimeout: .seconds(30),
             logger: .init(label: "codes.vapor.mysql"),

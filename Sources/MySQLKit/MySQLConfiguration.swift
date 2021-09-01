@@ -41,7 +41,7 @@ public struct MySQLConfiguration {
         if url.query == "ssl=false" {
             tlsConfiguration = nil
         } else {
-            tlsConfiguration = .forClient()
+            tlsConfiguration = .makeClientConfiguration()
         }
         
         self.init(
@@ -76,7 +76,7 @@ public struct MySQLConfiguration {
         username: String,
         password: String,
         database: String? = nil,
-        tlsConfiguration: TLSConfiguration? = .forClient()
+        tlsConfiguration: TLSConfiguration? = .makeClientConfiguration()
     ) {
         self.address = {
             return try SocketAddress.makeAddressResolvingHost(hostname, port: port)
