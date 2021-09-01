@@ -43,7 +43,7 @@ jobs:
         with:
           repository: vapor/${{ matrix.dependent }}
           path: dependent
-          ref: master
+          ref: main
       - name: Use local package
         run: swift package edit mysql-kit --path ../package
         working-directory: dependent
