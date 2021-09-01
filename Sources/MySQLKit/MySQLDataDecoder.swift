@@ -15,7 +15,7 @@ extension Optional: MySQLDataConvertible where Wrapped: MySQLDataConvertible {
     }
     
     public var mysqlData: MySQLData? {
-        return self.flatMap { $0.mysqlData }
+        return self.flatMap(\.mysqlData)
     }
 }
 
