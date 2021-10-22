@@ -67,6 +67,8 @@ jobs:
           - mysql:8.0
           - mariadb:10.2
           - mariadb:10.6
+          - percona:5.7
+          - percona:8.0
         runner:
           - swift:5.2-focal
           - swift:5.5-focal
