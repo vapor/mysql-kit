@@ -32,6 +32,8 @@ jobs:
           - mysql:8.0
           - mariadb:10.2
           - mariadb:10.6
+          - percona:5.7
+          - percona:8.0
         dependent:
           - fluent-mysql-driver
     steps:
@@ -94,14 +96,12 @@ jobs:
         formula: 
           - mysql@8.0
           - mysql@5.7
-          - mariadb@10.2
+          - percona-server
           - mariadb@10.6
         version:
           - latest-stable
         include:
           - username: root
-          - formula: mariadb@10.2
-            username: runner
           - formula: mariadb@10.6
             username: runner
     runs-on: macos-11
