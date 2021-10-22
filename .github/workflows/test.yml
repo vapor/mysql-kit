@@ -23,14 +23,15 @@ jobs:
           MYSQL_USER: vapor_username
           MYSQL_PASSWORD: vapor_password
           MYSQL_DATABASE: vapor_database
-    container: swift:5.4-focal
+    container: swift:5.5-focal
     strategy:
       fail-fast: false
       matrix:
         dbimage:
           - mysql:5.7
           - mysql:8.0
-          - mariadb:latest
+          - mariadb:10.2
+          - mariadb:10.6
         dependent:
           - fluent-mysql-driver
     steps:
@@ -62,12 +63,11 @@ jobs:
         dbimage:
           - mysql:5.7
           - mysql:8.0
-          - mariadb:latest
+          - mariadb:10.2
+          - mariadb:10.6
         runner:
           - swift:5.2-focal
-          - swift:5.3-focal
-          - swift:5.4-focal
-          - swiftlang/swift:nightly-5.5-focal
+          - swift:5.5-focal
           - swiftlang/swift:nightly-main-focal
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
@@ -94,15 +94,17 @@ jobs:
         formula: 
           - mysql@8.0
           - mysql@5.7
-          - mariadb
+          - mariadb@10.2
+          - mariadb@10.6
         version:
-          - latest
           - latest-stable
         include:
           - username: root
-          - formula: mariadb
+          - formula: mariadb@10.2
             username: runner
-    runs-on: macos-latest
+          - formula: mariadb@10.6
+            username: runner
+    runs-on: macos-11
     steps:
       - name: Select latest available Xcode
         uses: maxim-lobanov/setup-xcode@v1
