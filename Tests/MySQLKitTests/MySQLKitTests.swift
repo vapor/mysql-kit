@@ -6,12 +6,8 @@ import NIOSSL
 import AsyncKit
 
 class MySQLKitTests: XCTestCase {
-    func testSQLKitBenchmark() throws {
-        try self.benchmark.run()
-    }
-    
-    func testEnum() throws {
-        try self.benchmark.testEnum()
+    func testSQLBenchmark() throws {
+        try SQLBenchmarker(on: self.sql).run()
     }
 
     func testNullDecode() throws {
@@ -58,10 +54,6 @@ class MySQLKitTests: XCTestCase {
 
     var mysql: MySQLDatabase {
         self.pools.database(logger: .init(label: "codes.vapor.mysql"))
-    }
-
-    var benchmark: SQLBenchmarker {
-        .init(on: self.sql)
     }
 
     var eventLoopGroup: EventLoopGroup!
