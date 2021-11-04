@@ -69,4 +69,8 @@ public struct MySQLDialect: SQLDialect {
     public var triggerSyntax: SQLTriggerSyntax {
         return .init(create: [.supportsBody, .conditionRequiresParentheses, .supportsOrder])
     }
+    
+    public var upsertSyntax: SQLUpsertSyntax {
+        .mysqlLike
+    }
 }
