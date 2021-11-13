@@ -88,15 +88,6 @@ class MySQLKitTests: XCTestCase {
             logger: .init(label: "codes.vapor.mysql"),
             on: self.eventLoopGroup
         )
-
-        // Reset database.
-        _ = try self.mysql.withConnection { conn in
-            return conn.simpleQuery("DROP DATABASE vapor_database").flatMap { _ in
-                conn.simpleQuery("CREATE DATABASE vapor_database")
-            }.flatMap { _ in
-                conn.simpleQuery("USE vapor_database")
-            }
-        }.wait()
     }
 
     override func tearDownWithError() throws {
