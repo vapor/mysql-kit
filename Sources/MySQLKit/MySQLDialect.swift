@@ -73,4 +73,8 @@ public struct MySQLDialect: SQLDialect {
     public var upsertSyntax: SQLUpsertSyntax {
         .mysqlLike
     }
+
+    public var unionFeatures: SQLUnionFeatures {
+        [.union, .unionAll, .explicitDistinct, .parenthesizedSubqueries]
+    }
 }
