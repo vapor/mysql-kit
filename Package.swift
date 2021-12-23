@@ -13,7 +13,7 @@ let package = Package(
         .package(url: "https://github.com/vapor/mysql-nio.git", from: "1.0.0"),
         .package(url: "https://github.com/vapor/sql-kit.git", from: "3.16.0"),
         .package(url: "https://github.com/vapor/async-kit.git", from: "1.0.0"),
-        .package(url: "https://github.com/apple/swift-crypto.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0" ..< "3.0.0"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.14.0"),
     ],
