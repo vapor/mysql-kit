@@ -3,11 +3,11 @@
 @_exported import struct NIOSSL.TLSConfiguration
 
 public struct MySQLConfiguration {
-    public let address: () throws -> SocketAddress
-    public let username: String
-    public let password: String
-    public let database: String?
-    public let tlsConfiguration: TLSConfiguration?
+    public var address: () throws -> SocketAddress
+    public var username: String
+    public var password: String
+    public var database: String?
+    public var tlsConfiguration: TLSConfiguration?
 
     /// IANA-assigned port number for MySQL
     /// `UInt16(getservbyname("mysql", "tcp").pointee.s_port).byteSwapped`
