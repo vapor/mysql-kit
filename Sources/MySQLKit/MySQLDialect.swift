@@ -77,4 +77,12 @@ public struct MySQLDialect: SQLDialect {
     public var unionFeatures: SQLUnionFeatures {
         [.union, .unionAll, .explicitDistinct, .parenthesizedSubqueries]
     }
+    
+    public var sharedSelectLockExpression: SQLExpression? {
+        SQLRaw("LOCK IN SHARE MODE")
+    }
+    
+    public var exclusiveSelectLockExpression: SQLExpression? {
+        SQLRaw("FOR UPDATE")
+    }
 }
