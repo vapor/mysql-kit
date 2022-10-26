@@ -48,6 +48,59 @@ class MySQLKitTests: XCTestCase {
         XCTAssertEqual(rows, [foo])
     }
 
+    /// Tests dealing with encoding of values whose `encode(to:)` implementation calls one of the `superEncoder()`
+    /// methods (most notably the implementation of `Codable` for Fluent's `Fields`, which we can't directly test
+    /// at this layer).
+    func testValuesThatUseSuperEncoder() throws {
+        struct UnusualType: Codable {
+            var prop1: String, prop2: [Bool], prop3: [[Bool]]
+            
+            // This is intentionally contrived - Fluent's implementation does Codable this roundabout way as a
+            // workaround for the interaction of property wrappers with optional properties; it serves no purpose
+            // here other than to demonstrate that the encoder supports it.
+            private enum CodingKeys: String, CodingKey { case prop1, prop2, prop3 }
+            init(prop1: String, prop2: [Bool], prop3: [[Bool]]) { (self.prop1, self.prop2, self.prop3) = (prop1, prop2, prop3) }
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.prop1 = try .init(from: container.superDecoder(forKey: .prop1))
+                var acontainer = try container.nestedUnkeyedContainer(forKey: .prop2), ongoing: [Bool] = []
+                while !acontainer.isAtEnd { ongoing.append(try Bool.init(from: acontainer.superDecoder())) }
+                self.prop2 = ongoing
+                var bcontainer = try container.nestedUnkeyedContainer(forKey: .prop3), bongoing: [[Bool]] = []
+                while !bcontainer.isAtEnd {
+                    var ccontainer = try bcontainer.nestedUnkeyedContainer(), congoing: [Bool] = []
+                    while !ccontainer.isAtEnd { congoing.append(try Bool.init(from: ccontainer.superDecoder())) }
+                    bongoing.append(congoing)
+                }
+                self.prop3 = bongoing
+            }
+            func encode(to encoder: Encoder) throws {
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                try self.prop1.encode(to: container.superEncoder(forKey: .prop1))
+                var acontainer = container.nestedUnkeyedContainer(forKey: .prop2)
+                for val in self.prop2 { try val.encode(to: acontainer.superEncoder()) }
+                var bcontainer = container.nestedUnkeyedContainer(forKey: .prop3)
+                for arr in self.prop3 {
+                    var ccontainer = bcontainer.nestedUnkeyedContainer()
+                    for val in arr { try val.encode(to: ccontainer.superEncoder()) }
+                }
+            }
+        }
+        
+        let instance = UnusualType(prop1: "hello", prop2: [true, false, false, true], prop3: [[true, true], [false], [true], []])
+        let encoded1 = try MySQLDataEncoder().encode(instance)
+        let encoded2 = try MySQLDataEncoder().encode([instance, instance])
+        
+        XCTAssertEqual(encoded1.type, .string)
+        XCTAssertEqual(encoded2.type, .string)
+        
+        let decoded1 = try MySQLDataDecoder().decode(UnusualType.self, from: encoded1)
+        let decoded2 = try MySQLDataDecoder().decode([UnusualType].self, from: encoded2)
+        
+        XCTAssertEqual(decoded1.prop3, instance.prop3)
+        XCTAssertEqual(decoded2.count, 2)
+    }
+
     var sql: SQLDatabase {
         self.mysql.sql()
     }
