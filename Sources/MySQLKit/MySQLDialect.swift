@@ -58,9 +58,7 @@ public struct MySQLDialect: SQLDialect {
     
     public func normalizeSQLConstraint(identifier: SQLExpression) -> SQLExpression {
         if let sqlIdentifier = identifier as? SQLIdentifier {
-            let hashed = Insecure.SHA1.hash(data: Data(sqlIdentifier.string.utf8))
-            let digest = hashed.reduce("") { $0 + String(format: "%02x", $1) }
-            return SQLIdentifier(digest)
+            return SQLIdentifier(Insecure.SHA1.hash(data: Data(sqlIdentifier.string.utf8)).hexRepresentation)
         } else {
             return identifier
         }
@@ -84,5 +82,12 @@ public struct MySQLDialect: SQLDialect {
     
     public var exclusiveSelectLockExpression: SQLExpression? {
         SQLRaw("FOR UPDATE")
+    }
+}
+
+fileprivate let hexTable: [UInt8] = [0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66]
+extension Sequence where Element == UInt8 {
+    fileprivate var hexRepresentation: String {
+        .init(decoding: self.flatMap { [hexTable[Int($0 >> 4)], hexTable[Int($0 & 0x7)]] }, as: Unicode.ASCII.self)
     }
 }

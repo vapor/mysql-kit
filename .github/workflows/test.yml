@@ -1,38 +1,102 @@
 name: test
 on:
-  pull_request:
+  pull_request: { branches: ['*'] }
   push: { branches: [ main ] }
-defaults:
-  run:
-    shell: bash
+
+env:
+  LOG_LEVEL: debug
+  SWIFT_DETERMINISTIC_HASHING: 1
+  MYSQL_HOSTNAME: 'mysql-a'
+  MYSQL_HOSTNAME_A: 'mysql-a'
+  MYSQL_HOSTNAME_B: 'mysql-b'
+  MYSQL_DATABASE: 'test_database'
+  MYSQL_DATABASE_A: 'test_database'
+  MYSQL_DATABASE_B: 'test_database'
+  MYSQL_USERNAME: 'test_username'
+  MYSQL_USERNAME_A: 'test_username'
+  MYSQL_USERNAME_B: 'test_username'
+  MYSQL_PASSWORD: 'test_password'
+  MYSQL_PASSWORD_A: 'test_password'
+  MYSQL_PASSWORD_B: 'test_password'
+
 jobs:
+
+  codecov:
+    strategy:
+      # For MySQL we have to run coverage baselines against multiple DB versions thanks to
+      # the driver's behavior changing notably depending on the server.
+      matrix: { dbimage: ['mysql:5.7', 'mysql:8.0', 'mariadb:10.7'] }
+    runs-on: ubuntu-latest
+    container: swift:5.7-jammy
+    services:
+      mysql-a:
+        image: ${{ matrix.dbimage }}
+        env: 
+          MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+          MYSQL_USER: test_username
+          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: test_database
+    steps:
+      - name: Save MySQL version to env
+        run: |
+          echo MYSQL_VERSION='${{ matrix.dbimage }}' >> $GITHUB_ENV
+      - name: Check out package
+        uses: actions/checkout@v3
+      - name: Run local tests with coverage
+        run: swift test --enable-code-coverage
+      - name: Submit coverage report to Codecov.io
+        uses: vapor/swift-codecov-action@v0.2
+        with:
+          cc_flags: 'unittests'
+          cc_env_vars: 'SWIFT_VERSION,SWIFT_PLATFORM,RUNNER_OS,RUNNER_ARCH,MYSQL_VERSION'
+          cc_fail_ci_if_error: true
+          cc_verbose: true
+          cc_dry_run: false
+
+  # Check for API breakage versus main
+  api-breakage:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    container: swift:5.7-jammy
+    steps:
+      - name: Check out package
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      # https://github.com/actions/checkout/issues/766
+      - name: Mark the workspace as safe
+        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
+      - name: Check for API breaking changes
+        run: swift package diagnose-api-breaking-changes origin/main
+
+  # Test integration with downstream Fluent driver
   dependents:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     services:
       mysql-a:
         image: ${{ matrix.dbimage }}
         env: 
           MYSQL_ALLOW_EMPTY_PASSWORD: "true"
-          MYSQL_USER: vapor_username
-          MYSQL_PASSWORD: vapor_password
-          MYSQL_DATABASE: vapor_database
+          MYSQL_USER: test_username
+          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: test_database
       mysql-b:
         image: ${{ matrix.dbimage }}
         env: 
           MYSQL_ALLOW_EMPTY_PASSWORD: "true"
-          MYSQL_USER: vapor_username
-          MYSQL_PASSWORD: vapor_password
-          MYSQL_DATABASE: vapor_database
-    container: swift:5.6-focal
+          MYSQL_USER: test_username
+          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: test_database
+    container: swift:5.7-jammy
     strategy:
       fail-fast: false
       matrix:
+        # Same minimum all-behavior set as the code coverage runs
         dbimage:
           - mysql:5.7
           - mysql:8.0
-          - mariadb:10.3
           - mariadb:10.7
-          - percona:8.0
         dependent:
           - fluent-mysql-driver
     steps:
@@ -49,15 +113,13 @@ jobs:
       - name: Use local package
         run: swift package edit mysql-kit --path ../package
         working-directory: dependent
-      - name: Run tests with Thread Sanitizer
+      - name:  Run tests with Thread Sanitizer
         run: swift test --sanitize=thread
         working-directory: dependent
-        env:
-          MYSQL_HOSTNAME: mysql-a
-          MYSQL_HOSTNAME_A: mysql-a
-          MYSQL_HOSTNAME_B: mysql-b
-          LOG_LEVEL: info
-  linux:
+
+  # Run unit tests (Linux)
+  linux-unit:
+    if: github.event_name == 'pull_request'
     strategy:
       fail-fast: false
       matrix:
@@ -68,46 +130,39 @@ jobs:
           - mariadb:10.7
           - percona:8.0
         runner:
-          - swift:5.5-focal
+          - swift:5.5-bionic
           - swift:5.6-focal
-          - swiftlang/swift:nightly-main-focal
+          - swift:5.7-jammy
+          - swiftlang/swift:nightly-main-jammy
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     services:
-      mysql:
+      mysql-a:
         image: ${{ matrix.dbimage }}
         env: 
           MYSQL_ALLOW_EMPTY_PASSWORD: "true"
-          MYSQL_USER: vapor_username
-          MYSQL_PASSWORD: vapor_password
-          MYSQL_DATABASE: vapor_database
+          MYSQL_USER: test_username
+          MYSQL_PASSWORD: test_password
+          MYSQL_DATABASE: test_database
     steps:
       - name: Check out code
         uses: actions/checkout@v3
       - name: Run tests with Thread Sanitizer
         run: swift test --sanitize=thread
-        env:
-          MYSQL_HOSTNAME: mysql
-          LOG_LEVEL: info
-  macOS:
+
+  # Run unit tests (macOS). Don't bother with lots of variations, Linux will cover that.
+  macos-unit:
+    if: github.event_name == 'pull_request'
     strategy:
       fail-fast: false
       matrix:
-        formula: 
-          - mysql
-          - mysql@5.7
-          - percona-server
-          - mariadb
+        formula:
+          - mysql@8.0
         macos:
           - macos-11
           - macos-12
         xcode:
-          - latest
           - latest-stable
-        include:
-          - username: root
-          - formula: mariadb
-            username: runner
     runs-on: ${{ matrix.macos }}
     steps:
       - name: Select latest available Xcode
@@ -119,14 +174,14 @@ jobs:
       - name: Start MySQL server
         run: brew services start ${{ matrix.formula }}
       - name: Wait for MySQL server to be ready
-        run: until echo | mysql -u${{ matrix.username }}; do sleep 1; done
+        run: until echo | mysql -uroot; do sleep 1; done
         timeout-minutes: 5
       - name: Set up MySQL databases and privileges
         run: |
-          mysql -u${{ matrix.username }} --batch <<-'SQL'
-              CREATE USER vapor_username@localhost IDENTIFIED BY 'vapor_password';
-              CREATE DATABASE vapor_database; 
-              GRANT ALL PRIVILEGES ON vapor_database.* TO vapor_username@localhost;
+          mysql -uroot --batch <<-'SQL'
+              CREATE USER test_username@localhost IDENTIFIED BY 'test_password';
+              CREATE DATABASE test_database; 
+              GRANT ALL PRIVILEGES ON test_database.* TO test_username@localhost;
           SQL
       - name: Check out code
         uses: actions/checkout@v3
@@ -134,5 +189,3 @@ jobs:
         run: swift test --sanitize=thread
         env: 
           MYSQL_HOSTNAME: '127.0.0.1'
-          MYSQL_DATABASE: vapor_database
-          LOG_LEVEL: info

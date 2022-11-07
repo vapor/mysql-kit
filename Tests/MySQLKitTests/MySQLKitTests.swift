@@ -121,9 +121,9 @@ class MySQLKitTests: XCTestCase {
         let configuration = MySQLConfiguration(
             hostname: env("MYSQL_HOSTNAME") ?? "localhost",
             port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
-            username: env("MYSQL_USERNAME") ?? "vapor_username",
-            password: env("MYSQL_PASSWORD") ?? "vapor_password",
-            database: env("MYSQL_DATABASE") ?? "vapor_database",
+            username: env("MYSQL_USERNAME") ?? "test_username",
+            password: env("MYSQL_PASSWORD") ?? "test_password",
+            database: env("MYSQL_DATABASE") ?? "test_database",
             tlsConfiguration: tls
         )
         self.pools = .init(
