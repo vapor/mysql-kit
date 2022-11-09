@@ -88,6 +88,6 @@ public struct MySQLDialect: SQLDialect {
 fileprivate let hexTable: [UInt8] = [0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66]
 extension Sequence where Element == UInt8 {
     fileprivate var hexRepresentation: String {
-        .init(decoding: self.flatMap { [hexTable[Int($0 >> 4)], hexTable[Int($0 & 0x7)]] }, as: Unicode.ASCII.self)
+        .init(decoding: self.flatMap { [hexTable[Int($0 >> 4)], hexTable[Int($0 & 0xf)]] }, as: Unicode.ASCII.self)
     }
 }
