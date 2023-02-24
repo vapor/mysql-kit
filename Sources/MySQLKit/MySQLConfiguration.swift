@@ -1,6 +1,6 @@
-@_exported import struct Foundation.URL
-@_exported import struct Foundation.Data
-@_exported import struct NIOSSL.TLSConfiguration
+import Foundation
+import NIOSSL
+import NIOCore
 
 public struct MySQLConfiguration {
     public var address: () throws -> SocketAddress
