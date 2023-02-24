@@ -1,4 +1,6 @@
 import enum Crypto.Insecure
+import SQLKit
+import Foundation
 
 public struct MySQLDialect: SQLDialect {
     public init() {}

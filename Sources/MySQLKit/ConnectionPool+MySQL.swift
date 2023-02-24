@@ -1,3 +1,8 @@
+import NIOCore
+import AsyncKit
+import Logging
+import MySQLNIO
+
 extension EventLoopConnectionPool where Source == MySQLConnectionSource {
     public func database(logger: Logger) -> MySQLDatabase {
         _EventLoopConnectionPoolMySQLDatabase(pool: self, logger: logger)

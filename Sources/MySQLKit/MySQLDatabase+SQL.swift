@@ -1,3 +1,6 @@
+import MySQLNIO
+import SQLKit
+
 extension MySQLDatabase {
     public func sql(
         encoder: MySQLDataEncoder = .init(),
