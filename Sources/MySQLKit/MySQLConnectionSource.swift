@@ -23,6 +23,7 @@ public struct MySQLConnectionSource: ConnectionPoolSource {
             database: self.configuration.database ?? self.configuration.username,
             password: self.configuration.password,
             tlsConfiguration: self.configuration.tlsConfiguration,
+            serverHostname: self.configuration._hostname,
             logger: logger,
             on: eventLoop
         )
