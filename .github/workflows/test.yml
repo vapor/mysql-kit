@@ -119,6 +119,7 @@ jobs:
       - name: Run local tests with coverage and TSan
         run: swift test --enable-code-coverage --sanitize=thread
       - name: Submit coverage report to Codecov.io
+        if: ${{ !contains(matrix.runner, '5.8') }}
         uses: vapor/swift-codecov-action@v0.2
         with:
           cc_flags: 'unittests'
