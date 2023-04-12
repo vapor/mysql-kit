@@ -1,6 +1,7 @@
 import Foundation
 import NIOSSL
 import NIOCore
+@_implementationOnly import NIOPosix // for inet_pton()
 
 public struct MySQLConfiguration {
     public var address: () throws -> SocketAddress
@@ -84,7 +85,14 @@ public struct MySQLConfiguration {
         self.username = username
         self.database = database
         self.password = password
-        self.tlsConfiguration = tlsConfiguration
-        self._hostname = hostname
+        if let tlsConfiguration = tlsConfiguration {
+            self.tlsConfiguration = tlsConfiguration
+
+            // Temporary fix - this logic should be removed once MySQLNIO is updated
+            var n4 = in_addr(), n6 = in6_addr()
+            if inet_pton(AF_INET, hostname, &n4) != 1 && inet_pton(AF_INET6, hostname, &n6) != 1 {
+                self._hostname = hostname
+            }
+        }
     }
 }
