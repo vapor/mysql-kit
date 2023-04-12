@@ -1,4 +1,5 @@
 import Foundation
+import MySQLNIO
 
 public struct MySQLDataEncoder {
     let json: JSONEncoder

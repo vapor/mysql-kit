@@ -4,6 +4,8 @@ import SQLKitBenchmark
 import XCTest
 import NIOSSL
 import AsyncKit
+import SQLKit
+import MySQLNIO
 
 class MySQLKitTests: XCTestCase {
     func testSQLBenchmark() throws {

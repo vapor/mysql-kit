@@ -1,3 +1,8 @@
+import NIOCore
+import Logging
+import MySQLNIO
+import AsyncKit
+
 public struct MySQLConnectionSource: ConnectionPoolSource {
     public let configuration: MySQLConfiguration
 

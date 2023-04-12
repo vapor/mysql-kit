@@ -1,3 +1,6 @@
+import MySQLNIO
+import SQLKit
+
 extension MySQLRow {
     public func sql(decoder: MySQLDataDecoder = .init()) -> SQLRow {
         _MySQLSQLRow(row: self, decoder: decoder)
