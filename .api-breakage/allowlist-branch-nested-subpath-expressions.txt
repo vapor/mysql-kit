@@ -1,0 +1,6 @@
+API breakage: func MySQLDialect.customDataType(for:) has return type change from SQLKit.SQLExpression? to (SQLKit.SQLExpression)?
+API breakage: var MySQLDialect.sharedSelectLockExpression has declared type change from SQLKit.SQLExpression? to (SQLKit.SQLExpression)?
+API breakage: accessor MySQLDialect.sharedSelectLockExpression.Get() has return type change from SQLKit.SQLExpression? to (SQLKit.SQLExpression)?
+API breakage: var MySQLDialect.exclusiveSelectLockExpression has declared type change from SQLKit.SQLExpression? to (SQLKit.SQLExpression)?
+API breakage: accessor MySQLDialect.exclusiveSelectLockExpression.Get() has return type change from SQLKit.SQLExpression? to (SQLKit.SQLExpression)?
+
