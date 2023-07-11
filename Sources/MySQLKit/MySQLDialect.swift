@@ -9,19 +9,19 @@ public struct MySQLDialect: SQLDialect {
         "mysql"
     }
     
-    public var identifierQuote: SQLExpression {
+    public var identifierQuote: any SQLExpression {
         return SQLRaw("`")
     }
     
-    public var literalStringQuote: SQLExpression {
+    public var literalStringQuote: any SQLExpression {
         return SQLRaw("'")
     }
     
-    public func bindPlaceholder(at position: Int) -> SQLExpression {
+    public func bindPlaceholder(at position: Int) -> any SQLExpression {
         return SQLRaw("?")
     }
 
-    public func literalBoolean(_ value: Bool) -> SQLExpression {
+    public func literalBoolean(_ value: Bool) -> any SQLExpression {
         switch value {
         case false:
             return SQLRaw("0")
@@ -30,7 +30,7 @@ public struct MySQLDialect: SQLDialect {
         }
     }
     
-    public var autoIncrementClause: SQLExpression {
+    public var autoIncrementClause: any SQLExpression {
         return SQLRaw("AUTO_INCREMENT")
     }
 
@@ -42,7 +42,7 @@ public struct MySQLDialect: SQLDialect {
         .inline
     }
 
-    public func customDataType(for dataType: SQLDataType) -> SQLExpression? {
+    public func customDataType(for dataType: SQLDataType) -> (any SQLExpression)? {
         switch dataType {
         case .text:
             return SQLRaw("VARCHAR(255)")
@@ -58,7 +58,7 @@ public struct MySQLDialect: SQLDialect {
         )
     }
     
-    public func normalizeSQLConstraint(identifier: SQLExpression) -> SQLExpression {
+    public func normalizeSQLConstraint(identifier: any SQLExpression) -> any SQLExpression {
         if let sqlIdentifier = identifier as? SQLIdentifier {
             return SQLIdentifier(Insecure.SHA1.hash(data: Data(sqlIdentifier.string.utf8)).hexRepresentation)
         } else {
@@ -78,12 +78,25 @@ public struct MySQLDialect: SQLDialect {
         [.union, .unionAll, .explicitDistinct, .parenthesizedSubqueries]
     }
     
-    public var sharedSelectLockExpression: SQLExpression? {
+    public var sharedSelectLockExpression: (any SQLExpression)? {
         SQLRaw("LOCK IN SHARE MODE")
     }
     
-    public var exclusiveSelectLockExpression: SQLExpression? {
+    public var exclusiveSelectLockExpression: (any SQLExpression)? {
         SQLRaw("FOR UPDATE")
+    }
+    
+    public func nestedSubpathExpression(in column: any SQLExpression, for path: [String]) -> (any SQLExpression)? {
+        guard !path.isEmpty else { return nil }
+        
+        // N.B.: While MySQL has had the `->` and `->>` operators since 5.7.13, there are still implementations with
+        // which they do not work properly (most notably AWS's Aurora 2.x), so we use the legacy functions instead.
+        return SQLFunction("json_unquote", args:
+            SQLFunction("json_extract", args: [
+                column,
+                SQLLiteral.string("$.\(path.joined(separator: "."))")
+            ]
+        ))
     }
 }
 

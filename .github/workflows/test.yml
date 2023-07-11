@@ -7,7 +7,7 @@ on:
   push: { branches: [ main ] }
 
 env:
-  LOG_LEVEL: debug
+  LOG_LEVEL: info
   SWIFT_DETERMINISTIC_HASHING: 1
   MYSQL_HOSTNAME: 'mysql-a'
   MYSQL_HOSTNAME_A: 'mysql-a'
@@ -24,22 +24,17 @@ env:
 
 jobs:
 
-  # Check for API breakage versus main
   api-breakage:
-    if: ${{ github.event_name == 'pull_request' && !github.event.pull_request.draft }}
+    if: ${{ !(github.event.pull_request.draft || false) }}
     runs-on: ubuntu-latest
     container: swift:5.8-jammy
     steps:
-      - name: Check out package
+      - name: Check out code
         uses: actions/checkout@v3
-        with: { fetch-depth: 0 }
-      # https://github.com/actions/checkout/issues/766
-      - name: Mark the workspace as safe
-        run: git config --global --add safe.directory ${GITHUB_WORKSPACE}
-      - name: Check for API breaking changes
-        run: swift package diagnose-api-breaking-changes origin/main
+        with: { 'fetch-depth': 0 }
+      - name: Run API breakage check action
+        uses: vapor/ci/.github/actions/ci-swift-check-api-breakage@reusable-workflows
 
-  # Test integration with downstream Fluent driver
   dependents:
     if: ${{ !(github.event.pull_request.draft || false) }}
     runs-on: ubuntu-latest
@@ -65,7 +60,7 @@ jobs:
         dbimage:
           - mysql:5.7
           - mysql:8.0
-          - mariadb:10.11
+          - mariadb:11
           - percona:8.0
     steps:
       - name: Check out package
@@ -91,15 +86,13 @@ jobs:
           - mysql:5.7
           - mysql:8.0
           - mariadb:10.4
-          - mariadb:10.11
+          - mariadb:11
           - percona:8.0
         runner:
           # List is deliberately incomplete; we want to avoid running 50 jobs on every commit
           - swift:5.6-focal
-          #- swift:5.7-jammy
           - swift:5.8-jammy
           - swiftlang/swift:nightly-5.9-jammy
-          #- swiftlang/swift:nightly-main-jammy
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     services:
@@ -114,19 +107,22 @@ jobs:
       - name: Save MySQL version to env
         run: |
           echo MYSQL_VERSION='${{ matrix.dbimage }}' >> $GITHUB_ENV
+      - name: Display versions
+        shell: bash
+        run: |
+          if [[ '${{ contains(matrix.container, 'nightly') }}' == 'true' ]]; then
+            SWIFT_PLATFORM="$(source /etc/os-release && echo "${ID}${VERSION_ID}")" SWIFT_VERSION="$(cat /.swift_tag)"
+            printf 'SWIFT_PLATFORM=%s\nSWIFT_VERSION=%s\n' "${SWIFT_PLATFORM}" "${SWIFT_VERSION}" >>"${GITHUB_ENV}"
+          fi
+          printf 'OS:  %s\nTag: %s\nVersion:\n' "${SWIFT_PLATFORM}-${RUNNER_ARCH}" "${SWIFT_VERSION}" && swift --version
       - name: Check out package
         uses: actions/checkout@v3
       - name: Run local tests with coverage and TSan
         run: swift test --enable-code-coverage --sanitize=thread
       - name: Submit coverage report to Codecov.io
-        if: ${{ !contains(matrix.runner, '5.8') }}
         uses: vapor/swift-codecov-action@v0.2
         with:
-          cc_flags: 'unittests'
           cc_env_vars: 'SWIFT_VERSION,SWIFT_PLATFORM,RUNNER_OS,RUNNER_ARCH,MYSQL_VERSION'
-          cc_fail_ci_if_error: true
-          cc_verbose: true
-          cc_dry_run: false
 
   # Run unit tests (macOS). Don't bother with lots of variations, Linux will cover that.
   macos-unit:
@@ -135,7 +131,7 @@ jobs:
       fail-fast: false
       matrix:
         formula: [ 'mysql@8.0' ]
-        macos: [ 'macos-12' ]
+        macos: [ 'macos-13' ]
         xcode: [ 'latest-stable' ]
     runs-on: ${{ matrix.macos }}
     steps:
@@ -162,15 +158,3 @@ jobs:
       - name: Run tests with Thread Sanitizer
         run: swift test --sanitize=thread
         env: { MYSQL_HOSTNAME: '127.0.0.1' }
-
-  test-exports:
-    if: ${{ !(github.event.pull_request.draft || false) }}
-    name: Test exports
-    runs-on: ubuntu-latest
-    container: swift:5.8-jammy
-    steps:
-      - name: Check out package
-        uses: actions/checkout@v3
-        with: { fetch-depth: 0 }
-      - name: Build
-        run: swift build -Xswiftc -DBUILDING_DOCC
