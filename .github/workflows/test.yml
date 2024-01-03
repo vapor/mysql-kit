@@ -27,10 +27,10 @@ jobs:
   api-breakage:
     if: ${{ !(github.event.pull_request.draft || false) }}
     runs-on: ubuntu-latest
-    container: swift:5.8-jammy
+    container: swift:5.9-jammy
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with: { 'fetch-depth': 0 }
       - name: Run API breakage check action
         uses: vapor/ci/.github/actions/ci-swift-check-api-breakage@reusable-workflows
@@ -53,21 +53,21 @@ jobs:
           MYSQL_USER: test_username
           MYSQL_PASSWORD: test_password
           MYSQL_DATABASE: test_database
-    container: swift:5.8-jammy
+    container: swift:5.9-jammy
     strategy:
       fail-fast: false
       matrix:
         dbimage:
           - mysql:5.7
-          - mysql:8.0
+          - mysql:8.1
           - mariadb:11
           - percona:8.0
     steps:
       - name: Check out package
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with: { path: 'mysql-kit' }
       - name: Check out dependent
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: vapor/fluent-mysql-driver
           path: fluent-mysql-driver
@@ -85,14 +85,15 @@ jobs:
         dbimage:
           - mysql:5.7
           - mysql:8.0
+          - mysql:8.1
           - mariadb:10.4
           - mariadb:11
           - percona:8.0
         runner:
           # List is deliberately incomplete; we want to avoid running 50 jobs on every commit
-          - swift:5.6-focal
-          - swift:5.8-jammy
-          - swiftlang/swift:nightly-5.9-jammy
+          - swift:5.7-focal
+          - swift:5.9-jammy
+          - swiftlang/swift:nightly-5.10-jammy
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     services:
@@ -116,13 +117,11 @@ jobs:
           fi
           printf 'OS:  %s\nTag: %s\nVersion:\n' "${SWIFT_PLATFORM}-${RUNNER_ARCH}" "${SWIFT_VERSION}" && swift --version
       - name: Check out package
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Run local tests with coverage and TSan
         run: swift test --enable-code-coverage --sanitize=thread
       - name: Submit coverage report to Codecov.io
         uses: vapor/swift-codecov-action@v0.2
-        with:
-          cc_env_vars: 'SWIFT_VERSION,SWIFT_PLATFORM,RUNNER_OS,RUNNER_ARCH,MYSQL_VERSION'
 
   # Run unit tests (macOS). Don't bother with lots of variations, Linux will cover that.
   macos-unit:
@@ -154,7 +153,7 @@ jobs:
               GRANT ALL PRIVILEGES ON test_database.* TO test_username@localhost;
           SQL
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Run tests with Thread Sanitizer
         run: swift test --sanitize=thread
         env: { MYSQL_HOSTNAME: '127.0.0.1' }
