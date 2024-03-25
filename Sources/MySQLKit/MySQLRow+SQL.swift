@@ -2,16 +2,18 @@ import MySQLNIO
 import SQLKit
 
 extension MySQLRow {
-    public func sql(decoder: MySQLDataDecoder = .init()) -> SQLRow {
-        _MySQLSQLRow(row: self, decoder: decoder)
+    public func sql(decoder: MySQLDataDecoder = .init()) -> any SQLRow {
+        MySQLSQLRow(row: self, decoder: decoder)
     }
 }
+
+extension MySQLNIO.MySQLRow: @unchecked Sendable {} // Fully qualifying the type name implies @retroactive
 
 struct MissingColumn: Error {
     let column: String
 }
 
-private struct _MySQLSQLRow: SQLRow {
+private struct MySQLSQLRow: SQLRow {
     let row: MySQLRow
     let decoder: MySQLDataDecoder
 
@@ -30,7 +32,7 @@ private struct _MySQLSQLRow: SQLRow {
         return data.buffer == nil
     }
 
-    func decode<D>(column: String, as type: D.Type) throws -> D where D : Decodable {
+    func decode<D: Decodable>(column: String, as: D.Type) throws -> D {
         guard let data = self.row.column(column) else {
             throw MissingColumn(column: column)
         }

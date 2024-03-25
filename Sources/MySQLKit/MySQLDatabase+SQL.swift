@@ -5,35 +5,37 @@ extension MySQLDatabase {
     public func sql(
         encoder: MySQLDataEncoder = .init(),
         decoder: MySQLDataDecoder = .init()
-    ) -> SQLDatabase {
-        _MySQLSQLDatabase(database: self, encoder: encoder, decoder: decoder)
+    ) -> any SQLDatabase {
+        MySQLSQLDatabase(database: .init(value: self), encoder: encoder, decoder: decoder)
     }
 }
 
-
-private struct _MySQLSQLDatabase {
-    let database: MySQLDatabase
+private struct MySQLSQLDatabase<D: MySQLDatabase> {
+    struct FakeSendable<T>: @unchecked Sendable {
+        let value: T
+    }
+    let database: FakeSendable<D>
     let encoder: MySQLDataEncoder
     let decoder: MySQLDataDecoder
 }
 
-extension _MySQLSQLDatabase: SQLDatabase {
+extension MySQLSQLDatabase: SQLDatabase {
     var logger: Logger {
-        self.database.logger
+        self.database.value.logger
     }
     
-    var eventLoop: EventLoop {
-        self.database.eventLoop
+    var eventLoop: any EventLoop {
+        self.database.value.eventLoop
     }
     
-    var dialect: SQLDialect {
+    var dialect: any SQLDialect {
         MySQLDialect()
     }
     
-    func execute(sql query: SQLExpression, _ onRow: @escaping (SQLRow) -> ()) -> EventLoopFuture<Void> {
+    func execute(sql query: any SQLExpression, _ onRow: @escaping (any SQLRow) -> ()) -> EventLoopFuture<Void> {
         let (sql, binds) = self.serialize(query)
         do {
-            return try self.database.query(sql, binds.map { encodable in
+            return try self.database.value.query(sql, binds.map { encodable in
                 return try self.encoder.encode(encodable)
             }, onRow: { row in
                 onRow(row.sql(decoder: self.decoder))

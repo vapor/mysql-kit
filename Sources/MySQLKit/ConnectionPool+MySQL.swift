@@ -4,28 +4,26 @@ import Logging
 import MySQLNIO
 
 extension EventLoopConnectionPool where Source == MySQLConnectionSource {
-    public func database(logger: Logger) -> MySQLDatabase {
-        _EventLoopConnectionPoolMySQLDatabase(pool: self, logger: logger)
+    public func database(logger: Logger) -> any MySQLDatabase {
+        EventLoopConnectionPoolMySQLDatabase(pool: self, logger: logger)
     }
 }
 
 extension EventLoopGroupConnectionPool where Source == MySQLConnectionSource {
-    public func database(logger: Logger) -> MySQLDatabase {
-        _EventLoopGroupConnectionPoolMySQLDatabase(pools: self, logger: logger)
+    public func database(logger: Logger) -> any MySQLDatabase {
+        EventLoopGroupConnectionPoolMySQLDatabase(pools: self, logger: logger)
     }
 }
 
-private struct _EventLoopGroupConnectionPoolMySQLDatabase {
+private struct EventLoopGroupConnectionPoolMySQLDatabase: MySQLDatabase {
     let pools: EventLoopGroupConnectionPool<MySQLConnectionSource>
     let logger: Logger
-}
 
-extension _EventLoopGroupConnectionPoolMySQLDatabase: MySQLDatabase {
-    var eventLoop: EventLoop {
-        self.pools.eventLoopGroup.next()
+    var eventLoop: any EventLoop {
+        self.pools.eventLoopGroup.any()
     }
 
-    func send(_ command: MySQLCommand, logger: Logger) -> EventLoopFuture<Void> {
+    func send(_ command: any MySQLCommand, logger: Logger) -> EventLoopFuture<Void> {
         self.pools.withConnection(logger: logger) {
             $0.send(command, logger: logger)
         }
@@ -36,17 +34,15 @@ extension _EventLoopGroupConnectionPoolMySQLDatabase: MySQLDatabase {
     }
 }
 
-private struct _EventLoopConnectionPoolMySQLDatabase {
+private struct EventLoopConnectionPoolMySQLDatabase: MySQLDatabase {
     let pool: EventLoopConnectionPool<MySQLConnectionSource>
     let logger: Logger
-}
 
-extension _EventLoopConnectionPoolMySQLDatabase: MySQLDatabase {
-    var eventLoop: EventLoop {
+    var eventLoop: any EventLoop {
         self.pool.eventLoop
     }
     
-    func send(_ command: MySQLCommand, logger: Logger) -> EventLoopFuture<Void> {
+    func send(_ command: any MySQLCommand, logger: Logger) -> EventLoopFuture<Void> {
         self.pool.withConnection(logger: logger) {
             $0.send(command, logger: logger)
         }

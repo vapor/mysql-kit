@@ -1,7 +1,7 @@
 import Foundation
 import NIOSSL
 import NIOCore
-@_implementationOnly import NIOPosix // for inet_pton()
+import NIOPosix // for inet_pton()
 
 public struct MySQLConfiguration {
     public var address: () throws -> SocketAddress

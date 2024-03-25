@@ -10,15 +10,15 @@ public struct MySQLDialect: SQLDialect {
     }
     
     public var identifierQuote: any SQLExpression {
-        return SQLRaw("`")
+        SQLRaw("`")
     }
     
     public var literalStringQuote: any SQLExpression {
-        return SQLRaw("'")
+        SQLRaw("'")
     }
     
     public func bindPlaceholder(at position: Int) -> any SQLExpression {
-        return SQLRaw("?")
+        SQLRaw("?")
     }
 
     public func literalBoolean(_ value: Bool) -> any SQLExpression {
@@ -31,7 +31,7 @@ public struct MySQLDialect: SQLDialect {
     }
     
     public var autoIncrementClause: any SQLExpression {
-        return SQLRaw("AUTO_INCREMENT")
+        SQLRaw("AUTO_INCREMENT")
     }
 
     public var supportsAutoIncrement: Bool {
@@ -67,7 +67,7 @@ public struct MySQLDialect: SQLDialect {
     }
 
     public var triggerSyntax: SQLTriggerSyntax {
-        return .init(create: [.supportsBody, .conditionRequiresParentheses, .supportsOrder])
+        .init(create: [.supportsBody, .conditionRequiresParentheses, .supportsOrder], drop: [])
     }
     
     public var upsertSyntax: SQLUpsertSyntax {

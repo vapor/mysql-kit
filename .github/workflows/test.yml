@@ -25,15 +25,17 @@ env:
 jobs:
 
   api-breakage:
-    if: ${{ !(github.event.pull_request.draft || false) }}
+    if: ${{ github.event_name == 'pull_request' && !(github.event.pull_request.draft || false) }}
     runs-on: ubuntu-latest
-    container: swift:5.9-jammy
+    container: swift:jammy
     steps:
-      - name: Check out code
+      - name: Checkout
         uses: actions/checkout@v4
         with: { 'fetch-depth': 0 }
-      - name: Run API breakage check action
-        uses: vapor/ci/.github/actions/ci-swift-check-api-breakage@reusable-workflows
+      - name: API breaking changes
+        run: |
+          git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+          swift package diagnose-api-breaking-changes origin/main
 
   dependents:
     if: ${{ !(github.event.pull_request.draft || false) }}
@@ -53,13 +55,13 @@ jobs:
           MYSQL_USER: test_username
           MYSQL_PASSWORD: test_password
           MYSQL_DATABASE: test_database
-    container: swift:5.9-jammy
+    container: swift:5.10-jammy
     strategy:
       fail-fast: false
       matrix:
         dbimage:
           - mysql:5.7
-          - mysql:8.1
+          - mysql:8
           - mariadb:11
           - percona:8.0
     steps:
@@ -85,15 +87,15 @@ jobs:
         dbimage:
           - mysql:5.7
           - mysql:8.0
-          - mysql:8.1
+          - mysql:8.3
           - mariadb:10.4
           - mariadb:11
           - percona:8.0
         runner:
           # List is deliberately incomplete; we want to avoid running 50 jobs on every commit
-          - swift:5.7-focal
-          - swift:5.9-jammy
-          - swiftlang/swift:nightly-5.10-jammy
+          - swift:5.8-focal
+          - swift:5.10-jammy
+          - swiftlang/swift:nightly-main-jammy
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     services:
@@ -105,17 +107,6 @@ jobs:
           MYSQL_PASSWORD: test_password
           MYSQL_DATABASE: test_database
     steps:
-      - name: Save MySQL version to env
-        run: |
-          echo MYSQL_VERSION='${{ matrix.dbimage }}' >> $GITHUB_ENV
-      - name: Display versions
-        shell: bash
-        run: |
-          if [[ '${{ contains(matrix.container, 'nightly') }}' == 'true' ]]; then
-            SWIFT_PLATFORM="$(source /etc/os-release && echo "${ID}${VERSION_ID}")" SWIFT_VERSION="$(cat /.swift_tag)"
-            printf 'SWIFT_PLATFORM=%s\nSWIFT_VERSION=%s\n' "${SWIFT_PLATFORM}" "${SWIFT_VERSION}" >>"${GITHUB_ENV}"
-          fi
-          printf 'OS:  %s\nTag: %s\nVersion:\n' "${SWIFT_PLATFORM}-${RUNNER_ARCH}" "${SWIFT_VERSION}" && swift --version
       - name: Check out package
         uses: actions/checkout@v4
       - name: Run local tests with coverage and TSan
@@ -129,19 +120,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        formula: [ 'mysql@8.0' ]
-        macos: [ 'macos-13' ]
-        xcode: [ 'latest-stable' ]
-    runs-on: ${{ matrix.macos }}
+        include:
+          - macos-version: macos-13
+            xcode-version: '~14.3'
+          - macos-version: macos-14
+            xcode-version: latest
+    runs-on: ${{ matrix.macos-version }}
     steps:
       - name: Select latest available Xcode
         uses: maxim-lobanov/setup-xcode@v1
-        with: 
-          xcode-version: ${{ matrix.xcode }}
+        with:
+          xcode-version: ${{ matrix.xcode-version }}
       - name: Install MySQL server from Homebrew
-        run: brew install ${{ matrix.formula }} && brew link --force ${{ matrix.formula }}
+        run: brew install mysql && brew link --force mysql
       - name: Start MySQL server
-        run: brew services start ${{ matrix.formula }}
+        run: brew services start mysql
       - name: Wait for MySQL server to be ready
         run: until echo | mysql -uroot; do sleep 1; done
         timeout-minutes: 5

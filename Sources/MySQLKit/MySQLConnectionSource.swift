@@ -10,7 +10,7 @@ public struct MySQLConnectionSource: ConnectionPoolSource {
         self.configuration = configuration
     }
 
-    public func makeConnection(logger: Logger, on eventLoop: EventLoop) -> EventLoopFuture<MySQLConnection> {
+    public func makeConnection(logger: Logger, on eventLoop: any EventLoop) -> EventLoopFuture<MySQLConnection> {
         let address: SocketAddress
         do {
             address = try self.configuration.address()
@@ -30,4 +30,4 @@ public struct MySQLConnectionSource: ConnectionPoolSource {
     }
 }
 
-extension MySQLConnection: ConnectionPoolItem { }
+extension MySQLConnection: ConnectionPoolItem {}

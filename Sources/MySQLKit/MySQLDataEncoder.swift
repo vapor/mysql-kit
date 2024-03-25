@@ -1,15 +1,15 @@
 import Foundation
 import MySQLNIO
 
-public struct MySQLDataEncoder {
+public struct MySQLDataEncoder: Sendable {
     let json: JSONEncoder
 
     public init(json: JSONEncoder = .init()) {
         self.json = json
     }
     
-    public func encode(_ value: Encodable) throws -> MySQLData {
-        if let custom = value as? MySQLDataConvertible, let data = custom.mysqlData {
+    public func encode(_ value: any Encodable) throws -> MySQLData {
+        if let custom = value as? any MySQLDataConvertible {
             return data
         } else {
             let encoder = _Encoder(parent: self)

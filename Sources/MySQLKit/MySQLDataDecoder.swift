@@ -19,7 +19,7 @@ extension Optional: MySQLDataConvertible where Wrapped: MySQLDataConvertible {
     }
 }
 
-public struct MySQLDataDecoder {
+public struct MySQLDataDecoder: Sendable {
     let json: JSONDecoder
 
     public init(json: JSONDecoder = .init()) {
@@ -30,7 +30,7 @@ public struct MySQLDataDecoder {
         where T: Decodable
     {
         // If `T` can be converted directly, just do so.
-        if let convertible = T.self as? MySQLDataConvertible.Type {
+        if let convertible = T.self as? any MySQLDataConvertible.Type {
             guard let value = convertible.init(mysqlData: data) else {
                 throw DecodingError.typeMismatch(T.self, .init(
                     codingPath: [],
@@ -72,8 +72,8 @@ public struct MySQLDataDecoder {
             throw DecodingError.dataCorrupted(.init(codingPath: self.codingPath, debugDescription: "Dictionary containers must be JSON-encoded"))
         }
         
-        func singleValueContainer() throws -> SingleValueDecodingContainer {
-            return self
+        func singleValueContainer() throws -> any SingleValueDecodingContainer {
+            self
         }
 
         func decodeNil() -> Bool {

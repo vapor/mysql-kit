@@ -103,26 +103,27 @@ class MySQLKitTests: XCTestCase {
         XCTAssertEqual(decoded2.count, 2)
     }
 
-    var sql: SQLDatabase {
+    var sql: any SQLDatabase {
         self.mysql.sql()
     }
 
-    var mysql: MySQLDatabase {
+    var mysql: any MySQLDatabase {
         self.pools.database(logger: .init(label: "codes.vapor.mysql"))
     }
 
-    var eventLoopGroup: EventLoopGroup!
+    var eventLoopGroup: any EventLoopGroup = MultiThreadedEventLoopGroup.singleton
     var pools: EventLoopGroupConnectionPool<MySQLConnectionSource>!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         XCTAssertTrue(isLoggingConfigured)
+
         var tls = TLSConfiguration.makeClientConfiguration()
         tls.certificateVerification = .none
-        self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 2)
+
         let configuration = MySQLConfiguration(
             hostname: env("MYSQL_HOSTNAME") ?? "localhost",
-            port: env("MYSQL_PORT").flatMap(Int.init) ?? 3306,
+            port: env("MYSQL_PORT").flatMap(Int.init) ?? MySQLConfiguration.ianaPortNumber,
             username: env("MYSQL_USERNAME") ?? "test_username",
             password: env("MYSQL_PASSWORD") ?? "test_password",
             database: env("MYSQL_DATABASE") ?? "test_database",
@@ -130,7 +131,7 @@ class MySQLKitTests: XCTestCase {
         )
         self.pools = .init(
             source: .init(configuration: configuration),
-            maxConnectionsPerEventLoop: 2,
+            maxConnectionsPerEventLoop: System.coreCount,
             requestTimeout: .seconds(30),
             logger: .init(label: "codes.vapor.mysql"),
             on: self.eventLoopGroup
@@ -140,8 +141,7 @@ class MySQLKitTests: XCTestCase {
     override func tearDownWithError() throws {
         try self.pools.syncShutdownGracefully()
         self.pools = nil
-        try self.eventLoopGroup.syncShutdownGracefully()
-        self.eventLoopGroup = nil
+        
         try super.tearDownWithError()
     }
 }
@@ -153,7 +153,7 @@ func env(_ name: String) -> String? {
 let isLoggingConfigured: Bool = {
     LoggingSystem.bootstrap { label in
         var handler = StreamLogHandler.standardOutput(label: label)
-        handler.logLevel = env("LOG_LEVEL").flatMap { Logger.Level(rawValue: $0) } ?? .debug
+        handler.logLevel = env("LOG_LEVEL").flatMap { .init(rawValue: $0) } ?? .debug
         return handler
     }
     return true
