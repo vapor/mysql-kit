@@ -75,7 +75,7 @@ public struct MySQLDialect: SQLDialect {
     }
 
     public var unionFeatures: SQLUnionFeatures {
-        [.union, .unionAll, .explicitDistinct, .parenthesizedSubqueries]
+        [.union, .unionAll, .intersect, .intersectAll, .except, .exceptAll, .explicitDistinct, .parenthesizedSubqueries]
     }
     
     public var sharedSelectLockExpression: (any SQLExpression)? {

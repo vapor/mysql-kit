@@ -1,23 +1,7 @@
 import Foundation
 import MySQLNIO
 import NIOFoundationCompat
-
-extension Optional: MySQLDataConvertible where Wrapped: MySQLDataConvertible {
-    public init?(mysqlData: MySQLData) {
-        if mysqlData.buffer != nil {
-            guard let value = Wrapped.init(mysqlData: mysqlData) else {
-                return nil
-            }
-            self = .some(value)
-        } else {
-            self = .none
-        }
-    }
-    
-    public var mysqlData: MySQLData? {
-        return self.flatMap(\.mysqlData)
-    }
-}
+@_spi(CodableUtilities) import SQLKit
 
 public struct MySQLDataDecoder: Sendable {
     let json: JSONDecoder
@@ -26,9 +10,7 @@ public struct MySQLDataDecoder: Sendable {
         self.json = json
     }
     
-    public func decode<T>(_ type: T.Type, from data: MySQLData) throws -> T
-        where T: Decodable
-    {
+    public func decode<T: Decodable>(_ type: T.Type, from data: MySQLData) throws -> T {
         // If `T` can be converted directly, just do so.
         if let convertible = T.self as? any MySQLDataConvertible.Type {
             guard let value = convertible.init(mysqlData: data) else {
@@ -41,20 +23,19 @@ public struct MySQLDataDecoder: Sendable {
         } else {
             // Probably either a JSON array/object or an enum type not using @Enum. See if it can be "unwrapped" as a
             // single-value decoding container, since this is much faster than attempting a JSON decode; this will
-            // handle "box" types such as `RawRepresentable` enums and `Optional` (if Optional didn't already directly
-            // conform), but still allow falling back to JSON.
+            // handle "box" types such as `RawRepresentable` enums or fall back on JSON decoding if necessary.
             do {
-                return try T.init(from: GiftBoxUnwrapDecoder(decoder: self, data: data))
-            } catch DecodingError.dataCorrupted {
-                // Couldn't unwrap it either. Fall back to attempting a JSON decode.
-                return try self.json.decode(T.self, from: data.buffer!)
+                return try T.init(from: NestedSingleValueUnwrappingDecoder(decoder: self, data: data))
+            } catch is SQLCodingError where [.blob, .json, .longBlob, .mediumBlob, .string, .tinyBlob, .varString, .varchar].contains(data.type) {
+                // Couldn't unwrap it, but it's textual. Try decoding as JSON as a last ditch effort.
+                return try self.json.decode(T.self, from: data.buffer ?? .init())
             }
         }
     }
     
-    private final class GiftBoxUnwrapDecoder: Decoder, SingleValueDecodingContainer {
-        var codingPath: [CodingKey] { [] }
-        var userInfo: [CodingUserInfoKey : Any] { [:] }
+    private final class NestedSingleValueUnwrappingDecoder: Decoder, SingleValueDecodingContainer {
+        var codingPath: [any CodingKey] { [] }
+        var userInfo: [CodingUserInfoKey: Any] { [:] }
 
         let dataDecoder: MySQLDataDecoder
         let data: MySQLData
@@ -64,12 +45,12 @@ public struct MySQLDataDecoder: Sendable {
             self.data = data
         }
         
-        func unkeyedContainer() throws -> UnkeyedDecodingContainer {
-            throw DecodingError.dataCorrupted(.init(codingPath: self.codingPath, debugDescription: "Array containers must be JSON-encoded"))
+        func container<Key: CodingKey>(keyedBy: Key.Type) throws -> KeyedDecodingContainer<Key> {
+            throw .invalid(at: self.codingPath)
         }
         
-        func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> where Key: CodingKey {
-            throw DecodingError.dataCorrupted(.init(codingPath: self.codingPath, debugDescription: "Dictionary containers must be JSON-encoded"))
+        func unkeyedContainer() throws -> any UnkeyedDecodingContainer {
+            throw .invalid(at: self.codingPath)
         }
         
         func singleValueContainer() throws -> any SingleValueDecodingContainer {
@@ -77,12 +58,11 @@ public struct MySQLDataDecoder: Sendable {
         }
 
         func decodeNil() -> Bool {
-            self.data.buffer == nil
+            self.data.type == .null || self.data.buffer == nil
         }
 
-        func decode<T>(_ type: T.Type) throws -> T where T : Decodable {
-            // Recurse back into the data decoder, don't repeat its logic here.
-            return try self.dataDecoder.decode(T.self, from: self.data)
+        func decode<T: Decodable>(_: T.Type) throws -> T {
+            try self.dataDecoder.decode(T.self, from: self.data)
         }
     }
 }

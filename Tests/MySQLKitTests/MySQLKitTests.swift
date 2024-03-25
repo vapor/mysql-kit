@@ -19,7 +19,8 @@ class MySQLKitTests: XCTestCase {
         }
 
         let rows = try self.sql.raw("SELECT 1 as `id`, null as `name`")
-            .all(decoding: Person.self).wait()
+            .all(decoding: Person.self)
+            .wait()
         XCTAssertEqual(rows[0].id, 1)
         XCTAssertEqual(rows[0].name, nil)
     }
@@ -27,8 +28,10 @@ class MySQLKitTests: XCTestCase {
     func testCustomJSONCoder() throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .secondsSince1970
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .secondsSince1970
+
         let db = self.mysql.sql(encoder: .init(json: encoder), decoder: .init(json: decoder))
 
         struct Foo: Codable, Equatable {
@@ -38,6 +41,7 @@ class MySQLKitTests: XCTestCase {
             var baz: Date
         }
 
+        try db.drop(table: "foo").ifExists().run().wait()
         try db.create(table: "foo")
             .column("bar", type: .custom(SQLRaw("JSON")))
             .run().wait()
@@ -60,30 +64,43 @@ class MySQLKitTests: XCTestCase {
             // This is intentionally contrived - Fluent's implementation does Codable this roundabout way as a
             // workaround for the interaction of property wrappers with optional properties; it serves no purpose
             // here other than to demonstrate that the encoder supports it.
-            private enum CodingKeys: String, CodingKey { case prop1, prop2, prop3 }
-            init(prop1: String, prop2: [Bool], prop3: [[Bool]]) { (self.prop1, self.prop2, self.prop3) = (prop1, prop2, prop3) }
-            init(from decoder: Decoder) throws {
+            private enum CodingKeys: String, CodingKey {
+                case prop1, prop2, prop3
+            }
+            
+            init(prop1: String, prop2: [Bool], prop3: [[Bool]]) {
+                (self.prop1, self.prop2, self.prop3) = (prop1, prop2, prop3)
+            }
+            
+            init(from decoder: any Decoder) throws {
                 let container = try decoder.container(keyedBy: CodingKeys.self)
                 self.prop1 = try .init(from: container.superDecoder(forKey: .prop1))
+
                 var acontainer = try container.nestedUnkeyedContainer(forKey: .prop2), ongoing: [Bool] = []
                 while !acontainer.isAtEnd { ongoing.append(try Bool.init(from: acontainer.superDecoder())) }
                 self.prop2 = ongoing
+
                 var bcontainer = try container.nestedUnkeyedContainer(forKey: .prop3), bongoing: [[Bool]] = []
                 while !bcontainer.isAtEnd {
                     var ccontainer = try bcontainer.nestedUnkeyedContainer(), congoing: [Bool] = []
+
                     while !ccontainer.isAtEnd { congoing.append(try Bool.init(from: ccontainer.superDecoder())) }
                     bongoing.append(congoing)
                 }
                 self.prop3 = bongoing
             }
-            func encode(to encoder: Encoder) throws {
+
+            func encode(to encoder: any Encoder) throws {
                 var container = encoder.container(keyedBy: CodingKeys.self)
                 try self.prop1.encode(to: container.superEncoder(forKey: .prop1))
+
                 var acontainer = container.nestedUnkeyedContainer(forKey: .prop2)
                 for val in self.prop2 { try val.encode(to: acontainer.superEncoder()) }
+
                 var bcontainer = container.nestedUnkeyedContainer(forKey: .prop3)
                 for arr in self.prop3 {
                     var ccontainer = bcontainer.nestedUnkeyedContainer()
+
                     for val in arr { try val.encode(to: ccontainer.superEncoder()) }
                 }
             }

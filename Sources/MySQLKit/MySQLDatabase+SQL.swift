@@ -36,12 +36,30 @@ extension MySQLSQLDatabase: SQLDatabase {
         let (sql, binds) = self.serialize(query)
         do {
             return try self.database.value.query(sql, binds.map { encodable in
-                return try self.encoder.encode(encodable)
+                try self.encoder.encode(encodable)
             }, onRow: { row in
                 onRow(row.sql(decoder: self.decoder))
             })
         } catch {
             return self.eventLoop.makeFailedFuture(error)
         }
+    }
+    
+    func execute(sql query: any SQLExpression, _ onRow: @escaping (any SQLRow) -> ()) async throws {
+        let (sql, binds) = self.serialize(query)
+        
+        return try await self.database.value.query(
+            sql,
+            binds.map { try self.encoder.encode($0) },
+            onRow: { onRow($0.sql(decoder: self.decoder)) }
+        ).get()
+    }
+    
+    func withSession<R>(_ closure: @escaping @Sendable (any SQLDatabase) async throws -> R) async throws -> R {
+        try await self.database.value.withConnection { c in
+            let sqlDb = c.sql(encoder: self.encoder, decoder: self.decoder)
+            
+            return sqlDb.eventLoop.makeFutureWithTask { try await closure(sqlDb) }
+        }.get()
     }
 }
