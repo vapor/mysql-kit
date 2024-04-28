@@ -35,7 +35,11 @@ MySQLKit supports the following platforms:
 
 ## Overview
 
-MySQLKit is a MySQL client library built on [SQLKit](https://github.com/vapor/sql-kit). It supports building and serializing MySQL-dialect SQL queries. MySQLKit uses [MySQLNIO](https://github.com/vapor/mysql-nio) to connect and communicate with the database server asynchronously. [AsyncKit](https://github.com/vapor/async-kit) is used to provide connection pooling. 
+MySQLKit is an [SQLKit] driver for MySQL cliets. It supports building and serializing MySQL-dialect SQL queries. MySQLKit uses [MySQLNIO] to connect and communicate with the database server asynchronously. [AsyncKit] is used to provide connection pooling.
+
+[SQLKit]: https://github.com/vapor/sql-kit
+[MySQLNIO]: https://github.com/vapor/mysql-nio
+[AsyncKit]: https://github.com/vapor/async-kit
 
 ### Configuration
 
@@ -130,4 +134,4 @@ let sql = mysql.sql() // SQLDatabase
 let planets = try sql.select().column("*").from("planets").all().wait()
 ```
 
-Visit [SQLKit's docs](https://github.com/vapor/sql-kit) for more information on using `SQLDatabase`. 
+Visit [SQLKit's docs](https://api.vapor.codes/sqlkit/documentation/sqlkit) for more information on using `SQLDatabase`. 
