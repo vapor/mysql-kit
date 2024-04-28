@@ -32,20 +32,21 @@ extension MySQLSQLDatabase: SQLDatabase {
         MySQLDialect()
     }
     
-    func execute(sql query: any SQLExpression, _ onRow: @escaping (any SQLRow) -> ()) -> EventLoopFuture<Void> {
+    func execute(sql query: any SQLExpression, _ onRow: @escaping @Sendable (any SQLRow) -> ()) -> EventLoopFuture<Void> {
         let (sql, binds) = self.serialize(query)
+        
         do {
-            return try self.database.value.query(sql, binds.map { encodable in
-                try self.encoder.encode(encodable)
-            }, onRow: { row in
-                onRow(row.sql(decoder: self.decoder))
-            })
+            return try self.database.value.query(
+                sql,
+                binds.map { try self.encoder.encode($0) },
+                onRow: { onRow($0.sql(decoder: self.decoder)) }
+            )
         } catch {
             return self.eventLoop.makeFailedFuture(error)
         }
     }
     
-    func execute(sql query: any SQLExpression, _ onRow: @escaping (any SQLRow) -> ()) async throws {
+    func execute(sql query: any SQLExpression, _ onRow: @escaping @Sendable (any SQLRow) -> ()) async throws {
         let (sql, binds) = self.serialize(query)
         
         return try await self.database.value.query(
