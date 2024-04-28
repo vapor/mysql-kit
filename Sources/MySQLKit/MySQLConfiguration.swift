@@ -30,7 +30,7 @@ public struct MySQLConfiguration {
 
     /// Create a ``MySQLConfiguration`` from an appropriately-formatted URL string.
     /// 
-    /// See ``MySQLConfiguration/init(url:)`` for details of the accepted URL format.
+    /// See ``MySQLConfiguration/init(url:)-4mmel`` for details of the accepted URL format.
     ///
     /// - Parameter url: A URL-formatted MySQL connection string. See ``init(url:)`` for syntax details.
     /// - Returns: `nil` if `url` is not a valid RFC 3986 URI with an authority component (e.g. a URL).
