@@ -23,7 +23,6 @@ env:
   MYSQL_PASSWORD_B: 'test_password'
 
 jobs:
-
   api-breakage:
     if: ${{ github.event_name == 'pull_request' && !(github.event.pull_request.draft || false) }}
     runs-on: ubuntu-latest
@@ -95,7 +94,7 @@ jobs:
           # List is deliberately incomplete; we want to avoid running 50 jobs on every commit
           - swift:5.8-focal
           - swift:5.10-jammy
-          - swiftlang/swift:nightly-main-jammy
+          - swiftlang/swift:nightly-6.0-jammy
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     services:
@@ -112,7 +111,9 @@ jobs:
       - name: Run local tests with coverage and TSan
         run: swift test --enable-code-coverage --sanitize=thread
       - name: Submit coverage report to Codecov.io
-        uses: vapor/swift-codecov-action@v0.2
+        uses: vapor/swift-codecov-action@v0.3
+        with:
+          codecov_token: ${{ secrets.CODECOV_TOKEN }}
 
   # Run unit tests (macOS). Don't bother with lots of variations, Linux will cover that.
   macos-unit:
