@@ -98,7 +98,7 @@ public struct MySQLConfiguration {
             guard (comp.host?.isEmpty ?? true || comp.host == "localhost"), comp.port == nil, !comp.path.isEmpty, comp.path != "/" else {
                 return nil
             }
-            guard case .some(let tlsConfig) = decideTLSConfig(from: comp.queryItems ?? [], defaultMode: "REQUIRED") else {
+            guard case .some(let tlsConfig) = decideTLSConfig(from: comp.queryItems ?? [], defaultMode: "DISABLED") else {
                 return nil
             }
             self.init(
@@ -110,12 +110,43 @@ public struct MySQLConfiguration {
             return nil
         }
     }
-
+    
+    /// Create a ``MySQLConfiguration`` for connecting to a server through a UNIX domain socket.
+    /// 
+    /// - Parameters:
+    ///   - unixDomainSocketPath: The path to the UNIX domain socket to connect through.
+    ///   - username: The username to use for the connection.
+    ///   - password: The password (empty string for none) to use for the connection.
+    ///   - database: The default database for the connection, if any.
     public init(
         unixDomainSocketPath: String,
         username: String,
         password: String,
         database: String? = nil
+    ) {
+        self.init(
+            unixDomainSocketPath: unixDomainSocketPath,
+            username: username,
+            password: password,
+            database: database,
+            tlsConfiguration: nil
+        )
+    }
+    
+    /// Create a ``MySQLConfiguration`` for connecting to a server through a UNIX domain socket.
+    /// 
+    /// - Parameters:
+    ///   - unixDomainSocketPath: The path to the UNIX domain socket to connect through.
+    ///   - username: The username to use for the connection.
+    ///   - password: The password (empty string for none) to use for the connection.
+    ///   - database: The default database for the connection, if any.
+    ///   - tlsConfiguration: An optional `TLSConfiguration` specifying encryption for the connection.
+    public init(
+        unixDomainSocketPath: String,
+        username: String,
+        password: String,
+        database: String? = nil,
+        tlsConfiguration: TLSConfiguration?
     ) {
         self.address = {
             return try SocketAddress.init(unixDomainSocketPath: unixDomainSocketPath)
@@ -123,7 +154,7 @@ public struct MySQLConfiguration {
         self.username = username
         self.password = password
         self.database = database
-        self.tlsConfiguration = nil
+        self.tlsConfiguration = tlsConfiguration
         self._hostname = nil
     }
     
