@@ -47,10 +47,6 @@ let package = Package(
 var swiftSettings: [SwiftSetting] { [
     .enableUpcomingFeature("ConciseMagicFile"),
     .enableUpcomingFeature("ForwardTrailingClosures"),
-    .enableUpcomingFeature("ImportObjcForwardDeclarations"),
     .enableUpcomingFeature("DisableOutwardActorInference"),
-    .enableUpcomingFeature("IsolatedDefaultValues"),
-    .enableUpcomingFeature("GlobalConcurrency"),
-    .enableUpcomingFeature("StrictConcurrency"),
     .enableExperimentalFeature("StrictConcurrency=complete"),
 ] }
