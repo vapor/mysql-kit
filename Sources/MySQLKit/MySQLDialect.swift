@@ -2,25 +2,32 @@ import enum Crypto.Insecure
 import SQLKit
 import Foundation
 
+/// Provides a type conforming to `SQLDialect` specifying the syntax used by MySQL.
 public struct MySQLDialect: SQLDialect {
+    /// Create a new ``MySQLDialect``.
     public init() {}
     
+    // See `SQLDialect.name`.
     public var name: String {
         "mysql"
     }
     
+    // See `SQLDialect.identifierQuote`.
     public var identifierQuote: any SQLExpression {
         SQLRaw("`")
     }
     
+    // See `SQLDialect.literalStringQuote`.
     public var literalStringQuote: any SQLExpression {
         SQLRaw("'")
     }
     
+    // See `SQLDialect.bindPlaceholder(at:)`.
     public func bindPlaceholder(at position: Int) -> any SQLExpression {
         SQLRaw("?")
     }
 
+    // See `SQLDialect.literalBoolean(_:)`.
     public func literalBoolean(_ value: Bool) -> any SQLExpression {
         switch value {
         case false:
@@ -30,18 +37,22 @@ public struct MySQLDialect: SQLDialect {
         }
     }
     
+    // See `SQLDialect.autoIncrementClause`.
     public var autoIncrementClause: any SQLExpression {
         SQLRaw("AUTO_INCREMENT")
     }
 
+    // See `SQLDialect.supportsAutoIncrement`.
     public var supportsAutoIncrement: Bool {
         true
     }
 
+    // See `SQLDialect.enumSyntax`.
     public var enumSyntax: SQLEnumSyntax {
         .inline
     }
 
+    // See `SQLDialect.customDataType(for:)`.
     public func customDataType(for dataType: SQLDataType) -> (any SQLExpression)? {
         switch dataType {
         case .text:
@@ -51,6 +62,7 @@ public struct MySQLDialect: SQLDialect {
         }
     }
 
+    // See `SQLDialect.alterTableSyntax`.
     public var alterTableSyntax: SQLAlterTableSyntax {
         .init(
             alterColumnDefinitionClause: SQLRaw("MODIFY COLUMN"),
@@ -58,6 +70,7 @@ public struct MySQLDialect: SQLDialect {
         )
     }
     
+    // See `SQLDialect.normalizeSQLConstraint(identifier:)`.
     public func normalizeSQLConstraint(identifier: any SQLExpression) -> any SQLExpression {
         if let sqlIdentifier = identifier as? SQLIdentifier {
             return SQLIdentifier(Insecure.SHA1.hash(data: Data(sqlIdentifier.string.utf8)).hexRepresentation)
@@ -66,26 +79,32 @@ public struct MySQLDialect: SQLDialect {
         }
     }
 
+    // See `SQLDialect.triggerSyntax`.
     public var triggerSyntax: SQLTriggerSyntax {
         .init(create: [.supportsBody, .conditionRequiresParentheses, .supportsOrder], drop: [])
     }
     
+    // See `SQLDialect.upsertSyntax`.
     public var upsertSyntax: SQLUpsertSyntax {
         .mysqlLike
     }
 
+    // See `SQLDialect.unionFeatures`.
     public var unionFeatures: SQLUnionFeatures {
         [.union, .unionAll, .intersect, .intersectAll, .except, .exceptAll, .explicitDistinct, .parenthesizedSubqueries]
     }
     
+    // See `SQLDialect.sharedSelectLockExpression`.
     public var sharedSelectLockExpression: (any SQLExpression)? {
         SQLRaw("LOCK IN SHARE MODE")
     }
     
+    // See `SQLDialect.exclusiveSelectLockExpression`.
     public var exclusiveSelectLockExpression: (any SQLExpression)? {
         SQLRaw("FOR UPDATE")
     }
     
+    // See `SQLDialect.nestedSubpathExpression(in:for:)`.
     public func nestedSubpathExpression(in column: any SQLExpression, for path: [String]) -> (any SQLExpression)? {
         guard !path.isEmpty else { return nil }
         

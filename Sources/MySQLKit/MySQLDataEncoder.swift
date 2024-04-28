@@ -3,13 +3,26 @@ import MySQLNIO
 import NIOFoundationCompat
 @_spi(CodableUtilities) import SQLKit
 
+/// Translates `Encodable` values into `MySQLData` values suitable for use with a `MySQLDatabase`.
+///
+/// Types which conform to `MySQLDataConvertible` are converted directly to `MySQLData`. Other types are
+/// encoded as JSON and sent to the database as text.
 public struct MySQLDataEncoder: Sendable {
+    /// The `JSONEncoder` used for encoding values that can't be directly converted.
     let json: JSONEncoder
 
+    /// Initialize a ``MySQLDataEncoder`` with a JSON encoder.
+    ///
+    /// - Parameter json: A `JSONEncoder` to use for encoding types that can't be directly converted. Defaults
+    ///   to an unconfigured encoder.
     public init(json: JSONEncoder = .init()) {
         self.json = json
     }
     
+    /// Convert the given `Encodable` value to a `MySQLData` value, if possible.
+    /// 
+    /// - Parameter value: The value to convert.
+    /// - Returns: A converted `MySQLData` value, if successful.
     public func encode(_ value: any Encodable) throws -> MySQLData {
         if let custom = value as? any MySQLDataConvertible {
             guard let data = custom.mysqlData else {
@@ -33,88 +46,117 @@ public struct MySQLDataEncoder: Sendable {
         }
     }
 
+    /// A trivial encoder for unwrapping types which encode as trivial single-value containers. This allows for
+    /// correct handling of types such as `Optional` when they do not conform to `MySQLDataCovnertible`.
     private final class NestedSingleValueUnwrappingEncoder: Encoder, SingleValueEncodingContainer {
+        // See `Encoder.userInfo`.
         var userInfo: [CodingUserInfoKey: Any] { [:] }
+        
+        // See `Encoder.codingPath` and `SingleValueEncodingContainer.codingPath`.
         var codingPath: [any CodingKey] { [] }
+        
+        /// The parent ``MySQLDataEncoder``.
         let dataEncoder: MySQLDataEncoder
+        
+        /// Storage for the resulting converted value.
         var value: MySQLData = .null
         
+        /// Create a new encoder with a ``MySQLDataEncoder``.
         init(dataEncoder: MySQLDataEncoder) {
             self.dataEncoder = dataEncoder
         }
         
+        // See `Encoder.container(keyedBy:)`.
         func container<K: CodingKey>(keyedBy: K.Type) -> KeyedEncodingContainer<K> {
             .invalid(at: self.codingPath)
         }
         
+        // See `Encoder.unkeyedContainer`.
         func unkeyedContainer() -> any UnkeyedEncodingContainer {
             .invalid(at: self.codingPath)
         }
         
+        // See `Encoder.singleValueContainer`.
         func singleValueContainer() -> any SingleValueEncodingContainer {
             self
         }
         
+        // See `SingleValueEncodingContainer.encodeNil()`.
         func encodeNil() throws {
             self.value = .null
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: Bool) throws {
             self.value = .init(bool: value)
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: String) throws {
             self.value = .init(string: value)
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: Float) throws {
             self.value = .init(float: value)
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: Double) throws {
             self.value = .init(double: value)
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: Int8) throws {
             self.value = .init(int: numericCast(value))
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: Int16) throws {
             self.value = .init(int: numericCast(value))
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: Int32) throws {
             self.value = .init(int: numericCast(value))
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: Int64) throws {
             self.value = .init(int: numericCast(value))
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: Int) throws {
             self.value = .init(int: value)
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: UInt8) throws {
             self.value = .init(int: numericCast(value))
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: UInt16) throws {
             self.value = .init(int: numericCast(value))
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: UInt32) throws {
             self.value = .init(int: numericCast(value))
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: UInt64) throws {
             self.value = .init(int: numericCast(value))
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: UInt) throws {
             self.value = .init(int: numericCast(value))
         }
         
+        // See `SingleValueEncodingContainer.encode(_:)`.
         func encode(_ value: some Encodable) throws {
             self.value = try self.dataEncoder.encode(value)
         }

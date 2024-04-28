@@ -3,19 +3,37 @@ import NIOSSL
 import NIOCore
 import NIOPosix // for inet_pton()
 
+/// A set of parameters used to connect to a MySQL database.
 public struct MySQLConfiguration {
+    /// A closure which returns the NIO `SocketAddress` for a server.
     public var address: () throws -> SocketAddress
+    
+    /// The username used to authenticate the connection.
     public var username: String
+    
+    /// The password used to authenticate the connection. May be an empty string.
     public var password: String
+    
+    /// An optional initial default database for the connection.
     public var database: String?
+    
+    /// Optional configuration for TLS-based connection encryption.
     public var tlsConfiguration: TLSConfiguration?
 
-    /// IANA-assigned port number for MySQL
-    /// `UInt16(getservbyname("mysql", "tcp").pointee.s_port).byteSwapped`
+    /// The IANA-assigned port number for MySQL (3306).
+    ///
+    /// This is the default port used by MySQL servers. Equivalent to
+    /// `UInt16(getservbyname("mysql", "tcp").pointee.s_port).byteSwapped`.
     public static var ianaPortNumber: Int { 3306 }
 
     internal var _hostname: String?
 
+    /// Create a ``MySQLConfiguration`` from an appropriately-formatted URL string.
+    /// 
+    /// See ``MySQLConfiguration/init(url:)`` for details of the accepted URL format.
+    ///
+    /// - Parameter url: A URL-formatted MySQL connection string. See ``init(url:)`` for syntax details.
+    /// - Returns: `nil` if `url` is not a valid RFC 3986 URI with an authority component (e.g. a URL).
     public init?(url: String) {
         guard let url = URL(string: url) else {
             return nil
@@ -158,6 +176,15 @@ public struct MySQLConfiguration {
         self._hostname = nil
     }
     
+    /// Create a ``MySQLConfiguration`` for connecting to a server with a hostname and optional port.
+    ///
+    /// - Parameters:
+    ///   - hostname: The hostname to connect to.
+    ///   - port: A TCP port number to connect on. Defaults to the IANA-assigned MySQL port number (3306).
+    ///   - username: The username to use for the connection.
+    ///   - password: The pasword (empty string for none) to use for the connection.
+    ///   - database: The default database fr the connection, if any.
+    ///   - tlsConfiguration: An optional `TLSConfiguration` specifying encryption for the connection.
     public init(
         hostname: String,
         port: Int = Self.ianaPortNumber,

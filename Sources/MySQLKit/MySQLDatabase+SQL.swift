@@ -2,6 +2,12 @@ import MySQLNIO
 import SQLKit
 
 extension MySQLDatabase {
+    /// Return an object allowing access to this database via the `SQLDatabase` interface.
+    ///
+    /// - Parameters:
+    ///   - encoder: A ``MySQLDataEncoder`` used to translate bound query parameters into `MySQLData` values.
+    ///   - decoder: A ``MySQLDataDecoder`` used to translate `MySQLData` values into output values in `SQLRow`s.
+    /// - Returns: An instance of `SQLDatabase` which accesses the same database as `self`.
     public func sql(
         encoder: MySQLDataEncoder = .init(),
         decoder: MySQLDataDecoder = .init()
@@ -10,28 +16,31 @@ extension MySQLDatabase {
     }
 }
 
-private struct MySQLSQLDatabase<D: MySQLDatabase> {
+/// Wraps a `MySQLDatabase` with the `SQLDatabase` protocol.
+private struct MySQLSQLDatabase<D: MySQLDatabase>: SQLDatabase {
     struct FakeSendable<T>: @unchecked Sendable {
         let value: T
     }
-    let database: FakeSendable<D>
-    let encoder: MySQLDataEncoder
-    let decoder: MySQLDataDecoder
-}
 
-extension MySQLSQLDatabase: SQLDatabase {
-    var logger: Logger {
-        self.database.value.logger
-    }
+    /// The underlying `MySQLDatabase`.
+    let database: FakeSendable<D>
     
-    var eventLoop: any EventLoop {
-        self.database.value.eventLoop
-    }
+    /// A ``MySQLDataEncoder`` used to translate bindings into `MySQLData` values.
+    let encoder: MySQLDataEncoder
     
-    var dialect: any SQLDialect {
-        MySQLDialect()
-    }
+    /// A ``MySQLDataDecoder`` used to translate `MySQLData` values into output values in `SQLRow`s.
+    let decoder: MySQLDataDecoder
+
+    // See `SQLDatabase.logger`.
+    var logger: Logger { self.database.value.logger }
     
+    // See `SQLDatabase.eventLoop`.
+    var eventLoop: any EventLoop { self.database.value.eventLoop }
+    
+    // See `SQLDatabase.dialect`.
+    var dialect: any SQLDialect { MySQLDialect() }
+    
+    // See `SQLDatabase.execute(sql:_:)`.
     func execute(sql query: any SQLExpression, _ onRow: @escaping @Sendable (any SQLRow) -> ()) -> EventLoopFuture<Void> {
         let (sql, binds) = self.serialize(query)
         
@@ -46,6 +55,7 @@ extension MySQLSQLDatabase: SQLDatabase {
         }
     }
     
+    // See `SQLDatabase.execute(sql:_:)`.
     func execute(sql query: any SQLExpression, _ onRow: @escaping @Sendable (any SQLRow) -> ()) async throws {
         let (sql, binds) = self.serialize(query)
         
@@ -56,6 +66,7 @@ extension MySQLSQLDatabase: SQLDatabase {
         ).get()
     }
     
+    // See `SQLDatabase.withSession(_:)`.
     func withSession<R>(_ closure: @escaping @Sendable (any SQLDatabase) async throws -> R) async throws -> R {
         try await self.database.value.withConnection { c in
             let sqlDb = c.sql(encoder: self.encoder, decoder: self.decoder)
