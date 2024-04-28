@@ -91,7 +91,7 @@ public struct MySQLDialect: SQLDialect {
 
     // See `SQLDialect.unionFeatures`.
     public var unionFeatures: SQLUnionFeatures {
-        [.union, .unionAll, .intersect, .intersectAll, .except, .exceptAll, .explicitDistinct, .parenthesizedSubqueries]
+        [.union, .unionAll/*, .intersect, .intersectAll, .except, .exceptAll, .explicitDistinct*/, .parenthesizedSubqueries]
     }
     
     // See `SQLDialect.sharedSelectLockExpression`.
