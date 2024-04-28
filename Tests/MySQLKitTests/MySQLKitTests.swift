@@ -2,14 +2,10 @@ import Logging
 import MySQLKit
 import SQLKitBenchmark
 import XCTest
-import NIOSSL
-import AsyncKit
-import SQLKit
-import MySQLNIO
 
-class MySQLKitTests: XCTestCase {
-    func testSQLBenchmark() throws {
-        try SQLBenchmarker(on: self.sql).run()
+final class MySQLKitTests: XCTestCase {
+    func testSQLBenchmark() async throws {
+        try await SQLBenchmarker(on: self.sql).runAllTests()
     }
 
     func testNullDecode() throws {
@@ -118,6 +114,69 @@ class MySQLKitTests: XCTestCase {
         
         XCTAssertEqual(decoded1.prop3, instance.prop3)
         XCTAssertEqual(decoded2.count, 2)
+    }
+    
+    func testMySQLURLFormats() {
+        let config1 = MySQLConfiguration(url: "mysql+tcp://test_username:test_password@test_hostname:9999/test_database?ssl-mode=DISABLED")
+        XCTAssertNotNil(config1)
+        XCTAssertEqual(config1?.database, "test_database")
+        XCTAssertEqual(config1?.password, "test_password")
+        XCTAssertEqual(config1?.username, "test_username")
+        XCTAssertNil(config1?.tlsConfiguration)
+
+        let config2 = MySQLConfiguration(url: "mysql+tcp://test_username@test_hostname")
+        XCTAssertNotNil(config2)
+        XCTAssertNil(config2?.database)
+        XCTAssertEqual(config2?.password, "")
+        XCTAssertEqual(config2?.username, "test_username")
+        XCTAssertNotNil(config2?.tlsConfiguration)
+
+        let config3 = MySQLConfiguration(url: "mysql+uds://test_username:test_password@localhost/tmp/mysql.sock?ssl-mode=REQUIRED#test_database")
+        XCTAssertNotNil(config3)
+        XCTAssertEqual(config3?.database, "test_database")
+        XCTAssertEqual(config3?.password, "test_password")
+        XCTAssertEqual(config3?.username, "test_username")
+        XCTAssertNotNil(config3?.tlsConfiguration)
+
+        let config4 = MySQLConfiguration(url: "mysql+uds://test_username@/tmp/mysql.sock")
+        XCTAssertNotNil(config4)
+        XCTAssertNil(config4?.database)
+        XCTAssertEqual(config4?.password, "")
+        XCTAssertEqual(config4?.username, "test_username")
+        XCTAssertNil(config4?.tlsConfiguration)
+        
+        for modestr in ["ssl-mode=DISABLED", "tls-mode=VERIFY_IDENTITY&ssl-mode=DISABLED"] {
+            let config = MySQLConfiguration(url: "mysql://u@h?\(modestr)")
+            XCTAssertNotNil(config)
+            XCTAssertNil(config?.tlsConfiguration)
+            XCTAssertNil(config?.tlsConfiguration)
+        }
+
+        for modestr in [
+            "ssl-mode=PREFERRED", "ssl-mode=REQUIRED", "ssl-mode=VERIFY_CA",
+            "ssl-mode=VERIFY_IDENTITY", "tls-mode=VERIFY_IDENTITY", "ssl=VERIFY_IDENTITY",
+            "tls-mode=PREFERRED&ssl-mode=VERIFY_IDENTITY"
+        ] {
+            let config = MySQLConfiguration(url: "mysql://u@h?\(modestr)")
+            XCTAssertNotNil(config, modestr)
+            XCTAssertNotNil(config?.tlsConfiguration, modestr)
+        }
+        
+        XCTAssertNotNil(MySQLConfiguration(url: "mysql://test_username@test_hostname"))
+        XCTAssertNotNil(MySQLConfiguration(url: "mysql+tcp://test_username@test_hostname"))
+        XCTAssertNotNil(MySQLConfiguration(url: "mysql+uds://test_username@/tmp/mysql.sock"))
+        
+        XCTAssertNil(MySQLConfiguration(url: "mysql+tcp://test_username:test_password@/test_database"), "should fail when hostname missing")
+        XCTAssertNil(MySQLConfiguration(url: "mysql+tcp://test_hostname"), "should fail when username missing")
+        XCTAssertNil(MySQLConfiguration(url: "mysql+tcp://test_username@test_hostname?ssl-mode=absurd"), "should fail when TLS mode invalid")
+        XCTAssertNil(MySQLConfiguration(url: "mysql+uds://localhost/tmp/mysql.sock?ssl-mode=REQUIRED"), "should fail when username missing")
+        XCTAssertNil(MySQLConfiguration(url: "mysql+uds:///tmp/mysql.sock"), "should fail when authority missing")
+        XCTAssertNil(MySQLConfiguration(url: "mysql+uds://test_username@localhost/"), "should fail when path missing")
+        XCTAssertNil(MySQLConfiguration(url: "mysql+uds://test_username@remotehost/tmp"), "should fail when authority not localhost or empty")
+        XCTAssertNil(MySQLConfiguration(url: "mysql+uds://test_username@localhost/tmp?ssl-mode=absurd"), "should fail when TLS mode invalid")
+        XCTAssertNil(MySQLConfiguration(url: "postgres://test_username@remotehost/tmp"), "should fail when scheme is not mysql")
+
+        XCTAssertNil(MySQLConfiguration(url: "$$$://postgres"), "should fail when invalid URL")
     }
 
     var sql: any SQLDatabase {
