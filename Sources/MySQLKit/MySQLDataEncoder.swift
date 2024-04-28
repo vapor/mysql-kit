@@ -34,7 +34,10 @@ public struct MySQLDataEncoder: Sendable {
                 let encoder = NestedSingleValueUnwrappingEncoder(dataEncoder: self)
                 
                 try value.encode(to: encoder)
-                return encoder.value
+                guard let value = encoder.value else {
+                    throw SQLCodingError.unsupportedOperation("missing value", codingPath: [])
+                }
+                return value
             } catch is SQLCodingError {
                 return MySQLData(
                     type: .string,
@@ -59,7 +62,7 @@ public struct MySQLDataEncoder: Sendable {
         let dataEncoder: MySQLDataEncoder
         
         /// Storage for the resulting converted value.
-        var value: MySQLData = .null
+        var value: MySQLData? = nil
         
         /// Create a new encoder with a ``MySQLDataEncoder``.
         init(dataEncoder: MySQLDataEncoder) {
