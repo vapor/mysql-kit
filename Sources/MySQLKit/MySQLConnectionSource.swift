@@ -37,4 +37,4 @@ public struct MySQLConnectionSource: ConnectionPoolSource {
     }
 }
 
-extension MySQLConnection: ConnectionPoolItem {}
+extension MySQLNIO.MySQLConnection: AsyncKit.ConnectionPoolItem {}  // Fully qualifying the type names implies @retroactive

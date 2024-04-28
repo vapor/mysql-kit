@@ -11,7 +11,7 @@ extension MySQLRow {
     }
 }
 
-extension MySQLNIO.MySQLRow: @unchecked Sendable {} // Fully qualifying the type name implies @retroactive
+extension MySQLNIO.MySQLRow: @unchecked Swift.Sendable {} // Fully qualifying the type names implies @retroactive
 
 /// An error used to signal that a column requested from a `MySQLRow` using the `SQLRow` interface is not present.
 struct MissingColumn: Error {

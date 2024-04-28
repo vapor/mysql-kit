@@ -8,15 +8,18 @@ import NIOFoundationCompat
 /// Types which conform to `MySQLDataConvertible` are converted directly to the requested type. For other types,
 /// an attempt is made to interpret the database value as JSON and decode the type from it.
 public struct MySQLDataDecoder: Sendable {
+    /// A wrapper to silence `Sendable` warnings for `JSONDecoder` when not on macOS.
+    struct FakeSendable<T>: @unchecked Sendable { let value: T }
+    
     /// The `JSONDecoder` used for decoding values that can't be directly converted.
-    let json: JSONDecoder
+    let json: FakeSendable<JSONDecoder>
     
     /// Initialize a ``MySQLDataDecoder`` with a JSON decoder.
     ///
     /// - Parameter json: A `JSONDecoder` to use for decoding types that can't be directly converted. Defaults
     ///   to an unconfigured decoder.
     public init(json: JSONDecoder = .init()) {
-        self.json = json
+        self.json = .init(value: json)
     }
     
     /// Convert the given `MySQLData` into a value of type `T`, if possible.
@@ -43,7 +46,7 @@ public struct MySQLDataDecoder: Sendable {
                 return try T.init(from: NestedSingleValueUnwrappingDecoder(decoder: self, data: data))
             } catch is SQLCodingError where [.blob, .json, .longBlob, .mediumBlob, .string, .tinyBlob, .varString, .varchar].contains(data.type) {
                 // Couldn't unwrap it, but it's textual. Try decoding as JSON as a last ditch effort.
-                return try self.json.decode(T.self, from: data.buffer ?? .init())
+                return try self.json.value.decode(T.self, from: data.buffer ?? .init())
             }
         }
     }

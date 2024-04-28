@@ -8,15 +8,18 @@ import NIOFoundationCompat
 /// Types which conform to `MySQLDataConvertible` are converted directly to `MySQLData`. Other types are
 /// encoded as JSON and sent to the database as text.
 public struct MySQLDataEncoder: Sendable {
+    /// A wrapper to silence `Sendable` warnings for `JSONEncoder` when not on macOS.
+    struct FakeSendable<T>: @unchecked Sendable { let value: T }
+    
     /// The `JSONEncoder` used for encoding values that can't be directly converted.
-    let json: JSONEncoder
+    let json: FakeSendable<JSONEncoder>
 
     /// Initialize a ``MySQLDataEncoder`` with a JSON encoder.
     ///
     /// - Parameter json: A `JSONEncoder` to use for encoding types that can't be directly converted. Defaults
     ///   to an unconfigured encoder.
     public init(json: JSONEncoder = .init()) {
-        self.json = json
+        self.json = .init(value: json)
     }
     
     /// Convert the given `Encodable` value to a `MySQLData` value, if possible.
@@ -42,7 +45,7 @@ public struct MySQLDataEncoder: Sendable {
                 return MySQLData(
                     type: .string,
                     format: .text,
-                    buffer: try self.json.encodeAsByteBuffer(value, allocator: .init()),
+                    buffer: try self.json.value.encodeAsByteBuffer(value, allocator: .init()),
                     isUnsigned: true
                 )
             }
@@ -165,3 +168,6 @@ public struct MySQLDataEncoder: Sendable {
         }
     }
 }
+
+/// This conformance suppresses a slew of spurious warnings in some build environments.
+extension MySQLNIO.MySQLProtocol.DataType: @unchecked Swift.Sendable {} // Fully qualifying the type names implies @retroactive

@@ -1,7 +1,7 @@
 import MySQLNIO
 
 /// Conforms `Optional` to `MySQLDataConvertible` for efficiency.
-extension Optional: MySQLDataConvertible where Wrapped: MySQLDataConvertible {
+extension Swift.Optional: MySQLNIO.MySQLDataConvertible where Wrapped: MySQLNIO.MySQLDataConvertible {
     // See `MySQLDataConvertible.init?(mysqlData:)`.
     public init?(mysqlData: MySQLData) {
         if mysqlData.buffer != nil {
