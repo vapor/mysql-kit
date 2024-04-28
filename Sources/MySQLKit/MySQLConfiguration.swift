@@ -2,23 +2,55 @@ import Foundation
 import NIOSSL
 import NIOCore
 import NIOPosix // for inet_pton()
+import NIOConcurrencyHelpers
 
 /// A set of parameters used to connect to a MySQL database.
-public struct MySQLConfiguration {
+public struct MySQLConfiguration: Sendable {
+    /// Underlying storage for ``address``.
+    private var _address: @Sendable () throws -> SocketAddress
+    /// Underlying storage for ``username``.
+    private var _username: String
+    /// Underlying storage for ``password``.
+    private var _password: String
+    /// Underlying storage for ``database``.
+    private var _database: String?
+    /// Underlying storage for ``tlsConfiguration``.
+    private var _tlsConfiguration: TLSConfiguration?
+    /// Underlying storage for ``_hostname``.
+    private var _internal_hostname: String?
+    
+    /// Lock for access to underlying storage.
+    private let lock: NIOLock = .init()
+    
     /// A closure which returns the NIO `SocketAddress` for a server.
-    public var address: () throws -> SocketAddress
+    public var address: @Sendable () throws -> SocketAddress {
+        get { self.lock.withLock { self._address } }
+        set { self.lock.withLock { self._address = newValue } }
+    }
     
     /// The username used to authenticate the connection.
-    public var username: String
+    public var username: String {
+        get { self.lock.withLock { self._username } }
+        set { self.lock.withLock { self._username = newValue } }
+    }
     
     /// The password used to authenticate the connection. May be an empty string.
-    public var password: String
+    public var password: String {
+        get { self.lock.withLock { self._password } }
+        set { self.lock.withLock { self._password = newValue } }
+    }
     
     /// An optional initial default database for the connection.
-    public var database: String?
+    public var database: String? {
+        get { self.lock.withLock { self._database } }
+        set { self.lock.withLock { self._database = newValue } }
+    }
     
     /// Optional configuration for TLS-based connection encryption.
-    public var tlsConfiguration: TLSConfiguration?
+    public var tlsConfiguration: TLSConfiguration? {
+        get { self.lock.withLock { self._tlsConfiguration } }
+        set { self.lock.withLock { self._tlsConfiguration = newValue } }
+    }
 
     /// The IANA-assigned port number for MySQL (3306).
     ///
@@ -26,7 +58,10 @@ public struct MySQLConfiguration {
     /// `UInt16(getservbyname("mysql", "tcp").pointee.s_port).byteSwapped`.
     public static var ianaPortNumber: Int { 3306 }
 
-    internal var _hostname: String?
+    var _hostname: String? {
+        get { self.lock.withLock { self._internal_hostname } }
+        set { self.lock.withLock { self._internal_hostname = newValue } }
+    }
 
     /// Create a ``MySQLConfiguration`` from an appropriately-formatted URL string.
     /// 
@@ -166,14 +201,14 @@ public struct MySQLConfiguration {
         database: String? = nil,
         tlsConfiguration: TLSConfiguration?
     ) {
-        self.address = {
-            return try SocketAddress.init(unixDomainSocketPath: unixDomainSocketPath)
+        self._address = {
+            try SocketAddress.init(unixDomainSocketPath: unixDomainSocketPath)
         }
-        self.username = username
-        self.password = password
-        self.database = database
-        self.tlsConfiguration = tlsConfiguration
-        self._hostname = nil
+        self._username = username
+        self._password = password
+        self._database = database
+        self._tlsConfiguration = tlsConfiguration
+        self._internal_hostname = nil
     }
     
     /// Create a ``MySQLConfiguration`` for connecting to a server with a hostname and optional port.
@@ -193,19 +228,19 @@ public struct MySQLConfiguration {
         database: String? = nil,
         tlsConfiguration: TLSConfiguration? = .makeClientConfiguration()
     ) {
-        self.address = {
-            return try SocketAddress.makeAddressResolvingHost(hostname, port: port)
+        self._address = {
+            try SocketAddress.makeAddressResolvingHost(hostname, port: port)
         }
-        self.username = username
-        self.database = database
-        self.password = password
+        self._username = username
+        self._database = database
+        self._password = password
         if let tlsConfiguration = tlsConfiguration {
-            self.tlsConfiguration = tlsConfiguration
+            self._tlsConfiguration = tlsConfiguration
 
             // Temporary fix - this logic should be removed once MySQLNIO is updated
             var n4 = in_addr(), n6 = in6_addr()
             if inet_pton(AF_INET, hostname, &n4) != 1 && inet_pton(AF_INET6, hostname, &n6) != 1 {
-                self._hostname = hostname
+                self._internal_hostname = hostname
             }
         }
     }
