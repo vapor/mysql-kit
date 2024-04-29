@@ -3,15 +3,22 @@ import Logging
 import MySQLNIO
 import AsyncKit
 
+/// A `ConnectionPoolSource` providing MySQL database connections for a given ``MySQLConfiguration``.
 public struct MySQLConnectionSource: ConnectionPoolSource {
+    /// A ``MySQLConfiguration`` used to create connections.
     public let configuration: MySQLConfiguration
 
+    /// Create a ``MySQLConnectionSource``.
+    ///
+    /// - Parameter configuration: The configuration for new connections.
     public init(configuration: MySQLConfiguration) {
         self.configuration = configuration
     }
 
-    public func makeConnection(logger: Logger, on eventLoop: EventLoop) -> EventLoopFuture<MySQLConnection> {
+    // See `ConnectionPoolSource.makeConnection(logger:on:)`.
+    public func makeConnection(logger: Logger, on eventLoop: any EventLoop) -> EventLoopFuture<MySQLConnection> {
         let address: SocketAddress
+        
         do {
             address = try self.configuration.address()
         } catch {
@@ -30,4 +37,4 @@ public struct MySQLConnectionSource: ConnectionPoolSource {
     }
 }
 
-extension MySQLConnection: ConnectionPoolItem { }
+extension MySQLNIO.MySQLConnection: AsyncKit.ConnectionPoolItem {}  // Fully qualifying the type names implies @retroactive
