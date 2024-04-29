@@ -16,7 +16,11 @@
 
 <br>
 
-🐬 Non-blocking, event-driven Swift client for MySQL.
+MySQLKit is an [SQLKit] driver for MySQL clients. It supports building and serializing MySQL-dialect SQL queries. MySQLKit uses [MySQLNIO] to connect and communicate with the database server asynchronously. [AsyncKit] is used to provide connection pooling.
+
+[SQLKit]: https://github.com/vapor/sql-kit
+[MySQLNIO]: https://github.com/vapor/mysql-nio
+[AsyncKit]: https://github.com/vapor/async-kit
 
 ### Usage
 
@@ -32,14 +36,6 @@ MySQLKit supports the following platforms:
 
 - Ubuntu 20.04+
 - macOS 10.15+
-
-## Overview
-
-MySQLKit is an [SQLKit] driver for MySQL cliets. It supports building and serializing MySQL-dialect SQL queries. MySQLKit uses [MySQLNIO] to connect and communicate with the database server asynchronously. [AsyncKit] is used to provide connection pooling.
-
-[SQLKit]: https://github.com/vapor/sql-kit
-[MySQLNIO]: https://github.com/vapor/mysql-nio
-[AsyncKit]: https://github.com/vapor/async-kit
 
 ### Configuration
 
