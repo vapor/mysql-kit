@@ -67,7 +67,7 @@ public struct MySQLConfiguration: Sendable {
     /// 
     /// See ``MySQLConfiguration/init(url:)-4mmel`` for details of the accepted URL format.
     ///
-    /// - Parameter url: A URL-formatted MySQL connection string. See ``init(url:)`` for syntax details.
+    /// - Parameter url: A URL-formatted MySQL connection string. See ``init(url:)-4mmel`` for syntax details.
     /// - Returns: `nil` if `url` is not a valid RFC 3986 URI with an authority component (e.g. a URL).
     public init?(url: String) {
         guard let url = URL(string: url) else {
