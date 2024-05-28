@@ -49,7 +49,7 @@ private struct MySQLSQLDatabase<D: MySQLDatabase>: SQLDatabase {
         let (sql, binds) = self.serialize(query)
         
         if let queryLogLevel = self.queryLogLevel {
-            self.logger.log(level: queryLogLevel, "\(sql) \(binds)")
+            self.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": .string(sql), "binds": .array(binds.map { .string("\($0)") })])
         }
 
         do {
@@ -68,7 +68,7 @@ private struct MySQLSQLDatabase<D: MySQLDatabase>: SQLDatabase {
         let (sql, binds) = self.serialize(query)
         
         if let queryLogLevel = self.queryLogLevel {
-            self.logger.log(level: queryLogLevel, "\(sql) \(binds)")
+            self.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": .string(sql), "binds": .array(binds.map { .string("\($0)") })])
         }
 
         return try await self.database.value.query(
