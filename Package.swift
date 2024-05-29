@@ -13,11 +13,11 @@ let package = Package(
         .library(name: "MySQLKit", targets: ["MySQLKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/vapor/mysql-nio.git", from: "1.7.1"),
-        .package(url: "https://github.com/vapor/sql-kit.git", from: "3.28.0"),
+        .package(url: "https://github.com/vapor/mysql-nio.git", from: "1.7.2"),
+        .package(url: "https://github.com/vapor/sql-kit.git", from: "3.29.3"),
         .package(url: "https://github.com/vapor/async-kit.git", from: "1.19.0"),
         .package(url: "https://github.com/apple/swift-crypto.git", "2.0.0" ..< "4.0.0"),
-        .package(url: "https://github.com/apple/swift-nio.git", from: "2.64.0"),
+        .package(url: "https://github.com/apple/swift-nio.git", from: "2.65.0"),
         .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.26.0"),
     ],
     targets: [
@@ -47,6 +47,4 @@ let package = Package(
 var swiftSettings: [SwiftSetting] { [
     .enableUpcomingFeature("ConciseMagicFile"),
     .enableUpcomingFeature("ForwardTrailingClosures"),
-    .enableUpcomingFeature("DisableOutwardActorInference"),
-    .enableExperimentalFeature("StrictConcurrency=complete"),
 ] }

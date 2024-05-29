@@ -10,9 +10,10 @@ extension MySQLDatabase {
     /// - Returns: An instance of `SQLDatabase` which accesses the same database as `self`.
     public func sql(
         encoder: MySQLDataEncoder = .init(),
-        decoder: MySQLDataDecoder = .init()
+        decoder: MySQLDataDecoder = .init(),
+        queryLogLevel: Logger.Level? = .debug
     ) -> any SQLDatabase {
-        MySQLSQLDatabase(database: .init(value: self), encoder: encoder, decoder: decoder)
+        MySQLSQLDatabase(database: .init(value: self), encoder: encoder, decoder: decoder, queryLogLevel: queryLogLevel)
     }
 }
 
@@ -40,10 +41,17 @@ private struct MySQLSQLDatabase<D: MySQLDatabase>: SQLDatabase {
     // See `SQLDatabase.dialect`.
     var dialect: any SQLDialect { MySQLDialect() }
     
+    // See `SQLDatabase.queryLogLevel`.
+    let queryLogLevel: Logger.Level?
+    
     // See `SQLDatabase.execute(sql:_:)`.
     func execute(sql query: any SQLExpression, _ onRow: @escaping @Sendable (any SQLRow) -> ()) -> EventLoopFuture<Void> {
         let (sql, binds) = self.serialize(query)
         
+        if let queryLogLevel = self.queryLogLevel {
+            self.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": .string(sql), "binds": .array(binds.map { .string("\($0)") })])
+        }
+
         do {
             return try self.database.value.query(
                 sql,
@@ -59,6 +67,10 @@ private struct MySQLSQLDatabase<D: MySQLDatabase>: SQLDatabase {
     func execute(sql query: any SQLExpression, _ onRow: @escaping @Sendable (any SQLRow) -> ()) async throws {
         let (sql, binds) = self.serialize(query)
         
+        if let queryLogLevel = self.queryLogLevel {
+            self.logger.log(level: queryLogLevel, "Executing query", metadata: ["sql": .string(sql), "binds": .array(binds.map { .string("\($0)") })])
+        }
+
         return try await self.database.value.query(
             sql,
             binds.map { try self.encoder.encode($0) },
