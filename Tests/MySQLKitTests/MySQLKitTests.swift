@@ -1,3 +1,4 @@
+import Foundation
 import Logging
 import MySQLKit
 import SQLKitBenchmark
@@ -5,23 +6,32 @@ import XCTest
 
 final class MySQLKitTests: XCTestCase {
     func testSQLBenchmark() async throws {
-        try await SQLBenchmarker(on: self.sql).runAllTests()
+        try await SQLBenchmarker(on: self.mysql.sql()).runAllTests()
     }
 
-    func testNullDecode() throws {
+    func testNullDecode() async throws {
         struct Person: Codable {
             let id: Int
             let name: String?
         }
 
-        let rows = try self.sql.raw("SELECT 1 as `id`, null as `name`")
+        let rows = try await self.mysql.sql().raw("SELECT 1 as `id`, null as `name`")
             .all(decoding: Person.self)
-            .wait()
         XCTAssertEqual(rows[0].id, 1)
         XCTAssertEqual(rows[0].name, nil)
     }
 
-    func testCustomJSONCoder() throws {
+    func testMissingColumnDecode() async throws {
+        let rows = try await self.mysql.sql().raw("SELECT 1 as `id`, null as `not_name`, 'a' AS `less_name`, 0 AS `not_at_all_name`")
+            .all()
+        XCTAssertTrue(try rows[0].decodeNil(column: "name"))
+        XCTAssertThrowsError(try rows[0].decode(column: "name", as: String.self))
+        XCTAssertNil(try rows[0].decode(column: "not_name", as: String?.self))
+        XCTAssertThrowsError(try rows[0].decode(column: "less_name", as: Int?.self))
+        XCTAssertEqual(try rows[0].decode(column: "not_at_all_name", as: Int?.self), 0)
+    }
+
+    func testCustomJSONCoder() async throws {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .secondsSince1970
 
@@ -37,17 +47,20 @@ final class MySQLKitTests: XCTestCase {
             var baz: Date
         }
 
-        try db.drop(table: "foo").ifExists().run().wait()
-        try db.create(table: "foo")
+        try await db.drop(table: "foo").ifExists().run()
+        try await db.create(table: "foo")
             .column("bar", type: .custom(SQLRaw("JSON")))
-            .run().wait()
-        defer { try! db.drop(table: "foo").ifExists().run().wait() }
+            .run()
+        do {
+            let foo = Foo(bar: .init(baz: .init(timeIntervalSince1970: 1337)))
+            try await db.insert(into: "foo").model(foo).run()
 
-        let foo = Foo(bar: .init(baz: .init(timeIntervalSince1970: 1337)))
-        try db.insert(into: "foo").model(foo).run().wait()
-
-        let rows = try db.select().columns("*").from("foo").all(decoding: Foo.self).wait()
-        XCTAssertEqual(rows, [foo])
+            let rows = try await db.select().columns("*").from("foo").all(decoding: Foo.self)
+            XCTAssertEqual(rows, [foo])
+        } catch {
+            try? await db.drop(table: "foo").ifExists().run()
+        }
+        try await db.drop(table: "foo").ifExists().run()
     }
 
     /// Tests dealing with encoding of values whose `encode(to:)` implementation calls one of the `superEncoder()`
@@ -179,15 +192,10 @@ final class MySQLKitTests: XCTestCase {
         XCTAssertNil(MySQLConfiguration(url: "$$$://postgres"), "should fail when invalid URL")
     }
 
-    var sql: any SQLDatabase {
-        self.mysql.sql()
-    }
-
     var mysql: any MySQLDatabase {
         self.pools.database(logger: .init(label: "codes.vapor.mysql"))
     }
 
-    var eventLoopGroup: any EventLoopGroup = MultiThreadedEventLoopGroup.singleton
     var pools: EventLoopGroupConnectionPool<MySQLConnectionSource>!
 
     override func setUpWithError() throws {
@@ -210,7 +218,7 @@ final class MySQLKitTests: XCTestCase {
             maxConnectionsPerEventLoop: System.coreCount,
             requestTimeout: .seconds(30),
             logger: .init(label: "codes.vapor.mysql"),
-            on: self.eventLoopGroup
+            on: MultiThreadedEventLoopGroup.singleton
         )
     }
 
@@ -223,7 +231,7 @@ final class MySQLKitTests: XCTestCase {
 }
 
 func env(_ name: String) -> String? {
-    getenv(name).flatMap { String(cString: $0) }
+    ProcessInfo.processInfo.environment[name]
 }
 
 let isLoggingConfigured: Bool = {

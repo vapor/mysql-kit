@@ -8,7 +8,6 @@ on:
 
 env:
   LOG_LEVEL: info
-  SWIFT_DETERMINISTIC_HASHING: 1
   MYSQL_HOSTNAME: 'mysql-a'
   MYSQL_HOSTNAME_A: 'mysql-a'
   MYSQL_HOSTNAME_B: 'mysql-b'
@@ -26,7 +25,7 @@ jobs:
   api-breakage:
     if: ${{ github.event_name == 'pull_request' && !(github.event.pull_request.draft || false) }}
     runs-on: ubuntu-latest
-    container: swift:jammy
+    container: swift:noble
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,13 +53,13 @@ jobs:
           MYSQL_USER: test_username
           MYSQL_PASSWORD: test_password
           MYSQL_DATABASE: test_database
-    container: swift:5.10-jammy
+    container: swift:6.1-noble
     strategy:
       fail-fast: false
       matrix:
         dbimage:
           - mysql:5.7
-          - mysql:8
+          - mysql:9
           - mariadb:11
           - percona:8.0
     steps:
@@ -86,15 +85,15 @@ jobs:
         dbimage:
           - mysql:5.7
           - mysql:8.0
-          - mysql:8.3
+          - mysql:9.3
           - mariadb:10.4
           - mariadb:11
           - percona:8.0
         runner:
           # List is deliberately incomplete; we want to avoid running 50 jobs on every commit
-          - swift:5.8-focal
           - swift:5.10-jammy
-          - swiftlang/swift:nightly-6.0-jammy
+          - swift:6.0-noble
+          - swift:6.1-noble
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     services:
@@ -122,10 +121,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - macos-version: macos-13
-            xcode-version: '~14.3'
           - macos-version: macos-14
-            xcode-version: latest
+            xcode-version: latest-stable
+          - macos-version: macos-15
+            xcode-version: latest-stable
     runs-on: ${{ matrix.macos-version }}
     steps:
       - name: Select latest available Xcode
@@ -148,6 +147,10 @@ jobs:
           SQL
       - name: Check out code
         uses: actions/checkout@v4
-      - name: Run tests with Thread Sanitizer
-        run: swift test --sanitize=thread
+      - name: Run tests with code coverage
+        run: swift test --enable-code-coverage
         env: { MYSQL_HOSTNAME: '127.0.0.1' }
+      - name: Submit coverage report to Codecov.io
+        uses: vapor/swift-codecov-action@v0.3
+        with:
+          codecov_token: ${{ secrets.CODECOV_TOKEN }}
