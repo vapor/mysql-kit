@@ -1,9 +1,5 @@
 <p align="center">
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/vapor/mysql-kit/assets/1130717/d5582d0a-f8b2-4fab-aeea-79b170bebc28">
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/vapor/mysql-kit/assets/1130717/71d0fa71-5ded-492c-9657-4206f233419e">
-  <img src="https://github.com/vapor/mysql-kit/assets/1130717/71d0fa71-5ded-492c-9657-4206f233419e" height="96" alt="MySQLKit">
-</picture> 
+<img src="https://design.vapor.codes/images/vapor-mysqlkit.svg" height="96" alt="MySQLKit">
 <br>
 <br>
 <a href="https://docs.vapor.codes/4.0/"><img src="https://design.vapor.codes/images/readthedocs.svg" alt="Documentation"></a>
@@ -11,7 +7,7 @@
 <a href="LICENSE"><img src="https://design.vapor.codes/images/mitlicense.svg" alt="MIT License"></a>
 <a href="https://github.com/vapor/mysql-kit/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/vapor/mysql-kit/test.yml?event=push&style=plastic&logo=github&label=tests&logoColor=%23ccc" alt="Continuous Integration"></a>
 <a href="https://codecov.io/github/vapor/mysql-kit"><img src="https://img.shields.io/codecov/c/github/vapor/mysql-kit?style=plastic&logo=codecov&label=codecov"></a>
-<a href="https://swift.org"><img src="https://design.vapor.codes/images/swift58up.svg" alt="Swift 5.8+"></a>
+<a href="https://swift.org"><img src="https://design.vapor.codes/images/swift510up.svg" alt="Swift 5.10+"></a>
 </p>
 
 <br>

@@ -79,7 +79,7 @@ private struct MySQLSQLDatabase<D: MySQLDatabase>: SQLDatabase {
     }
     
     // See `SQLDatabase.withSession(_:)`.
-    func withSession<R>(_ closure: @escaping @Sendable (any SQLDatabase) async throws -> R) async throws -> R {
+    func withSession<R: Sendable>(_ closure: @escaping @Sendable (any SQLDatabase) async throws -> R) async throws -> R {
         try await self.database.value.withConnection { c in
             let sqlDb = c.sql(encoder: self.encoder, decoder: self.decoder)
             

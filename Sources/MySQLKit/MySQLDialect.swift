@@ -29,12 +29,7 @@ public struct MySQLDialect: SQLDialect {
 
     // See `SQLDialect.literalBoolean(_:)`.
     public func literalBoolean(_ value: Bool) -> any SQLExpression {
-        switch value {
-        case false:
-            return SQLRaw("0")
-        case true:
-            return SQLRaw("1")
-        }
+        SQLRaw(value ? "1" : "0")
     }
     
     // See `SQLDialect.autoIncrementClause`.
@@ -56,9 +51,9 @@ public struct MySQLDialect: SQLDialect {
     public func customDataType(for dataType: SQLDataType) -> (any SQLExpression)? {
         switch dataType {
         case .text:
-            return SQLRaw("VARCHAR(255)")
+            SQLRaw("VARCHAR(255)")
         default:
-            return nil
+            nil
         }
     }
 
@@ -73,9 +68,9 @@ public struct MySQLDialect: SQLDialect {
     // See `SQLDialect.normalizeSQLConstraint(identifier:)`.
     public func normalizeSQLConstraint(identifier: any SQLExpression) -> any SQLExpression {
         if let sqlIdentifier = identifier as? SQLIdentifier {
-            return SQLIdentifier(Insecure.SHA1.hash(data: Data(sqlIdentifier.string.utf8)).hexRepresentation)
+            SQLIdentifier(Insecure.SHA1.hash(data: Data(sqlIdentifier.string.utf8)).hexRepresentation)
         } else {
-            return identifier
+            identifier
         }
     }
 
