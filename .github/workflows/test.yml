@@ -5,6 +5,8 @@ concurrency:
 on:
   pull_request: { types: [opened, reopened, synchronize, ready_for_review] }
   push: { branches: [ main ] }
+permissions:
+  contents: read
 
 env:
   LOG_LEVEL: info
@@ -28,7 +30,7 @@ jobs:
     container: swift:noble
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with: { 'fetch-depth': 0 }
       - name: API breaking changes
         run: |
@@ -53,7 +55,7 @@ jobs:
           MYSQL_USER: test_username
           MYSQL_PASSWORD: test_password
           MYSQL_DATABASE: test_database
-    container: swift:6.1-noble
+    container: swift:6.2-noble
     strategy:
       fail-fast: false
       matrix:
@@ -64,10 +66,10 @@ jobs:
           - percona:8.0
     steps:
       - name: Check out package
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with: { path: 'mysql-kit' }
       - name: Check out dependent
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: vapor/fluent-mysql-driver
           path: fluent-mysql-driver
@@ -85,15 +87,14 @@ jobs:
         dbimage:
           - mysql:5.7
           - mysql:8.0
-          - mysql:9.3
+          - mysql:9.6
           - mariadb:10.4
           - mariadb:11
           - percona:8.0
         runner:
-          # List is deliberately incomplete; we want to avoid running 50 jobs on every commit
-          - swift:5.10-jammy
-          - swift:6.0-noble
+          - swift:6.0-jammy
           - swift:6.1-noble
+          - swift:6.2-noble
     container: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     services:
@@ -105,8 +106,10 @@ jobs:
           MYSQL_PASSWORD: test_password
           MYSQL_DATABASE: test_database
     steps:
+      - name: Install curl
+        run: apt-get update && apt-get install -y curl
       - name: Check out package
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Run local tests with coverage and TSan
         run: swift test --enable-code-coverage --sanitize=thread
       - name: Submit coverage report to Codecov.io
@@ -121,9 +124,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - macos-version: macos-14
-            xcode-version: latest-stable
           - macos-version: macos-15
+            xcode-version: latest-stable
+          - macos-version: macos-26
             xcode-version: latest-stable
     runs-on: ${{ matrix.macos-version }}
     steps:
@@ -146,7 +149,7 @@ jobs:
               GRANT ALL PRIVILEGES ON test_database.* TO test_username@localhost;
           SQL
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Run tests with code coverage
         run: swift test --enable-code-coverage
         env: { MYSQL_HOSTNAME: '127.0.0.1' }
