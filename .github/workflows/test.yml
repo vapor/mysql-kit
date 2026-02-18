@@ -106,6 +106,8 @@ jobs:
           MYSQL_PASSWORD: test_password
           MYSQL_DATABASE: test_database
     steps:
+      - name: Install curl
+        run: apt-get update && apt-get install -y curl
       - name: Check out package
         uses: actions/checkout@v6
       - name: Run local tests with coverage and TSan
