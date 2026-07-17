@@ -126,4 +126,4 @@ let sql = mysql.sql() // SQLDatabase
 let planets = try sql.select().column("*").from("planets").all().wait()
 ```
 
-Visit [SQLKit's docs](https://api.vapor.codes/sqlkit/documentation/sqlkit) for more information on using `SQLDatabase`. 
+Visit [SQLKit's docs](https://api.vapor.codes/sqlkit/) for more information on using `SQLDatabase`. 
